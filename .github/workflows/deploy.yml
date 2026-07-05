@@ -57,6 +57,10 @@ jobs:
 
   deploy:
     needs: build
+    # The github-pages environment only permits deployments from the default
+    # branch, so run this job on main only. On PR branches the build/test job
+    # still runs; deploy is skipped (not failed) until the change is merged.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
