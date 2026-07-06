@@ -40,4 +40,24 @@ describe('ear-training generator', () => {
       expect(t.options).toContain(t.answer);
     }
   });
+
+  it('generates key-signature questions with a matching accidental count', () => {
+    for (let i = 0; i < 60; i++) {
+      const t = genEarTarget('keysig');
+      expect(t.type).toBe('keysig');
+      if (t.type === 'keysig') {
+        expect(t.keyPc).toBeGreaterThanOrEqual(0);
+        expect(t.keyPc).toBeLessThanOrEqual(11);
+        expect(t.accidentals.length).toBeLessThanOrEqual(6);
+        // every drawn accidental is a single sharp/flat glyph on the staff
+        const glyphs = new Set(t.accidentals.map((a) => a.glyph));
+        expect(glyphs.size).toBeLessThanOrEqual(1);
+        // C major is the only signature with no accidentals
+        if (t.accidentals.length === 0) expect(t.answer).toBe('C major');
+      }
+      expect(t.options).toHaveLength(4);
+      expect(t.options).toContain(t.answer);
+      expect(new Set(t.options).size).toBe(4);
+    }
+  });
 });
