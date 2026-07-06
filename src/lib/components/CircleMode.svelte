@@ -19,21 +19,28 @@
 
   <div style="display:flex;align-items:flex-start;gap:26px;flex-wrap:wrap;justify-content:center">
     <!-- the wheel -->
-    <div style="position:relative;width:min(92vw,340px);aspect-ratio:1;flex:none">
+    <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:12px">
+    <div style="position:relative;width:min(92vw,340px);aspect-ratio:1">
       <div style="position:absolute;inset:6px;border-radius:50%;border:1px dashed #cbb792;animation:{v.ringAnim}"></div>
       <svg viewBox="0 0 360 360" style="position:absolute;inset:0;width:100%;height:100%;display:block">
         {#each v.wedges as w, i (i)}
-          <path d={w.d} fill={w.fill} stroke="#f1e7d3" stroke-width="2.5" style="cursor:pointer" role="button" tabindex="-1" onclick={() => store.wedgeClick(w)} onkeydown={(e) => e.key === 'Enter' && store.wedgeClick(w)} />
+          <path d={w.d} fill={w.fill} stroke={w.stroke} stroke-width={w.strokeW} style="cursor:pointer" role="button" tabindex="-1" onclick={() => store.wedgeClick(w)} onkeydown={(e) => e.key === 'Enter' && store.wedgeClick(w)} />
         {/each}
         <circle cx="180" cy="180" r="74" fill="#2c2014" stroke="#c2562e" stroke-width="2"></circle>
         <text x="180" y="222" text-anchor="middle" style="font-family:var(--mono);font-size:8px;letter-spacing:.12em;fill:#9c8460">{v.circleLabel}</text>
       </svg>
       {#each v.wedges as w, i (i)}
-        <div class="serif click" style="position:absolute;left:{w.majL}%;top:{w.majT}%;transform:translate(-50%,-50%);font-weight:600;font-size:19px;color:{w.tfill}" role="button" tabindex="-1" onclick={() => store.wedgeClick(w)} onkeydown={(e) => e.key === 'Enter' && store.wedgeClick(w)}>{w.major}</div>
-        <div class="mono click" style="position:absolute;left:{w.minL}%;top:{w.minT}%;transform:translate(-50%,-50%);font-size:8.5px;color:{w.mfill}" role="button" tabindex="-1" onclick={() => store.wedgeClick(w)} onkeydown={(e) => e.key === 'Enter' && store.wedgeClick(w)}>{w.minor}</div>
+        <div class="serif click" style="position:absolute;left:{w.majL}%;top:{w.majT}%;transform:translate(-50%,-50%);font-weight:600;font-size:19px;color:{w.tfill};text-shadow:0 1px 1px rgba(255,247,232,.35)" role="button" tabindex="-1" onclick={() => store.wedgeClick(w)} onkeydown={(e) => e.key === 'Enter' && store.wedgeClick(w)}>{w.major}</div>
+        <div class="mono click" style="position:absolute;left:{w.minL}%;top:{w.minT}%;transform:translate(-50%,-50%);font-size:10.5px;font-weight:600;letter-spacing:.02em;color:{w.mfill}" role="button" tabindex="-1" onclick={() => store.wedgeClick(w)} onkeydown={(e) => e.key === 'Enter' && store.wedgeClick(w)}>{w.minor}</div>
       {/each}
       <div class="serif" style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);font-weight:600;font-size:33px;color:#f1e7d3;pointer-events:none;white-space:nowrap">{v.centerKey}</div>
       <div class="mono" style="position:absolute;left:50%;top:55%;transform:translate(-50%,-50%);font-size:10px;letter-spacing:.08em;color:#d8a86f;pointer-events:none">{v.keySig}</div>
+    </div>
+    <div class="mono" style="display:flex;gap:16px;font-size:9px;letter-spacing:.08em;color:#7a6b50">
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#a8432a;display:inline-block"></span>MAJOR</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#2f6d52;display:inline-block"></span>MINOR</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#c2562e;display:inline-block;box-shadow:0 0 0 2px #8f3c1c inset"></span>TONIC</div>
+    </div>
     </div>
 
     <!-- legend + diatonic -->

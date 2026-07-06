@@ -33,6 +33,7 @@ export interface ChordChip { name: string; roman: string; notes: string; fnColor
 export interface PaletteChip { name: string; roman: string; fnColor?: string; tint?: string; border?: string; ch: Chord }
 export interface Wedge {
   d: string; fill: string; tfill: string; mfill: string;
+  stroke: string; strokeW: string;
   majL: string; majT: string; minL: string; minT: string;
   major: string; minor: string; pc: number; minView: boolean;
 }
@@ -404,7 +405,7 @@ export class WorkbenchStore {
     const isFourths = this.circleDir === 'fourths';
     let order = CIRCLE.slice();
     if (isFourths) order = [order[0], ...order.slice(1).reverse()];
-    const cx = 180, cy = 180, rO = 160, rI = 98, rMaj = 146, rMin = 116;
+    const cx = 180, cy = 180, rO = 158, rI = 94, rMaj = 131, rMin = 110;
     const pol = (r: number, deg: number): [number, number] => { const a = (deg - 90) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
     const activeMajPc = isMinView ? (t + 3) % 12 : t;
     const tonicIdx = order.indexOf(activeMajPc);
@@ -416,15 +417,32 @@ export class WorkbenchStore {
       const p1 = pol(rO, a0), p2 = pol(rO, a1), p3 = pol(rI, a1), p4 = pol(rI, a0);
       const d = `M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${rO} ${rO} 0 0 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} L${p3[0].toFixed(1)} ${p3[1].toFixed(1)} A${rI} ${rI} 0 0 0 ${p4[0].toFixed(1)} ${p4[1].toFixed(1)} Z`;
       const lp = pol(rMaj, c), mp = pol(rMin, c);
-      let fill = '#f0e3c8', tf = '#5c4a30', mf = '#a08a64';
-      if (i === tonicIdx) { fill = '#c2562e'; tf = '#fff'; mf = '#f2cdb6'; }
-      else if (pc === domPc) { fill = '#d98a4f'; tf = '#3a230f'; mf = '#7a4a25'; }
-      else if (pc === subPc) { fill = '#cdae5a'; tf = '#3a300f'; mf = '#6f5c20'; }
-      else if (pc === relPc) { fill = '#dbcaa6'; }
+      // Quality-coded labels: terracotta = major chord, green = minor chord,
+      // so you can read chord quality at a glance (like a coloured wheel).
+      // The big/outer label is a major chord in the major view (a minor chord
+      // in the minor view); the small/inner label is always the opposite.
+      const MAJ_TX = '#a8432a', MIN_TX = '#2f6d52';       // on plain parchment
+      const MAJ_HI = '#ffffff', MIN_HI = '#cdefda';       // on a strong fill
+      const bigIsMajor = !isMinView;
+      let fill = '#f2e7cd', stroke = '#f1e7d3', strokeW = '2.5';
+      let tf = bigIsMajor ? MAJ_TX : MIN_TX;              // big / outer label
+      let mf = bigIsMajor ? MIN_TX : MAJ_TX;              // small / inner label
+      if (i === tonicIdx) {
+        fill = '#c2562e'; stroke = '#8f3c1c'; strokeW = '3';
+        tf = bigIsMajor ? MAJ_HI : MIN_HI; mf = bigIsMajor ? MIN_HI : MAJ_HI;
+      } else if (pc === domPc) {
+        fill = '#dd7b40';
+        tf = bigIsMajor ? MAJ_HI : '#1a4b37'; mf = bigIsMajor ? '#d7f0e0' : MAJ_HI;
+      } else if (pc === subPc) {
+        fill = '#d9a83f';
+        tf = bigIsMajor ? '#3a2607' : '#14523a'; mf = bigIsMajor ? '#14523a' : '#3a2607';
+      } else if (pc === relPc) {
+        fill = '#e8dcbc';
+      }
       const majName = spell(pc, t);
       const minName = spell((pc + 9) % 12, t).toLowerCase() + 'm';
       return {
-        d, fill, tfill: tf, mfill: mf,
+        d, fill, tfill: tf, mfill: mf, stroke, strokeW,
         majL: (lp[0] / 360 * 100).toFixed(2), majT: (lp[1] / 360 * 100).toFixed(2),
         minL: (mp[0] / 360 * 100).toFixed(2), minT: (mp[1] / 360 * 100).toFixed(2),
         major: isMinView ? minName : majName, minor: isMinView ? majName : minName,
