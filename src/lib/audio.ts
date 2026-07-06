@@ -43,6 +43,51 @@ export class AudioEngine {
     midis.forEach((m, i) => this.voice(m, t0 + i * stagger, dur));
   }
 
+  // Voices currently sustained by a press-and-hold gesture.
+  private held: Array<{ o1: OscillatorNode; o2: OscillatorNode; g: GainNode }> = [];
+
+  /**
+   * Start a set of notes and hold them indefinitely (press-and-hold). Any
+   * previously held notes are released first. Call releaseHeld() on pointer-up.
+   */
+  holdMidis(midis: number[], stagger = 0): void {
+    this.ensure();
+    this.releaseHeld();
+    const ctx = this.actx!;
+    const t0 = ctx.currentTime + 0.02;
+    midis.forEach((m, i) => {
+      const t = t0 + i * stagger;
+      const f = 440 * Math.pow(2, (m - 69) / 12);
+      const o1 = ctx.createOscillator(); o1.type = 'triangle'; o1.frequency.value = f;
+      const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f; o2.detune.value = 5;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.16, t + 0.12); // settle to a sustain level and hold
+      o1.connect(g); o2.connect(g); g.connect(this.master!);
+      o1.start(t); o2.start(t);
+      this.held.push({ o1, o2, g });
+    });
+  }
+
+  /** Release any held notes with a short, natural tail (also covers quick taps). */
+  releaseHeld(): void {
+    if (!this.actx || !this.held.length) return;
+    const ctx = this.actx;
+    const t = ctx.currentTime;
+    const voices = this.held;
+    this.held = [];
+    voices.forEach(({ o1, o2, g }) => {
+      try {
+        const gain = g.gain as AudioParam & { cancelAndHoldAtTime?: (t: number) => void };
+        if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(t);
+        else { gain.cancelScheduledValues(t); gain.setValueAtTime(Math.max(gain.value, 0.0002), t); }
+        gain.exponentialRampToValueAtTime(0.0006, t + 0.55);
+        o1.stop(t + 0.6); o2.stop(t + 0.6);
+      } catch { /* voice already stopped */ }
+    });
+  }
+
   /** Resume the context in response to a user gesture (autoplay policies). */
   resume(): void {
     this.ensure();
