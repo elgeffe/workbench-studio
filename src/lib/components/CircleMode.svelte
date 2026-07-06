@@ -59,9 +59,9 @@
         </div>
       </div>
       <div class="caption" style="font-size:13px;margin-bottom:10px;max-width:340px">{v.extCaption}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;margin-bottom:14px">
         {#each v.diatonic as c, i (i)}
-          <div class="click" style="flex:1 1 76px;min-width:72px;border-radius:6px;border:1.5px solid {c.border};background:{c.bg};padding:9px 4px 8px;text-align:center;box-shadow:{c.shadow}" role="button" tabindex="0" onclick={() => store.previewChord(c)} onkeydown={(e) => e.key === 'Enter' && store.previewChord(c)}>
+          <div class="click" style="border-radius:6px;border:1.5px solid {c.border};background:{c.bg};padding:9px 4px 8px;text-align:center;box-shadow:{c.shadow}" role="button" tabindex="0" onclick={() => store.previewChord(c)} onkeydown={(e) => e.key === 'Enter' && store.previewChord(c)}>
             <div class="mono" style="font-size:10px;color:{c.fnColor};letter-spacing:.04em">{c.roman}</div>
             <div style="font-size:15px;font-weight:600;color:#2c261d;line-height:1.05;margin-top:2px;white-space:nowrap">{c.name}</div>
             <div style="height:3px;border-radius:2px;margin-top:6px;background:{c.fnColor}"></div>
