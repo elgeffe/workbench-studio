@@ -32,10 +32,10 @@ export interface DiatonicView extends DiatonicChord {
 export interface ChordChip { name: string; roman: string; notes: string; fnColor: string; border: string; bg: string; shadow: string; ch: Chord }
 export interface PaletteChip { name: string; roman: string; fnColor?: string; tint?: string; border?: string; ch: Chord }
 export interface Wedge {
-  d: string; fill: string; tfill: string; mfill: string;
-  stroke: string; strokeW: string;
-  majL: string; majT: string; minL: string; minT: string;
-  major: string; minor: string; pc: number; minView: boolean;
+  d: string; fill: string; stroke: string; strokeW: string;
+  name: string; numeral: string; nameColor: string; numColor: string; nameSize: string;
+  nameL: string; nameT: string; numL: string; numT: string;
+  pc: number; ring: 'maj' | 'min';
 }
 export interface FretCell { showLit: boolean; dot: boolean; barreThru: boolean; litOpacity: string; finger: string; dotColor: string; note: string; bg: string; glow: string }
 export interface FretRow { label: string; openDot: { color: string } | null; cells: FretCell[] }
@@ -405,68 +405,77 @@ export class WorkbenchStore {
     const isFourths = this.circleDir === 'fourths';
     let order = CIRCLE.slice();
     if (isFourths) order = [order[0], ...order.slice(1).reverse()];
-    const cx = 180, cy = 180, rO = 158, rI = 94, rMaj = 131, rMin = 110;
+    // Two fixed concentric rings, reference-wheel style: major keys outside,
+    // each key's relative minor directly inside it. The whole wheel rotates so
+    // the active key sits at 12 o'clock, and the 7 diatonic chords of that key
+    // light up as one contiguous tinted block with roman numerals:
+    // red = major chords, green = minor chords, blue = the diminished one.
+    const cx = 180, cy = 180, rO = 158, rB = 110, rC = 68;
+    const rMajName = 131, rMajNum = 149, rMinName = 88, rMinNum = 103;
     const pol = (r: number, deg: number): [number, number] => { const a = (deg - 90) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+    const band = (r1: number, r0: number, a0: number, a1: number): string => {
+      const p1 = pol(r1, a0), p2 = pol(r1, a1), p3 = pol(r0, a1), p4 = pol(r0, a0);
+      return `M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${r1} ${r1} 0 0 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} L${p3[0].toFixed(1)} ${p3[1].toFixed(1)} A${r0} ${r0} 0 0 0 ${p4[0].toFixed(1)} ${p4[1].toFixed(1)} Z`;
+    };
+    const pct = (p: [number, number]): [string, string] => [(p[0] / 360 * 100).toFixed(2), (p[1] / 360 * 100).toFixed(2)];
     const activeMajPc = isMinView ? (t + 3) % 12 : t;
     const tonicIdx = order.indexOf(activeMajPc);
-    const domPc = (activeMajPc + 7) % 12, subPc = (activeMajPc + 5) % 12, relPc = (activeMajPc + 9) % 12;
-    // Rotate the ring so the active key always sits at 12 o'clock; the labels
-    // are re-placed by polar maths so they stay upright as the wheel turns.
-    const wedges: Wedge[] = order.map((pc, i) => {
+    const M = activeMajPc;
+    // Where each roman numeral lands: outer ring keyed by major root pc,
+    // inner ring keyed by minor root pc. Same 7 wedges in both views —
+    // only the numerals (and which wedge is "home") change.
+    const majNum: Record<number, string> = isMinView
+      ? { [M]: 'III', [(t + 8) % 12]: 'VI', [(t + 10) % 12]: 'VII' }
+      : { [M]: 'I', [(M + 5) % 12]: 'IV', [(M + 7) % 12]: 'V' };
+    const minNum: Record<number, string> = isMinView
+      ? { [t]: 'i', [(t + 5) % 12]: 'iv', [(t + 7) % 12]: 'v', [(t + 2) % 12]: 'ii°' }
+      : { [(M + 9) % 12]: 'vi', [(M + 2) % 12]: 'ii', [(M + 4) % 12]: 'iii', [(M + 11) % 12]: 'vii°' };
+    const wedges: Wedge[] = [];
+    order.forEach((pc, i) => {
       const c = (i - tonicIdx) * 30, a0 = c - 15, a1 = c + 15;
-      const p1 = pol(rO, a0), p2 = pol(rO, a1), p3 = pol(rI, a1), p4 = pol(rI, a0);
-      const d = `M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${rO} ${rO} 0 0 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} L${p3[0].toFixed(1)} ${p3[1].toFixed(1)} A${rI} ${rI} 0 0 0 ${p4[0].toFixed(1)} ${p4[1].toFixed(1)} Z`;
-      const lp = pol(rMaj, c), mp = pol(rMin, c);
-      // Quality-coded labels: terracotta = major chord, green = minor chord,
-      // so you can read chord quality at a glance (like a coloured wheel).
-      // The big/outer label is a major chord in the major view (a minor chord
-      // in the minor view); the small/inner label is always the opposite.
-      const MAJ_TX = '#a8432a', MIN_TX = '#2f6d52';       // on plain parchment
-      const MAJ_HI = '#ffffff', MIN_HI = '#cdefda';       // on a strong fill
-      const bigIsMajor = !isMinView;
-      let fill = '#f2e7cd', stroke = '#f1e7d3', strokeW = '2.5';
-      let tf = bigIsMajor ? MAJ_TX : MIN_TX;              // big / outer label
-      let mf = bigIsMajor ? MIN_TX : MAJ_TX;              // small / inner label
-      if (i === tonicIdx) {
-        fill = '#c2562e'; stroke = '#8f3c1c'; strokeW = '3';
-        tf = bigIsMajor ? MAJ_HI : MIN_HI; mf = bigIsMajor ? MIN_HI : MAJ_HI;
-      } else if (pc === domPc) {
-        fill = '#dd7b40';
-        tf = bigIsMajor ? MAJ_HI : '#1a4b37'; mf = bigIsMajor ? '#d7f0e0' : MAJ_HI;
-      } else if (pc === subPc) {
-        fill = '#d9a83f';
-        tf = bigIsMajor ? '#3a2607' : '#14523a'; mf = bigIsMajor ? '#14523a' : '#3a2607';
-      } else if (pc === relPc) {
-        fill = '#e8dcbc';
-      }
-      const majName = spell(pc, t);
-      const minName = spell((pc + 9) % 12, t).toLowerCase() + 'm';
-      return {
-        d, fill, tfill: tf, mfill: mf, stroke, strokeW,
-        majL: (lp[0] / 360 * 100).toFixed(2), majT: (lp[1] / 360 * 100).toFixed(2),
-        minL: (mp[0] / 360 * 100).toFixed(2), minT: (mp[1] / 360 * 100).toFixed(2),
-        major: isMinView ? minName : majName, minor: isMinView ? majName : minName,
-        pc, minView: isMinView,
-      };
+      const mnPc = (pc + 9) % 12; // relative minor sharing this spoke
+      // outer wedge — the major key
+      const oNum = majNum[pc] || '';
+      let oFill = '#f3e8ce', oStroke = '#f1e7d3', oSw = '2', oName = '#8a7a5c', oNumC = '#8f3c1c';
+      if (oNum === 'I') { oFill = '#c2562e'; oStroke = '#8f3c1c'; oSw = '3'; oName = '#fff'; oNumC = '#ffd9c6'; }
+      else if (oNum) { oFill = '#eec49f'; oName = '#8f3c1c'; }
+      const onp = pct(pol(rMajName, c)), oup = pct(pol(rMajNum, c));
+      wedges.push({
+        d: band(rO, rB, a0, a1), fill: oFill, stroke: oStroke, strokeW: oSw,
+        name: spell(pc, t), numeral: oNum, nameColor: oName, numColor: oNumC, nameSize: '18px',
+        nameL: onp[0], nameT: onp[1], numL: oup[0], numT: oup[1], pc, ring: 'maj',
+      });
+      // inner wedge — its relative minor
+      const iNum = minNum[mnPc] || '';
+      let iFill = '#ebdfc1', iStroke = '#f1e7d3', iSw = '2', iName = '#95835f', iNumC = '#2d5c48';
+      if (iNum === 'i') { iFill = '#3f6b5f'; iStroke = '#2d5045'; iSw = '3'; iName = '#fff'; iNumC = '#cdeeda'; }
+      else if (iNum.includes('°')) { iFill = '#ccdbe9'; iName = '#46617c'; iNumC = '#46617c'; }
+      else if (iNum) { iFill = '#c8dfd0'; iName = '#2d5c48'; }
+      const inp = pct(pol(rMinName, c)), iup = pct(pol(rMinNum, c));
+      wedges.push({
+        d: band(rB, rC, a0, a1), fill: iFill, stroke: iStroke, strokeW: iSw,
+        name: spell(mnPc, t).toLowerCase() + 'm', numeral: iNum, nameColor: iName, numColor: iNumC, nameSize: '12.5px',
+        nameL: inp[0], nameT: inp[1], numL: iup[0], numT: iup[1], pc: mnPc, ring: 'min',
+      });
     });
     const circleLabel = isFourths ? 'CIRCLE OF 4THS' : 'CIRCLE OF 5THS';
-    const circleHint = isMinView
-      ? 'Minor keys outside, relative majors inside. Tap a key to make it your minor tonic.'
-      : isFourths
-        ? 'Each step clockwise moves DOWN a fifth (up a fourth) — the direction real progressions resolve: V→I→IV…'
-        : 'Each step clockwise adds a sharp (up a fifth). Neighbours share 6 of 7 notes — the closest keys.';
-    return { wedges, circleLabel, circleHint };
+    const dirHint = isFourths
+      ? 'Clockwise now moves up a fourth (down a fifth) — the direction progressions resolve: V→I→IV…'
+      : 'Clockwise moves up a fifth and adds one sharp; neighbours share 6 of 7 notes.';
+    const famHint = isMinView
+      ? `The tinted block is every chord in ${spell(t, t)} minor: i·iv·v minor (green), III·VI·VII major (red), ii° diminished (blue).`
+      : `The tinted block is every chord in ${spell(t, t)} major: I·IV·V major (red), ii·iii·vi minor (green), vii° diminished (blue).`;
+    return { wedges, circleLabel, circleHint: dirHint + ' ' + famHint };
   }
 
   wedgeClick(w: Wedge): void {
     const minorFamily: ScaleId[] = ['aeolian', 'dorian', 'phrygian', 'locrian', 'harmonic', 'melodic'];
     const majorFamily: ScaleId[] = ['ionian', 'lydian', 'mixolydian'];
-    if (w.minView) {
-      this.tonicPc = (w.pc + 9) % 12;
+    this.tonicPc = w.pc;
+    if (w.ring === 'min') {
       this.scale = minorFamily.includes(this.scale) ? this.scale : 'aeolian';
       this.circleView = 'min';
     } else {
-      this.tonicPc = w.pc;
       this.scale = majorFamily.includes(this.scale) ? this.scale : 'ionian';
       this.circleView = 'maj';
     }
