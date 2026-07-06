@@ -11,6 +11,20 @@
     {/each}
   </div>
 
+  {#if v.earStaff}
+    <div style="display:flex;justify-content:center;margin:2px 0 16px">
+      <svg viewBox="0 0 150 80" width="248" height="132" style="background:#fbf4e4;border:1px solid #e0cfae;border-radius:10px" aria-label="key signature staff">
+        {#each [20, 30, 40, 50, 60] as ly (ly)}
+          <line x1="10" y1={ly} x2="142" y2={ly} stroke="#b7a888" stroke-width="1" />
+        {/each}
+        <text x="11" y="53" style="font-family:serif;font-size:46px;fill:#3a2c1d">𝄞</text>
+        {#each v.earStaff.accidentals as a, i (i)}
+          <text x={47 + i * 11} y={a.y} text-anchor="middle" dominant-baseline="middle" style="font-family:serif;font-size:20px;font-weight:600;fill:#2c261d">{a.glyph}</text>
+        {/each}
+      </svg>
+    </div>
+  {/if}
+
   <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 22px">
     <div class="caption" style="font-size:15px;color:#8a7350;text-align:center">{v.earPrompt}</div>
     <div class="click" style="margin-top:10px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle at 40% 35%, #d2693f, #a83f1c);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 0 #7c2f15, 0 14px 24px -8px rgba(124,47,21,.6)" role="button" tabindex="0" onclick={() => store.playEar()} onkeydown={(e) => e.key === 'Enter' && store.playEar()}>

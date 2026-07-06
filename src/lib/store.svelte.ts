@@ -115,14 +115,26 @@ export class WorkbenchStore {
     this.tonicPc = pc;
     if (scale) this.scale = scale;
   }
+  // Direct key pick from the top strip — keep the current scale flavour, just
+  // move the tonic (so "C" + "harmonic minor" stays harmonic when you retune).
+  setTonicKey(pc: number): void { this.tonicPc = pc; }
 
   toggleSound(): void { this.soundOn = !this.soundOn; }
-  setScale(id: ScaleId): void { this.scale = id; }
+  // Choosing a scale also swings the circle to the matching tonality so the
+  // wheel and the diatonic harmonisation always agree (minor scales → min view).
+  setScale(id: ScaleId): void {
+    this.scale = id;
+    this.circleView = SCALES[id].int.includes(3) ? 'min' : 'maj';
+  }
   setExt(id: string): void { this.ext = id; }
   setMode(m: Mode): void { this.mode = m; }
   setDock(open: boolean): void { this.dockOpen = open; }
   toggleDock(): void { this.dockOpen = !this.dockOpen; }
-  setCircleView(v: 'maj' | 'min'): void { this.circleView = v; }
+  setCircleView(v: 'maj' | 'min'): void {
+    this.circleView = v;
+    if (v === 'maj') { if (SCALES[this.scale].int.includes(3)) this.scale = 'ionian'; }
+    else if (!SCALES[this.scale].int.includes(3)) this.scale = 'aeolian';
+  }
   setCircleDir(d: 'fifths' | 'fourths'): void { this.circleDir = d; }
   setWsGenre(i: number): void { this.wsGenre = i; }
   setWsStyle(s: WsStyle): void { this.wsStyle = s; }
@@ -325,7 +337,8 @@ export class WorkbenchStore {
     this.earRevealed = false;
     this.earPicked = null;
     this.earMsg = '';
-    this.singleTimers.push(setTimeout(() => this.playEar(target), 260));
+    // Key-signature is a reading drill — don't auto-play the answer aloud.
+    if (level !== 'keysig') this.singleTimers.push(setTimeout(() => this.playEar(target), 260));
   }
   playEar(t?: EarTarget | null): void {
     t = t || this.earTarget;
@@ -336,6 +349,9 @@ export class WorkbenchStore {
       this.singleTimers.push(setTimeout(() => this.playMidis([t.root, t.root + t.semis], 1.1), 1100));
     } else if (t.type === 'chord') {
       this.playMidis(chordMidis(t.rootPc, t.quality), 1.3, 0.02);
+    } else if (t.type === 'keysig') {
+      const base = 60 + t.keyPc;
+      [...MAJOR, 12].forEach((iv, i) => this.singleTimers.push(setTimeout(() => this.playMidis([base + iv], 0.4), i * 150)));
     } else {
       let d = 0;
       t.seq.forEach((c) => {
@@ -353,6 +369,7 @@ export class WorkbenchStore {
     let ac = this.activeChord;
     if (t.type === 'chord') ac = { rootPc: t.rootPc, quality: t.quality, roman: '?', fn: 'T' };
     if (t.type === 'prog') { const c = t.seq[0]; ac = { rootPc: (t.tonic + c[0]) % 12, quality: c[1], roman: '?', fn: 'T' }; }
+    if (t.type === 'keysig') ac = { rootPc: t.keyPc, quality: 'maj', roman: 'I', fn: 'T' };
     this.earRevealed = true;
     this.earPicked = label;
     this.earScore += ok ? 1 : 0;
@@ -392,8 +409,10 @@ export class WorkbenchStore {
     const activeMajPc = isMinView ? (t + 3) % 12 : t;
     const tonicIdx = order.indexOf(activeMajPc);
     const domPc = (activeMajPc + 7) % 12, subPc = (activeMajPc + 5) % 12, relPc = (activeMajPc + 9) % 12;
+    // Rotate the ring so the active key always sits at 12 o'clock; the labels
+    // are re-placed by polar maths so they stay upright as the wheel turns.
     const wedges: Wedge[] = order.map((pc, i) => {
-      const c = i * 30, a0 = c - 15, a1 = c + 15;
+      const c = (i - tonicIdx) * 30, a0 = c - 15, a1 = c + 15;
       const p1 = pol(rO, a0), p2 = pol(rO, a1), p3 = pol(rI, a1), p4 = pol(rI, a0);
       const d = `M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${rO} ${rO} 0 0 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} L${p3[0].toFixed(1)} ${p3[1].toFixed(1)} A${rI} ${rI} 0 0 0 ${p4[0].toFixed(1)} ${p4[1].toFixed(1)} Z`;
       const lp = pol(rMaj, c), mp = pol(rMin, c);
@@ -422,8 +441,17 @@ export class WorkbenchStore {
   }
 
   wedgeClick(w: Wedge): void {
-    if (w.minView) this.setTonic((w.pc + 9) % 12, 'aeolian');
-    else this.setTonic(w.pc, 'ionian');
+    const minorFamily: ScaleId[] = ['aeolian', 'dorian', 'phrygian', 'locrian', 'harmonic', 'melodic'];
+    const majorFamily: ScaleId[] = ['ionian', 'lydian', 'mixolydian'];
+    if (w.minView) {
+      this.tonicPc = (w.pc + 9) % 12;
+      this.scale = minorFamily.includes(this.scale) ? this.scale : 'aeolian';
+      this.circleView = 'min';
+    } else {
+      this.tonicPc = w.pc;
+      this.scale = majorFamily.includes(this.scale) ? this.scale : 'ionian';
+      this.circleView = 'maj';
+    }
   }
 
   private buildInstruments(root: number, litSet: Set<number>, chordSet: Set<number>) {
@@ -651,7 +679,7 @@ export class WorkbenchStore {
     }
 
     // ear
-    const earLevels = ([['interval', 'Intervals'], ['chord', 'Chord quality'], ['prog', 'Progressions']] as Array<[EarLevel, string]>).map(([id, name]) => {
+    const earLevels = ([['interval', 'Intervals'], ['chord', 'Chord quality'], ['prog', 'Progressions'], ['keysig', 'Key signatures']] as Array<[EarLevel, string]>).map(([id, name]) => {
       const on = this.earLevel === id;
       return { id, name, border: on ? '#3f6b5f' : '#cbb792', bg: on ? '#3f6b5f' : '#f6efe0', fg: on ? '#fff' : '#5c4a30' };
     });
@@ -670,7 +698,11 @@ export class WorkbenchStore {
       interval: 'Two notes — name the distance between them',
       chord: 'One chord — name its quality',
       prog: 'A short progression — name the roman numerals',
+      keysig: 'Read the key signature — name the major key',
     };
+    const earStaff = this.earTarget && this.earTarget.type === 'keysig'
+      ? { accidentals: this.earTarget.accidentals }
+      : null;
 
     // instruments
     const inst = this.buildInstruments(root, litSet, chordSet);
@@ -683,6 +715,11 @@ export class WorkbenchStore {
       centerKey: this.circleView === 'min' ? spell(t, t) + 'm' : spell(t, t),
       scaleNotes: scaleNotesStr(t, this.scale), scaleCaption: SCALES[this.scale].char,
       modeList: (Object.keys(SCALES) as ScaleId[]).map((id) => ({ id, name: SCALES[id].short, bg: this.scale === id ? '#3f6b5f' : '#f1e6cf', fg: this.scale === id ? '#fff' : '#5c4a30', border: this.scale === id ? '#3f6b5f' : '#d8c7a8' })),
+      // direct key picker — chromatic, labelled with each key's usual spelling
+      keyChips: ([[0, 'C'], [1, 'D♭'], [2, 'D'], [3, 'E♭'], [4, 'E'], [5, 'F'], [6, 'F♯'], [7, 'G'], [8, 'A♭'], [9, 'A'], [10, 'B♭'], [11, 'B']] as Array<[number, string]>).map(([pc, label]) => ({ pc, label, active: t === pc, bg: t === pc ? '#c2562e' : '#f1e6cf', fg: t === pc ? '#fff' : '#5c4a30', border: t === pc ? '#c2562e' : '#d8c7a8' })),
+      // scale-type picker split into the four everyday scales + the modes
+      scalePrimary: (['ionian', 'aeolian', 'harmonic', 'melodic'] as ScaleId[]).map((id) => ({ id, name: SCALES[id].short, bg: this.scale === id ? '#3f6b5f' : '#f1e6cf', fg: this.scale === id ? '#fff' : '#5c4a30', border: this.scale === id ? '#3f6b5f' : '#d8c7a8' })),
+      scaleModes: (['dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian'] as ScaleId[]).map((id) => ({ id, name: SCALES[id].short, bg: this.scale === id ? '#3f6b5f' : '#f1e6cf', fg: this.scale === id ? '#fff' : '#5c4a30', border: this.scale === id ? '#3f6b5f' : '#d8c7a8' })),
       extLevels: ([['triad', '3'], ['7', '7'], ['9', '9'], ['11', '11'], ['13', '13']] as Array<[string, string]>).map(([id, label]) => ({ id, label, bg: this.ext === id ? '#c2562e' : 'transparent', fg: this.ext === id ? '#fff' : '#d8a86f' })),
       extLevelsLight: ([['triad', '3'], ['7', '7'], ['9', '9'], ['11', '11'], ['13', '13']] as Array<[string, string]>).map(([id, label]) => ({ id, label, bg: this.ext === id ? '#c2562e' : 'transparent', fg: this.ext === id ? '#fff' : '#8a7350' })),
       extCaption: ({ triad: 'Triads — root, 3rd, 5th. The skeleton of every chord.', '7': 'Add the 7th — color and forward motion. Where jazz harmony begins.', '9': 'Add the 9th (the 2nd, an octave up) — lush tension stacked over the 7th.', '11': 'Add the 11th (the 4th, an octave up). Natural 11 clashes with a major 3rd, so players raise it (♯11) or drop the 3rd — it sits naturally on minor chords.', '13': 'Add the 13th (the 6th, an octave up) — the tallest tertian stack. Notes get omitted (often the 5th, sometimes the 11) and voiced by feel.' } as Record<string, string>)[this.ext],
@@ -723,7 +760,7 @@ export class WorkbenchStore {
       exploreOpen, selName, selRoman, extChips, buildSubs,
       tempo: this.tempo, suggestText,
       // ear
-      earLevels, earOptions, earPrompt: earPromptMap[this.earLevel],
+      earLevels, earOptions, earPrompt: earPromptMap[this.earLevel], earStaff,
       earScore: this.earScore + '/' + this.earTotal, earStreak: this.earStreak,
       earMsg: this.earMsg, earMsgColor: this.earMsg.indexOf('✓') >= 0 ? '#3f6b5f' : '#c2562e',
       // dock / instruments
