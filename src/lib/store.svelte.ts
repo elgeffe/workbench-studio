@@ -88,7 +88,10 @@ export class WorkbenchStore {
   private singleTimers: ReturnType<typeof setTimeout>[] = [];
 
   constructor() {
-    this.genEar('interval');
+    // Prepare an ear-training target so the tab isn't empty, but stay silent:
+    // playing here would queue notes on the not-yet-resumed AudioContext and
+    // fire them on the user's first gesture, doubling their first chord.
+    this.genEar('interval', false);
   }
 
   destroy(): void {
@@ -345,7 +348,7 @@ export class WorkbenchStore {
   }
 
   // ---- ear training ----
-  genEar(level: EarLevel): void {
+  genEar(level: EarLevel, play = true): void {
     const target = genEarTarget(level);
     this.earLevel = level;
     this.earTarget = target;
@@ -353,7 +356,7 @@ export class WorkbenchStore {
     this.earPicked = null;
     this.earMsg = '';
     // Key-signature is a reading drill — don't auto-play the answer aloud.
-    if (level !== 'keysig') this.singleTimers.push(setTimeout(() => this.playEar(target), 260));
+    if (play && level !== 'keysig') this.singleTimers.push(setTimeout(() => this.playEar(target), 260));
   }
   playEar(t?: EarTarget | null): void {
     t = t || this.earTarget;
