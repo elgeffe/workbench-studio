@@ -24,15 +24,16 @@
           <div style="position:absolute;left:{openLeft}px;top:50%;transform:translateY(-50%);width:{openSz}px;height:{openSz}px;border-radius:50%;background:#fff5e6;border:{openBorder}px solid {s.openDot.color};box-shadow:0 1px 3px rgba(0,0,0,.35);z-index:4"></div>
         {/if}
         {#each s.cells as c, i (i)}
+          {@const onNut = i === 0 ? 'position:absolute;left:0;top:50%;transform:translate(-50%,-50%);z-index:4;' : ''}
           <div class="fret-cell" style="height:{cellH}px">
             {#if c.barreThru}
               <div style="position:absolute;top:-3px;bottom:-3px;width:8px;border-radius:4px;background:rgba(48,32,18,.5);z-index:1"></div>
             {/if}
             {#if c.dot}
-              <div class="fret-dot" style="width:{dotSz}px;height:{dotSz}px;font-size:9px;background:{c.dotColor};box-shadow:0 0 0 1px {c.dotColor},0 1px 3px rgba(0,0,0,.35)">{c.finger}</div>
+              <div class="fret-dot" style="{onNut}width:{dotSz}px;height:{dotSz}px;font-size:9px;background:{c.dotColor};box-shadow:0 0 0 1px {c.dotColor},0 1px 3px rgba(0,0,0,.35)">{c.finger}</div>
             {/if}
             {#if c.showLit}
-              <div class="fret-note" style="width:{noteSz}px;height:{noteSz}px;font-size:8px;background:{c.bg};box-shadow:{c.glow};opacity:{c.litOpacity}">{c.note}</div>
+              <div class="fret-note" style="{onNut}width:{noteSz}px;height:{noteSz}px;font-size:8px;background:{c.bg};box-shadow:{c.glow};opacity:{c.litOpacity}">{c.note}</div>
             {/if}
           </div>
         {/each}
