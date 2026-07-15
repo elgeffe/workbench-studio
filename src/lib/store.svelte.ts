@@ -227,6 +227,18 @@ export class WorkbenchStore {
     this.jzSel = -1;
     this.jzStep = -1;
   }
+  /** Reorder the progression: move the chord at `from` to sit at index `to`. */
+  jzMove(from: number, to: number): void {
+    const n = this.jzChanges.length;
+    if (from < 0 || from >= n || to < 0 || to >= n || from === to) return;
+    const arr = this.jzChanges.slice();
+    const selRef = this.jzSel >= 0 ? arr[this.jzSel] : null; // follow the selection by identity
+    const [moved] = arr.splice(from, 1);
+    arr.splice(to, 0, moved);
+    this.jzChanges = arr;
+    this.jzSel = selRef ? arr.indexOf(selRef) : -1;
+    this.jzStep = -1;
+  }
   jzSelect(i: number): void {
     const ch = this.jzChanges[i];
     if (!ch) return;

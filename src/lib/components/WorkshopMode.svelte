@@ -5,6 +5,25 @@
   const v = $derived(store.view);
 
   function add(e: Event, ch: Chord) { e.stopPropagation(); store.addChange(ch); }
+
+  // Drag-to-reorder for the progression strip (desktop pointer drag).
+  let dragFrom = $state(-1);
+  let dragOver = $state(-1);
+  function onDragStart(e: DragEvent, i: number) {
+    dragFrom = i;
+    if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); }
+  }
+  function onDragOver(e: DragEvent, i: number) {
+    e.preventDefault(); // allow the drop
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    if (dragOver !== i) dragOver = i;
+  }
+  function onDrop(e: DragEvent, i: number) {
+    e.preventDefault();
+    if (dragFrom >= 0 && dragFrom !== i) store.jzMove(dragFrom, i);
+    dragFrom = -1; dragOver = -1;
+  }
+  function onDragEnd() { dragFrom = -1; dragOver = -1; }
 </script>
 
 <div>
@@ -18,13 +37,13 @@
   </div>
 
   <!-- progression strip -->
-  <div class="eyebrow" style="margin-bottom:7px">Your progression</div>
+  <div class="eyebrow" style="margin-bottom:7px">Your progression{#if v.jzChangesView.length > 1} · drag to reorder{/if}</div>
   <div style="display:flex;gap:8px;overflow-x:auto;min-height:78px;padding:11px;background:#ece0c6;border:1px dashed #cbb792;border-radius:9px;margin-bottom:12px;align-items:center">
     {#if v.jzEmpty}
       <span class="caption" style="font-size:14px;color:#9a8763;max-width:440px">Empty — load a starting point below, or tap a chord to pre-hear it and its <b>+</b> to place it. Tap a placed chord to explore variations.</span>
     {/if}
     {#each v.jzChangesView as s, i (i)}
-      <div class="click" style="position:relative;flex:none;min-width:86px;border-radius:8px;border:1.5px solid {s.border};background:{s.bg};box-shadow:{s.shadow};padding:0 12px 8px;text-align:center;overflow:visible" role="button" tabindex="0" onclick={() => store.jzSelect(i)} onkeydown={(e) => e.key === 'Enter' && store.jzSelect(i)}>
+      <div class="click" draggable="true" style="position:relative;flex:none;min-width:86px;border-radius:8px;border:1.5px solid {s.border};background:{s.bg};box-shadow:{s.shadow};padding:0 12px 8px;text-align:center;overflow:visible;cursor:grab;opacity:{dragFrom === i ? 0.35 : 1};outline:{dragOver === i && dragFrom !== i ? '2px solid #c2562e' : 'none'};outline-offset:2px" role="button" tabindex="0" onclick={() => store.jzSelect(i)} onkeydown={(e) => e.key === 'Enter' && store.jzSelect(i)} ondragstart={(e) => onDragStart(e, i)} ondragover={(e) => onDragOver(e, i)} ondrop={(e) => onDrop(e, i)} ondragend={onDragEnd}>
         <div style="height:4px;margin:0 -12px 6px;background:{s.fnColor};border-radius:8px 8px 0 0"></div>
         <div class="mono" style="font-size:8.5px;color:{s.fnColor}">{s.roman}</div>
         <div style="font-size:16px;font-weight:700;color:#2c261d;line-height:1.05;white-space:nowrap">{s.name}</div>
