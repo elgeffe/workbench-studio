@@ -83,6 +83,7 @@ export class WorkbenchStore {
   // ---- non-reactive ----
   private audio = new AudioEngine();
   private jloop: ReturnType<typeof setInterval> | null = null;
+  private jIdx = 0; // next progression index the live loop will play
   private seqTimers: ReturnType<typeof setTimeout>[] = [];
   private singleTimers: ReturnType<typeof setTimeout>[] = [];
 
@@ -245,7 +246,10 @@ export class WorkbenchStore {
     arr[i] = nc;
     this.jzChanges = arr;
     this.activeChord = jChVoiced(arr[i], this.jzVoicing);
-    if (!this.jzPlaying) this.playChord(jChVoiced(arr[i], this.jzVoicing), 0.02);
+    // The live loop reads this.jzChanges directly, so it already picks up the
+    // swap on its next tick. If the chord being replaced is the one sounding
+    // right now, re-strike it so the change is heard immediately.
+    if (!this.jzPlaying || i === this.jzStep) this.playChord(jChVoiced(arr[i], this.jzVoicing), 0.02);
   }
   insertV(): void {
     const i = this.jzSel;
@@ -288,38 +292,34 @@ export class WorkbenchStore {
   toggleJazzPlay(): void {
     if (this.jzPlaying) this.stopJazz(); else this.startJazz();
   }
-  startJazz(): void {
+  private jBeatMs(): number { return (60000 / this.tempo) * 2; }
+  // One beat of the live loop. Reads this.jzChanges fresh each tick (never a
+  // captured snapshot) so chords swapped, added, or removed mid-playback take
+  // effect on the very next beat.
+  private jTick = (): void => {
     const chs = this.jzChanges;
-    if (!chs.length) return;
+    if (!chs.length) { this.stopJazz(); return; }
+    const i = this.jIdx % chs.length;
+    const ch = chs[i];
+    this.jzStep = i;
+    this.activeChord = jChVoiced(ch, this.jzVoicing);
+    this.playChord(jChVoiced(ch, this.jzVoicing), 0.02);
+    this.jIdx = i + 1;
+  };
+  startJazz(): void {
+    if (!this.jzChanges.length) return;
     this.audio.resume();
-    let i = 0;
-    const beat = () => (60000 / this.tempo) * 2;
-    const step = () => {
-      const ch = chs[i % chs.length];
-      this.jzStep = i % chs.length;
-      this.activeChord = jChVoiced(ch, this.jzVoicing);
-      this.playChord(jChVoiced(ch, this.jzVoicing), 0.02);
-      i++;
-    };
+    this.jIdx = 0;
     this.jzPlaying = true;
-    step();
-    this.jloop = setInterval(step, beat());
+    this.jTick();
+    this.jloop = setInterval(this.jTick, this.jBeatMs());
   }
   setTempo(v: number): void {
     this.tempo = v;
     if (this.jzPlaying && this.jloop) {
+      // jIdx already points at the next chord; just re-time the interval.
       clearInterval(this.jloop);
-      const ms = (60000 / v) * 2;
-      const chs = this.jzChanges;
-      let i = (this.jzStep + 1) || 0;
-      const step = () => {
-        const ch = chs[i % chs.length];
-        this.jzStep = i % chs.length;
-        this.activeChord = jChVoiced(ch, this.jzVoicing);
-        this.playChord(jChVoiced(ch, this.jzVoicing), 0.02);
-        i++;
-      };
-      this.jloop = setInterval(step, ms);
+      this.jloop = setInterval(this.jTick, this.jBeatMs());
     }
   }
 
