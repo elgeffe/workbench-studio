@@ -104,20 +104,24 @@ export class AudioEngine {
     this.held = [];
     voices.forEach(({ o1, o2, g, start }) => {
       try {
-        // Never release mid-attack: a quick tap still rings until the envelope
-        // has settled, then decays with the same natural tail as a long hold.
-        const rel = Math.max(t, start + 0.15);
         const gain = g.gain as AudioParam & { cancelAndHoldAtTime?: (t: number) => void };
-        if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(rel);
-        else {
-          gain.cancelScheduledValues(rel);
-          gain.setValueAtTime(rel > t ? 0.16 : Math.max(gain.value, 0.0002), rel);
+        const rel = Math.max(t, start + 0.15);
+        if (rel > t && typeof gain.cancelAndHoldAtTime === 'function') {
+          // Quick tap: let the attack settle so the note still rings, then decay.
+          gain.cancelAndHoldAtTime(rel);
+        } else {
+          // Sustained release: decay from the note's exact current level.
+          // Anchoring at the real value — rather than holding a scheduled point
+          // and ramping off it — avoids the corner discontinuity (a harsh tick)
+          // that cancelAndHold + ramp can leave on a loud, settled note.
+          gain.cancelScheduledValues(t);
+          gain.setValueAtTime(Math.max(gain.value, 0.0002), t);
         }
-        gain.exponentialRampToValueAtTime(0.0006, rel + 0.5);
-        // Ease to true silence before stopping — an exponential ramp never
-        // reaches zero, so cutting the oscillator here would click.
-        gain.linearRampToValueAtTime(0, rel + 0.55);
-        o1.stop(rel + 0.56); o2.stop(rel + 0.56);
+        // Exponential body decay, then a long linear glide to TRUE zero: an
+        // exponential ramp never reaches 0, so stopping on its residual clicks.
+        gain.exponentialRampToValueAtTime(0.02, rel + 0.18);
+        gain.linearRampToValueAtTime(0, rel + 0.6);
+        o1.stop(rel + 0.62); o2.stop(rel + 0.62);
       } catch { /* voice already stopped */ }
     });
   }

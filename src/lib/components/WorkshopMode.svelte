@@ -5,6 +5,40 @@
   const v = $derived(store.view);
 
   function add(e: Event, ch: Chord) { e.stopPropagation(); store.addChange(ch); }
+
+  // Drag-to-reorder for the progression strip. Pointer events cover mouse and
+  // touch alike; we hit-test the pointer against the chips to find the target,
+  // and only start dragging past a small threshold so taps still select.
+  let dragFrom = $state(-1);
+  let dragOver = $state(-1);
+  let dragging = $state(false);
+  let startX = 0, startY = 0;
+
+  function onPointerDown(e: PointerEvent, i: number) {
+    if (!e.isPrimary || (e.button ?? 0) > 0) return;
+    if ((e.target as HTMLElement).closest('[data-x]')) return; // let the × button handle its own tap
+    dragFrom = i; dragOver = i; dragging = false;
+    startX = e.clientX; startY = e.clientY;
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* no active pointer */ }
+  }
+  function onPointerMove(e: PointerEvent) {
+    if (dragFrom < 0) return;
+    if (!dragging) {
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) < 6) return; // still a tap
+      dragging = true;
+    }
+    e.preventDefault(); // suppress scroll/selection while dragging
+    const chip = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.closest('[data-chip]') as HTMLElement | null;
+    if (chip?.dataset.chip != null) dragOver = +chip.dataset.chip;
+  }
+  function onPointerUp(e: PointerEvent, i: number) {
+    if (dragFrom < 0) return; // gesture started on the × button — ignore
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+    if (dragging && dragOver >= 0 && dragOver !== dragFrom) store.jzMove(dragFrom, dragOver);
+    else if (!dragging) store.jzSelect(i); // a tap selects, as before
+    dragFrom = -1; dragOver = -1; dragging = false;
+  }
+  function onPointerCancel() { dragFrom = -1; dragOver = -1; dragging = false; }
 </script>
 
 <div>
@@ -18,18 +52,18 @@
   </div>
 
   <!-- progression strip -->
-  <div class="eyebrow" style="margin-bottom:7px">Your progression</div>
+  <div class="eyebrow" style="margin-bottom:7px">Your progression{#if v.jzChangesView.length > 1} · drag to reorder{/if}</div>
   <div style="display:flex;gap:8px;overflow-x:auto;min-height:78px;padding:11px;background:#ece0c6;border:1px dashed #cbb792;border-radius:9px;margin-bottom:12px;align-items:center">
     {#if v.jzEmpty}
       <span class="caption" style="font-size:14px;color:#9a8763;max-width:440px">Empty — load a starting point below, or tap a chord to pre-hear it and its <b>+</b> to place it. Tap a placed chord to explore variations.</span>
     {/if}
     {#each v.jzChangesView as s, i (i)}
-      <div class="click" style="position:relative;flex:none;min-width:86px;border-radius:8px;border:1.5px solid {s.border};background:{s.bg};box-shadow:{s.shadow};padding:0 12px 8px;text-align:center;overflow:visible" role="button" tabindex="0" onclick={() => store.jzSelect(i)} onkeydown={(e) => e.key === 'Enter' && store.jzSelect(i)}>
+      <div class="click" data-chip={i} style="position:relative;flex:none;min-width:86px;border-radius:8px;border:1.5px solid {s.border};background:{s.bg};box-shadow:{s.shadow};padding:0 12px 8px;text-align:center;overflow:visible;cursor:grab;touch-action:none;user-select:none;opacity:{dragging && dragFrom === i ? 0.35 : 1};outline:{dragging && dragOver === i && dragFrom !== i ? '2px solid #c2562e' : 'none'};outline-offset:2px" role="button" tabindex="0" onpointerdown={(e) => onPointerDown(e, i)} onpointermove={onPointerMove} onpointerup={(e) => onPointerUp(e, i)} onpointercancel={onPointerCancel} onkeydown={(e) => e.key === 'Enter' && store.jzSelect(i)}>
         <div style="height:4px;margin:0 -12px 6px;background:{s.fnColor};border-radius:8px 8px 0 0"></div>
         <div class="mono" style="font-size:8.5px;color:{s.fnColor}">{s.roman}</div>
         <div style="font-size:16px;font-weight:700;color:#2c261d;line-height:1.05;white-space:nowrap">{s.name}</div>
         <div class="mono" style="font-size:8px;color:#8a7350;margin-top:2px;white-space:nowrap">{s.notes}</div>
-        <div class="mono" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#c2562e;color:#fff;font-size:12px;line-height:17px;text-align:center;border:1.5px solid #f5edda" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.jzRemove(i); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.jzRemove(i); } }}>×</div>
+        <div class="mono" data-x style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#c2562e;color:#fff;font-size:12px;line-height:17px;text-align:center;border:1.5px solid #f5edda" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.jzRemove(i); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.jzRemove(i); } }}>×</div>
       </div>
     {/each}
   </div>

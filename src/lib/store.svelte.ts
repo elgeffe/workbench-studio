@@ -88,7 +88,10 @@ export class WorkbenchStore {
   private singleTimers: ReturnType<typeof setTimeout>[] = [];
 
   constructor() {
-    this.genEar('interval');
+    // Prepare an ear-training target so the tab isn't empty, but stay silent:
+    // playing here would queue notes on the not-yet-resumed AudioContext and
+    // fire them on the user's first gesture, doubling their first chord.
+    this.genEar('interval', false);
   }
 
   destroy(): void {
@@ -224,6 +227,18 @@ export class WorkbenchStore {
     this.jzSel = -1;
     this.jzStep = -1;
   }
+  /** Reorder the progression: move the chord at `from` to sit at index `to`. */
+  jzMove(from: number, to: number): void {
+    const n = this.jzChanges.length;
+    if (from < 0 || from >= n || to < 0 || to >= n || from === to) return;
+    const arr = this.jzChanges.slice();
+    const selRef = this.jzSel >= 0 ? arr[this.jzSel] : null; // follow the selection by identity
+    const [moved] = arr.splice(from, 1);
+    arr.splice(to, 0, moved);
+    this.jzChanges = arr;
+    this.jzSel = selRef ? arr.indexOf(selRef) : -1;
+    this.jzStep = -1;
+  }
   jzSelect(i: number): void {
     const ch = this.jzChanges[i];
     if (!ch) return;
@@ -345,7 +360,7 @@ export class WorkbenchStore {
   }
 
   // ---- ear training ----
-  genEar(level: EarLevel): void {
+  genEar(level: EarLevel, play = true): void {
     const target = genEarTarget(level);
     this.earLevel = level;
     this.earTarget = target;
@@ -353,7 +368,7 @@ export class WorkbenchStore {
     this.earPicked = null;
     this.earMsg = '';
     // Key-signature is a reading drill — don't auto-play the answer aloud.
-    if (level !== 'keysig') this.singleTimers.push(setTimeout(() => this.playEar(target), 260));
+    if (play && level !== 'keysig') this.singleTimers.push(setTimeout(() => this.playEar(target), 260));
   }
   playEar(t?: EarTarget | null): void {
     t = t || this.earTarget;
