@@ -44,7 +44,7 @@ export class AudioEngine {
   }
 
   // Voices currently sustained by a press-and-hold gesture.
-  private held: Array<{ o1: OscillatorNode; o2: OscillatorNode; g: GainNode }> = [];
+  private held: Array<{ o1: OscillatorNode; o2: OscillatorNode; g: GainNode; start: number }> = [];
 
   /**
    * Start a set of notes and hold them indefinitely (press-and-hold). Any
@@ -61,12 +61,13 @@ export class AudioEngine {
       const o1 = ctx.createOscillator(); o1.type = 'triangle'; o1.frequency.value = f;
       const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f; o2.detune.value = 5;
       const g = ctx.createGain();
+      g.gain.value = 0.0001; // silent from creation — the default of 1 pops if released before t
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
       g.gain.exponentialRampToValueAtTime(0.16, t + 0.12); // settle to a sustain level and hold
       o1.connect(g); o2.connect(g); g.connect(this.master!);
       o1.start(t); o2.start(t);
-      this.held.push({ o1, o2, g });
+      this.held.push({ o1, o2, g, start: t });
     });
   }
 
@@ -77,13 +78,19 @@ export class AudioEngine {
     const t = ctx.currentTime;
     const voices = this.held;
     this.held = [];
-    voices.forEach(({ o1, o2, g }) => {
+    voices.forEach(({ o1, o2, g, start }) => {
       try {
+        // Never release mid-attack: a quick tap still rings until the envelope
+        // has settled, then decays with the same natural tail as a long hold.
+        const rel = Math.max(t, start + 0.15);
         const gain = g.gain as AudioParam & { cancelAndHoldAtTime?: (t: number) => void };
-        if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(t);
-        else { gain.cancelScheduledValues(t); gain.setValueAtTime(Math.max(gain.value, 0.0002), t); }
-        gain.exponentialRampToValueAtTime(0.0006, t + 0.55);
-        o1.stop(t + 0.6); o2.stop(t + 0.6);
+        if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(rel);
+        else {
+          gain.cancelScheduledValues(rel);
+          gain.setValueAtTime(rel > t ? 0.16 : Math.max(gain.value, 0.0002), rel);
+        }
+        gain.exponentialRampToValueAtTime(0.0006, rel + 0.55);
+        o1.stop(rel + 0.6); o2.stop(rel + 0.6);
       } catch { /* voice already stopped */ }
     });
   }
