@@ -22,17 +22,44 @@ export class AudioEngine {
     if (this.actx.state === 'suspended') void this.actx.resume();
   }
 
+  private warmed = false;
+
+  /**
+   * Push a slice of true silence through the output the first time it engages.
+   * The very first sound after an AudioContext starts carries a hardware
+   * transient (the "weird noise" on first press); letting that land in silence
+   * — and starting the first real note a beat later, once the stream is stable
+   * — keeps the first chord clean.
+   */
+  private warmup(): void {
+    const ctx = this.actx!;
+    const frames = Math.max(1, Math.ceil(ctx.sampleRate * 0.15));
+    const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start();
+    this.warmed = true;
+  }
+
   /**
    * Run scheduling work only once the context clock is actually advancing.
    * A freshly created context starts suspended with currentTime frozen at 0,
    * and resume() completes asynchronously; scheduling immediately would place
    * the first note's start and envelope in the past, glitching on first play.
+   * `lead` is extra start delay to keep the very first note clear of the
+   * device-startup transient — zero for every note after the first.
    */
-  private run(fn: () => void): void {
+  private run(fn: (lead: number) => void): void {
     this.ensure();
     const ctx = this.actx!;
-    if (ctx.state === 'running') fn();
-    else void ctx.resume().then(fn, fn);
+    const go = () => {
+      let lead = 0;
+      if (!this.warmed) { this.warmup(); lead = 0.14; }
+      fn(lead);
+    };
+    if (ctx.state === 'running') go();
+    else void ctx.resume().then(go, go);
   }
 
   private voice(midi: number, t: number, dur: number): void {
@@ -54,8 +81,8 @@ export class AudioEngine {
 
   /** Play a set of MIDI notes, optionally strummed with a per-note stagger. */
   playMidis(midis: number[], dur = 1.2, stagger = 0): void {
-    this.run(() => {
-      const t0 = this.actx!.currentTime + 0.03;
+    this.run((lead) => {
+      const t0 = this.actx!.currentTime + 0.03 + lead;
       midis.forEach((m, i) => this.voice(m, t0 + i * stagger, dur));
     });
   }
@@ -73,10 +100,10 @@ export class AudioEngine {
   holdMidis(midis: number[], stagger = 0): void {
     this.releaseHeld(); // silences previous notes and bumps holdSeq
     const id = this.holdSeq;
-    this.run(() => {
+    this.run((lead) => {
       if (this.holdSeq !== id) return; // superseded before the context was ready
       const ctx = this.actx!;
-      const t0 = ctx.currentTime + 0.02;
+      const t0 = ctx.currentTime + 0.02 + lead;
       midis.forEach((m, i) => {
         const t = t0 + i * stagger;
         const f = 440 * Math.pow(2, (m - 69) / 12);
@@ -104,20 +131,24 @@ export class AudioEngine {
     this.held = [];
     voices.forEach(({ o1, o2, g, start }) => {
       try {
-        // Never release mid-attack: a quick tap still rings until the envelope
-        // has settled, then decays with the same natural tail as a long hold.
-        const rel = Math.max(t, start + 0.15);
         const gain = g.gain as AudioParam & { cancelAndHoldAtTime?: (t: number) => void };
-        if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(rel);
-        else {
-          gain.cancelScheduledValues(rel);
-          gain.setValueAtTime(rel > t ? 0.16 : Math.max(gain.value, 0.0002), rel);
+        const rel = Math.max(t, start + 0.15);
+        if (rel > t && typeof gain.cancelAndHoldAtTime === 'function') {
+          // Quick tap: let the attack settle so the note still rings, then decay.
+          gain.cancelAndHoldAtTime(rel);
+        } else {
+          // Sustained release: decay from the note's exact current level.
+          // Anchoring at the real value — rather than holding a scheduled point
+          // and ramping off it — avoids the corner discontinuity (a harsh tick)
+          // that cancelAndHold + ramp can leave on a loud, settled note.
+          gain.cancelScheduledValues(t);
+          gain.setValueAtTime(Math.max(gain.value, 0.0002), t);
         }
-        gain.exponentialRampToValueAtTime(0.0006, rel + 0.5);
-        // Ease to true silence before stopping — an exponential ramp never
-        // reaches zero, so cutting the oscillator here would click.
-        gain.linearRampToValueAtTime(0, rel + 0.55);
-        o1.stop(rel + 0.56); o2.stop(rel + 0.56);
+        // Exponential body decay, then a long linear glide to TRUE zero: an
+        // exponential ramp never reaches 0, so stopping on its residual clicks.
+        gain.exponentialRampToValueAtTime(0.02, rel + 0.18);
+        gain.linearRampToValueAtTime(0, rel + 0.6);
+        o1.stop(rel + 0.62); o2.stop(rel + 0.62);
       } catch { /* voice already stopped */ }
     });
   }
