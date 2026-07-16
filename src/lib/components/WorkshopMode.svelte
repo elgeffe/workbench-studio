@@ -337,6 +337,27 @@
       <span class="mono" style="font-size:9px;letter-spacing:.05em;color:#a08a64">· 16 sixteenths = one bar per chord · ↑↓ approach the next chord · → lands its root early</span>
     </div>
 
+    <!-- BUILD YOUR OWN — a 16-step grid you edit by hand -->
+    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">BUILD YOUR OWN · tap a step to cycle its note · plays live in the loop</div>
+    <div class="click" style="border:1.5px solid {v.bassCustomSelected ? '#c2562e' : '#e0cfae'};background:{v.bassCustomSelected ? '#fbeede' : '#fbf6ea'};box-shadow:{v.bassCustomSelected ? '0 0 0 2px #c2562e' : 'none'};border-radius:9px;padding:11px 12px;margin-bottom:14px" role="button" tabindex="0" onclick={() => store.setBassPat('custom')} onkeydown={(e) => e.key === 'Enter' && store.setBassPat('custom')}>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <span style="font-size:16px;font-weight:700;color:#2c261d">Your line{#if v.bassCustomSelected} <span class="mono" style="font-size:8px;letter-spacing:.06em;color:#fff;background:#c2562e;padding:3px 7px;border-radius:9px;vertical-align:middle">ACTIVE</span>{/if}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="mono" style="font-size:8px;letter-spacing:.08em;color:#8a7350">SEED</span>
+          {#each v.bassSeedChips as sc (sc.id)}
+            <div class="mono click" style="font-size:9px;letter-spacing:.02em;padding:5px 9px;border-radius:6px;border:1px solid #cbb792;background:#f6efe0;color:#5c4a30;white-space:nowrap" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.seedBassCustom(sc.id); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.seedBassCustom(sc.id); } }}>{sc.name}</div>
+          {/each}
+          <div class="mono click" style="font-size:9px;letter-spacing:.04em;padding:5px 9px;border-radius:6px;border:1px solid #cbb792;color:#7a6b50;white-space:nowrap" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.clearBassCustom(); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.clearBassCustom(); } }}>CLEAR</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:2px">
+        {#each v.bassCustomCells as c, s (s)}
+          <div class="mono click" style="flex:1;height:34px;border-radius:3px;background:{c.bg};color:{c.fg};font-size:10px;line-height:34px;text-align:center;overflow:hidden;margin-left:{s > 0 && s % 4 === 0 ? '4px' : '0'};box-shadow:{c.label ? 'inset 0 -2px 0 rgba(0,0,0,.12)' : 'none'}" role="button" tabindex="0" aria-label={'step ' + (s + 1)} onclick={(e) => { e.stopPropagation(); store.cycleBassCell(s); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.cycleBassCell(s); } }}>{c.label}</div>
+        {/each}
+      </div>
+      <div class="caption" style="font-size:11.5px;color:#6b5a3e;margin-top:8px">Tap a step to cycle <b>rest → R → 3 → 5 → ♭7 → 8 → ×</b> (ghost). Seed from a groove above, then tweak — each note sustains to the next, and the line transposes through your progression when you hit <b>▶ PLAY</b>.</div>
+    </div>
+
     <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">TRICKS OF THE TRADE · tap to hear each move over your current chord</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
       {#each v.bassTricks as tk (tk.id)}
