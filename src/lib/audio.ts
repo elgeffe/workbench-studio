@@ -9,6 +9,15 @@ export class AudioEngine {
 
   private ensure(): void {
     if (!this.actx) {
+      // iOS silences Web Audio when the ring/silent switch is set to mute,
+      // because Safari treats it as "ambient" sound by default. Declaring the
+      // session as 'playback' — the category for media the user came to hear —
+      // makes it play through the mute switch, like a music or video app.
+      // Safari 16.4+ / iOS 16.4+; harmless (and ignored) elsewhere.
+      const nav = navigator as Navigator & { audioSession?: { type: string } };
+      if (nav.audioSession) {
+        try { nav.audioSession.type = 'playback'; } catch { /* unsupported value */ }
+      }
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.actx = new AC();
       this.master = this.actx.createGain();
