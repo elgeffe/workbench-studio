@@ -15,7 +15,7 @@ import {
   jazzVoicing, type DiatonicChord,
 } from './engine/theory';
 import {
-  genreDefs, patternDefs, jazzChapters, PAT_GROUPS, quickProgDefs, cadenceDefs,
+  genreDefs, patternDefs, jazzChapters, PAT_SHAPES_TAB, PAT_TABS, quickProgDefs, cadenceDefs,
   classicalProgDefs, jzBorrowDefs, jzSecondaryDefs, type ChordDef, type JazzChapter,
 } from './engine/data';
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
@@ -416,7 +416,9 @@ export class WorkbenchStore {
   private litInfo() {
     const t = this.tonicPc;
     const activePat = patternDefs().find((p) => p.id === this.patId) || patternDefs()[0];
-    if (this.mode === 'patterns') {
+    // The Chord Shapes tab is chord-driven, not scale-driven: fall through to the
+    // active-chord lighting below so tapping a shape lights that chord.
+    if (this.mode === 'patterns' && this.patCat !== PAT_SHAPES_TAB) {
       const ints = activePat.int || activePat.scaleInt || [];
       const lit = ints.map((i) => (t + i) % 12);
       const litSet = new Set(lit);
@@ -655,8 +657,9 @@ export class WorkbenchStore {
     }) : [];
 
     // patterns tab
-    const patCat = PAT_GROUPS.includes(this.patCat) ? this.patCat : 'Scales';
-    const patCatChips = PAT_GROUPS.map((g) => ({ name: g, border: g === patCat ? '#3f6b5f' : '#cbb792', bg: g === patCat ? '#3f6b5f' : '#f6efe0', fg: g === patCat ? '#fff' : '#5c4a30' }));
+    const patCat = PAT_TABS.includes(this.patCat) ? this.patCat : 'Scales';
+    const patShapesTab = patCat === PAT_SHAPES_TAB;
+    const patCatChips = PAT_TABS.map((g) => ({ name: g, border: g === patCat ? '#3f6b5f' : '#cbb792', bg: g === patCat ? '#3f6b5f' : '#f6efe0', fg: g === patCat ? '#fff' : '#5c4a30' }));
     const patChips = patternDefs().filter((p) => p.group === patCat).map((p) => ({ id: p.id, name: p.name, weight: p.id === activePat.id ? '700' : '500', border: p.id === activePat.id ? '#c2562e' : '#cbb792', bg: p.id === activePat.id ? '#fbeede' : '#f6efe0' }));
     const patInt = activePat.int || activePat.scaleInt || [];
     const patChordName = spell(t, t) + SUF[activePat.chord];
@@ -842,7 +845,7 @@ export class WorkbenchStore {
       subs,
       // patterns
       patCatChips, patChips, patName: activePat.name, patTip: activePat.tip, patChordName, activePat,
-      patDegrees, patSeqNotes, patHasSeq: !!activePat.seq, patShapes,
+      patDegrees, patSeqNotes, patHasSeq: !!activePat.seq, patShapes, patShapesTab,
       // learn
       jazzNav, jazzBlocks, jazzTitle: jzc.name, jazzIntro: jzc.intro, jazzTag: jzc.tag,
       jzChangesView, jzEmpty: this.jzChanges.length === 0,
@@ -858,8 +861,8 @@ export class WorkbenchStore {
       earMsg: this.earMsg, earMsgColor: this.earMsg.indexOf('✓') >= 0 ? '#3f6b5f' : '#c2562e',
       // dock / instruments
       dockExpanded: this.dockOpen, dockChevron: this.dockOpen ? '▼ HIDE' : '▲ SHOW',
-      dockName: this.mode === 'patterns' ? spell(t, t) + ' ' + activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
-      dockNotes: this.mode === 'patterns' ? patNotes + '   ·   over ' + patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
+      dockName: this.mode === 'patterns' && !patShapesTab ? spell(t, t) + ' ' + activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
+      dockNotes: this.mode === 'patterns' && !patShapesTab ? patNotes + '   ·   over ' + patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
       ...inst,
       fingerBg: this.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: this.fingerOn ? '#fff' : '#5c4a30',
       // mobile tab bar
