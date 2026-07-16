@@ -68,6 +68,9 @@ export class WorkbenchStore {
   wsGenre = $state(0);
   bassGroup = $state(BASS_GROUPS[0]);
   bassPatId = $state<string | null>('discopump');
+  // Bass-style mix: mute either half of the groove to study the other.
+  bassChordsOn = $state(true);
+  bassOn = $state(true);
   patCat = $state('Scales');
   patId = $state('major');
   jazzCh = $state(0);
@@ -160,6 +163,8 @@ export class WorkbenchStore {
     }
   }
   setBassGroup(g: string): void { this.bassGroup = g; }
+  toggleBassChords(): void { this.bassChordsOn = !this.bassChordsOn; }
+  toggleBassOn(): void { this.bassOn = !this.bassOn; }
   setBassPat(id: string | null): void {
     this.bassPatId = id;
     // Solo one-bar preview so you hear the groove before committing; a live
@@ -373,11 +378,13 @@ export class WorkbenchStore {
     const ch = chs[i];
     this.jzStep = i;
     this.activeChord = jChVoiced(ch, this.jzVoicing);
-    this.playChord(jChVoiced(ch, this.jzVoicing), 0.02);
+    // Bass-style mix: the chord comp can be muted to hear the line alone
+    // (the chord still lights the instruments — only the sound is skipped).
+    if (this.wsStyle !== 'bass' || this.bassChordsOn) this.playChord(jChVoiced(ch, this.jzVoicing), 0.02);
     this.jIdx = i + 1;
     // Bass style: lay the selected groove under this bar's chord, resolved
     // fresh each bar so pattern swaps and chord edits land on the next ONE.
-    if (this.wsStyle === 'bass' && this.bassPatId) {
+    if (this.wsStyle === 'bass' && this.bassOn && this.bassPatId) {
       const pat = BASS_PATTERNS.find((p) => p.id === this.bassPatId);
       if (pat) this.scheduleBassSteps(pat.steps, ch, chs[(i + 1) % chs.length], this.jBeatMs());
     }
@@ -922,7 +929,9 @@ export class WorkbenchStore {
       styBassBg: this.wsStyle === 'bass' ? '#c2562e' : 'transparent', styBassFg: this.wsStyle === 'bass' ? '#fff' : '#5c4a30',
       clDia, cadences, clProgs, invChips, showIIV, showV,
       bassGroupChips, bassPats, bassLegend, bassTricks,
-      bassActiveName: bassActive ? bassActive.name : 'none', bassOff: !this.bassPatId,
+      bassActiveName: bassActive ? bassActive.name : 'none',
+      mixChordsBg: this.bassChordsOn ? '#3f6b5f' : '#f6efe0', mixChordsFg: this.bassChordsOn ? '#fff' : '#5c4a30',
+      mixBassBg: this.bassOn ? '#3f6b5f' : '#f6efe0', mixBassFg: this.bassOn ? '#fff' : '#5c4a30',
       subs,
       // patterns
       patCatChips, patChips, patName: activePat.name, patTip: activePat.tip, patChordName, activePat,

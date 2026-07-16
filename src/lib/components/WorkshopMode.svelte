@@ -250,12 +250,20 @@
       {/each}
     </div>
 
-    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">THE BASSLINE · {v.bassActiveName} · follows each chord as the loop plays</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+      <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64">THE BASSLINE · {v.bassActiveName} · follows each chord as the loop plays</div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <span class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350">MIX</span>
+        <div style="display:flex;gap:3px;background:#ece0c6;border:1px solid #cbb792;border-radius:7px;padding:2px">
+          <div class="mono click" data-testid="mix-chords" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.mixChordsBg};color:{v.mixChordsFg}" role="button" tabindex="0" aria-pressed={v.mixChordsBg !== '#f6efe0'} onclick={() => store.toggleBassChords()} onkeydown={(e) => e.key === 'Enter' && store.toggleBassChords()}>♩ CHORDS</div>
+          <div class="mono click" data-testid="mix-bass" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.mixBassBg};color:{v.mixBassFg}" role="button" tabindex="0" aria-pressed={v.mixBassBg !== '#f6efe0'} onclick={() => store.toggleBassOn()} onkeydown={(e) => e.key === 'Enter' && store.toggleBassOn()}>♪ BASS</div>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px">
       {#each v.bassGroupChips as g (g.name)}
         <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.04em;padding:6px 11px;border-radius:6px;border:1px solid {g.border};background:{g.bg};color:{g.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setBassGroup(g.name)} onkeydown={(e) => e.key === 'Enter' && store.setBassGroup(g.name)}>{g.name}</div>
       {/each}
-      <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.04em;padding:6px 11px;border-radius:6px;border:1px solid {v.bassOff ? '#9a3f1f' : '#cbb792'};background:{v.bassOff ? '#9a3f1f' : '#f6efe0'};color:{v.bassOff ? '#fff' : '#5c4a30'};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setBassPat(null)} onkeydown={(e) => e.key === 'Enter' && store.setBassPat(null)}>✕ NO BASS</div>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
       {#each v.bassPats as p (p.id)}
@@ -295,6 +303,6 @@
         </div>
       {/each}
     </div>
-    <div class="caption" style="font-size:13.5px;color:#5c4a30">Load a progression, pick a groove, hit <b>▶ PLAY</b> — the bassline transposes itself through every change (in BASS each chord lasts a full 4-beat bar). Selecting a pattern previews one bar solo; watch it land on the bass fretboard in the side panel.</div>
+    <div class="caption" style="font-size:13.5px;color:#5c4a30">Load a progression, pick a groove, hit <b>▶ PLAY</b> — the bassline transposes itself through every change (in BASS each chord lasts a full 4-beat bar). Use <b>MIX</b> to mute the chords or the bass and study either half alone. Selecting a pattern previews one bar solo; watch it land on the bass fretboard in the side panel.</div>
   {/if}
 </div>
