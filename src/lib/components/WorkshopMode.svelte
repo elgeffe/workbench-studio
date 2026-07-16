@@ -6,39 +6,78 @@
 
   function add(e: Event, ch: Chord) { e.stopPropagation(); store.addChange(ch); }
 
-  // Drag-to-reorder for the progression strip. Pointer events cover mouse and
-  // touch alike; we hit-test the pointer against the chips to find the target,
-  // and only start dragging past a small threshold so taps still select.
+  // Drag-to-reorder for the progression strip, without stealing the scroll.
+  //
+  // The strip both scrolls horizontally and reorders by drag — the same swipe.
+  // We can't hand scrolling to the browser (touch-action) because a native pan
+  // fires pointercancel and kills the stream before a long-press can be seen,
+  // so we own the whole gesture (touch-action:none) and route it ourselves:
+  //   · touch swipe        → scroll the strip by hand (set scrollLeft)
+  //   · touch press-&-hold  → after HOLD_MS still, pick the chip up and reorder
+  //   · mouse drag          → reorder immediately past a small move threshold
+  // A clean touch/mouse tap still selects.
   let dragFrom = $state(-1);
   let dragOver = $state(-1);
-  let dragging = $state(false);
+  let dragging = $state(false); // reorder is live (chip picked up)
   let startX = 0, startY = 0;
+  let moved = false;            // travelled past the threshold — a swipe, not a tap
+  let touch = false;
+  let holdTimer: ReturnType<typeof setTimeout> | null = null;
+  let capEl: HTMLElement | null = null;
+  let capId = -1;
+  let stripEl: HTMLElement | null = null; // the scrollable strip, panned by hand
+  let startScroll = 0;
+  const HOLD_MS = 280, MOVE_TOL = 8;
+
+  function clearHold() { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } }
 
   function onPointerDown(e: PointerEvent, i: number) {
     if (!e.isPrimary || (e.button ?? 0) > 0) return;
     if ((e.target as HTMLElement).closest('[data-x]')) return; // let the × button handle its own tap
-    dragFrom = i; dragOver = i; dragging = false;
+    dragFrom = i; dragOver = i; dragging = false; moved = false;
     startX = e.clientX; startY = e.clientY;
-    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* no active pointer */ }
+    startScroll = stripEl ? stripEl.scrollLeft : 0;
+    touch = e.pointerType !== 'mouse';
+    capEl = e.currentTarget as HTMLElement; capId = e.pointerId;
+    try { capEl.setPointerCapture(capId); } catch { /* no active pointer */ }
+    if (touch) {
+      clearHold();
+      holdTimer = setTimeout(() => {
+        if (dragFrom === i && !moved) dragging = true; // held still → pick the chip up
+      }, HOLD_MS);
+    }
   }
   function onPointerMove(e: PointerEvent) {
     if (dragFrom < 0) return;
-    if (!dragging) {
-      if (Math.hypot(e.clientX - startX, e.clientY - startY) < 6) return; // still a tap
-      dragging = true;
+    if (dragging) {
+      e.preventDefault(); // suppress selection while carrying the chip
+      const chip = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.closest('[data-chip]') as HTMLElement | null;
+      if (chip?.dataset.chip != null) dragOver = +chip.dataset.chip;
+      return;
     }
-    e.preventDefault(); // suppress scroll/selection while dragging
+    const dx = e.clientX - startX;
+    if (Math.hypot(dx, e.clientY - startY) < MOVE_TOL) return; // still a tap / long-press
+    if (touch) {
+      // A swipe: it's a scroll, not a reorder. Cancel the pending long-press and
+      // pan the strip by hand for the rest of the gesture.
+      moved = true; clearHold();
+      if (stripEl) stripEl.scrollLeft = startScroll - dx;
+      return;
+    }
+    dragging = true; // mouse: begin dragging immediately
+    e.preventDefault();
     const chip = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.closest('[data-chip]') as HTMLElement | null;
     if (chip?.dataset.chip != null) dragOver = +chip.dataset.chip;
   }
   function onPointerUp(e: PointerEvent, i: number) {
+    clearHold();
     if (dragFrom < 0) return; // gesture started on the × button — ignore
     (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
     if (dragging && dragOver >= 0 && dragOver !== dragFrom) store.jzMove(dragFrom, dragOver);
-    else if (!dragging) store.jzSelect(i); // a tap selects, as before
-    dragFrom = -1; dragOver = -1; dragging = false;
+    else if (!dragging && !moved) store.jzSelect(i); // a clean tap selects, as before
+    dragFrom = -1; dragOver = -1; dragging = false; moved = false;
   }
-  function onPointerCancel() { dragFrom = -1; dragOver = -1; dragging = false; }
+  function onPointerCancel() { clearHold(); dragFrom = -1; dragOver = -1; dragging = false; moved = false; }
 </script>
 
 <div>
@@ -53,13 +92,13 @@
   </div>
 
   <!-- progression strip -->
-  <div class="eyebrow" style="margin-bottom:7px">Your progression{#if v.jzChangesView.length > 1} · drag to reorder{/if}</div>
-  <div style="display:flex;gap:8px;overflow-x:auto;min-height:78px;padding:11px;background:#ece0c6;border:1px dashed #cbb792;border-radius:9px;margin-bottom:12px;align-items:center">
+  <div class="eyebrow" style="margin-bottom:7px">Your progression{#if v.jzChangesView.length > 1} · {store.isDesktop ? 'drag to reorder' : 'long-press to reorder'}{/if}</div>
+  <div bind:this={stripEl} style="display:flex;gap:8px;overflow-x:auto;min-height:78px;padding:11px;background:#ece0c6;border:1px dashed #cbb792;border-radius:9px;margin-bottom:12px;align-items:center">
     {#if v.jzEmpty}
       <span class="caption" style="font-size:14px;color:#9a8763;max-width:440px">Empty — load a starting point below, or tap a chord to pre-hear it and its <b>+</b> to place it. Tap a placed chord to explore variations.</span>
     {/if}
     {#each v.jzChangesView as s, i (i)}
-      <div class="click" data-chip={i} style="position:relative;flex:none;min-width:86px;border-radius:8px;border:1.5px solid {s.border};background:{s.bg};box-shadow:{s.shadow};padding:0 12px 8px;text-align:center;overflow:visible;cursor:grab;touch-action:none;user-select:none;opacity:{dragging && dragFrom === i ? 0.35 : 1};outline:{dragging && dragOver === i && dragFrom !== i ? '2px solid #c2562e' : 'none'};outline-offset:2px" role="button" tabindex="0" onpointerdown={(e) => onPointerDown(e, i)} onpointermove={onPointerMove} onpointerup={(e) => onPointerUp(e, i)} onpointercancel={onPointerCancel} onkeydown={(e) => e.key === 'Enter' && store.jzSelect(i)}>
+      <div class="click" data-chip={i} style="position:relative;flex:none;min-width:86px;border-radius:8px;border:1.5px solid {s.border};background:{s.bg};box-shadow:{dragging && dragFrom === i ? '0 10px 22px -6px rgba(60,40,16,.5)' : s.shadow};padding:0 12px 8px;text-align:center;overflow:visible;cursor:grab;touch-action:none;user-select:none;transition:transform .08s ease;transform:{dragging && dragFrom === i ? 'scale(1.06)' : 'scale(1)'};z-index:{dragging && dragFrom === i ? 5 : 1};opacity:{dragging && dragFrom === i ? 0.9 : 1};outline:{dragging && dragOver === i && dragFrom !== i ? '2px solid #c2562e' : 'none'};outline-offset:2px" role="button" tabindex="0" onpointerdown={(e) => onPointerDown(e, i)} onpointermove={onPointerMove} onpointerup={(e) => onPointerUp(e, i)} onpointercancel={onPointerCancel} onkeydown={(e) => e.key === 'Enter' && store.jzSelect(i)}>
         <div style="height:4px;margin:0 -12px 6px;background:{s.fnColor};border-radius:8px 8px 0 0"></div>
         <div class="mono" style="font-size:8.5px;color:{s.fnColor}">{s.roman}</div>
         <div style="font-size:16px;font-weight:700;color:#2c261d;line-height:1.05;white-space:nowrap">{s.name}</div>
@@ -86,6 +125,13 @@
       <span class="mono" style="font-size:11px;color:#2c261d;width:34px;text-align:right">{v.tempo}</span>
     </div>
   </div>
+
+  {#if store.isDesktop}
+    <div class="mono" style="font-size:9px;letter-spacing:.08em;color:#a08a64;margin:-6px 0 16px;display:flex;align-items:center;gap:6px">
+      <span style="font-size:11px">⌨</span> Keys
+      <b style="color:#7a6b50">A S D F G H J</b> play the diatonic chords in order · <b style="color:#7a6b50">K</b> the tonic octave up · hold to sustain
+    </div>
+  {/if}
 
   <!-- explore selected -->
   {#if v.exploreOpen}
@@ -291,18 +337,27 @@
       <span class="mono" style="font-size:9px;letter-spacing:.05em;color:#a08a64">· 16 sixteenths = one bar per chord · ↑↓ approach the next chord · → lands its root early</span>
     </div>
 
-    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">TRICKS OF THE TRADE · tap to hear each move over your current chord</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
-      {#each v.bassTricks as tk (tk.id)}
-        <div class="click" style="flex:1 1 205px;min-width:195px;max-width:310px;border:1px solid #e0cfae;background:#fbf6ea;border-radius:8px;padding:10px 12px" role="button" tabindex="0" onclick={() => store.playTrick(tk.id)} onkeydown={(e) => e.key === 'Enter' && store.playTrick(tk.id)}>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px">
-            <span style="font-size:15px;font-weight:700;color:#2c261d">{tk.name}</span>
-            <span class="mono" style="font-size:9px;color:#c2562e">▶</span>
-          </div>
-          <div class="caption" style="font-size:12px;color:#6b5a3e">{tk.why}</div>
+    <!-- BUILD YOUR OWN — a 16-step grid you edit by hand -->
+    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">BUILD YOUR OWN · tap a step to cycle its note · plays live in the loop</div>
+    <div class="click" style="border:1.5px solid {v.bassCustomSelected ? '#c2562e' : '#e0cfae'};background:{v.bassCustomSelected ? '#fbeede' : '#fbf6ea'};box-shadow:{v.bassCustomSelected ? '0 0 0 2px #c2562e' : 'none'};border-radius:9px;padding:11px 12px;margin-bottom:14px" role="button" tabindex="0" onclick={() => store.setBassPat('custom')} onkeydown={(e) => e.key === 'Enter' && store.setBassPat('custom')}>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <span style="font-size:16px;font-weight:700;color:#2c261d">Your line{#if v.bassCustomSelected} <span class="mono" style="font-size:8px;letter-spacing:.06em;color:#fff;background:#c2562e;padding:3px 7px;border-radius:9px;vertical-align:middle">ACTIVE</span>{/if}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="mono" style="font-size:8px;letter-spacing:.08em;color:#8a7350">SEED</span>
+          {#each v.bassSeedChips as sc (sc.id)}
+            <div class="mono click" style="font-size:9px;letter-spacing:.02em;padding:5px 9px;border-radius:6px;border:1px solid #cbb792;background:#f6efe0;color:#5c4a30;white-space:nowrap" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.seedBassCustom(sc.id); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.seedBassCustom(sc.id); } }}>{sc.name}</div>
+          {/each}
+          <div class="mono click" style="font-size:9px;letter-spacing:.04em;padding:5px 9px;border-radius:6px;border:1px solid #cbb792;color:#7a6b50;white-space:nowrap" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.clearBassCustom(); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.clearBassCustom(); } }}>CLEAR</div>
         </div>
-      {/each}
+      </div>
+      <div style="display:flex;gap:2px">
+        {#each v.bassCustomCells as c, s (s)}
+          <div class="mono click" style="flex:1;height:34px;border-radius:3px;background:{c.bg};color:{c.fg};font-size:10px;line-height:34px;text-align:center;overflow:hidden;margin-left:{s > 0 && s % 4 === 0 ? '4px' : '0'};box-shadow:{c.label ? 'inset 0 -2px 0 rgba(0,0,0,.12)' : 'none'}" role="button" tabindex="0" aria-label={'step ' + (s + 1)} onclick={(e) => { e.stopPropagation(); store.cycleBassCell(s); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.cycleBassCell(s); } }}>{c.label}</div>
+        {/each}
+      </div>
+      <div class="caption" style="font-size:11.5px;color:#6b5a3e;margin-top:8px">Tap a step to cycle <b>rest → R → 3 → 5 → ♭7 → 8 → ×</b> (ghost). Seed from a groove above, then tweak — each note sustains to the next, and the line transposes through your progression when you hit <b>▶ PLAY</b>.</div>
     </div>
-    <div class="caption" style="font-size:13.5px;color:#5c4a30">Load a progression, pick a groove, hit <b>▶ PLAY</b> — the bassline transposes itself through every change (in BASS each chord lasts a full 4-beat bar). Use <b>MIX</b> to mute the chords or the bass and study either half alone. Selecting a pattern previews one bar solo; watch it land on the bass fretboard in the side panel.</div>
+
+    <div class="caption" style="font-size:13.5px;color:#5c4a30">Load a progression, pick a groove, hit <b>▶ PLAY</b> — the bassline transposes itself through every change (in BASS each chord lasts a full 4-beat bar). Use <b>MIX</b> to mute the chords or the bass and study either half alone. Selecting a pattern previews one bar solo; watch it land on the bass fretboard in the side panel. Learn the moves behind these lines in <b>Learn → Tricks of the trade</b>.</div>
   {/if}
 </div>

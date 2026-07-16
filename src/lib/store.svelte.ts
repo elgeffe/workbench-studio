@@ -21,7 +21,7 @@ import {
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
 import {
   BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS, BASS_ROLE_META, BASS_TOK_LABEL,
-  bassRole, bassRootMidi, resolveBassStep, type BassStep, type BassRole,
+  bassRole, bassRootMidi, resolveBassStep, type BassStep, type BassRole, type DegTok,
 } from './engine/bass';
 import { AudioEngine } from './audio';
 
@@ -68,6 +68,10 @@ export class WorkbenchStore {
   wsGenre = $state(0);
   bassGroup = $state(BASS_GROUPS[0]);
   bassPatId = $state<string | null>('discopump');
+  // The user's hand-built groove: 16 cells (one 16th each), null = a rest. Its
+  // id in the pattern list is the special 'custom'. Step lengths are computed
+  // (each note sustains to the next), so a cell only holds its degree or ghost.
+  bassCustom = $state<Array<{ d?: DegTok; g?: boolean } | null>>(Array(16).fill(null));
   // Bass-style mix: mute either half of the groove to study the other.
   bassChordsOn = $state(true);
   bassOn = $state(true);
@@ -170,9 +174,67 @@ export class WorkbenchStore {
     // Solo one-bar preview so you hear the groove before committing; a live
     // loop just picks the new pattern up on its next bar instead.
     if (id && !this.jzPlaying) {
-      const pat = BASS_PATTERNS.find((p) => p.id === id);
-      if (pat) this.playBassBar(pat.steps);
+      const steps = this.activeBassSteps();
+      if (steps) this.playBassBar(steps);
     }
+  }
+  // The groove the loop and previews should play: the user's custom line when
+  // 'custom' is selected, otherwise the chosen library pattern.
+  private activeBassSteps(): BassStep[] | null {
+    if (this.bassPatId === 'custom') { const s = this.customSteps(); return s.length ? s : null; }
+    const pat = BASS_PATTERNS.find((p) => p.id === this.bassPatId);
+    return pat ? pat.steps : null;
+  }
+  // Turn the 16-cell editor grid into playable steps: each note sustains up to
+  // the next filled cell (a fat, legato line), capped at a quarter note.
+  private customSteps(): BassStep[] {
+    const cells = this.bassCustom;
+    const idxs = cells.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
+    return idxs.map((i, k) => {
+      const cell = cells[i]!;
+      if (cell.g) return { s: i, g: true };
+      const gap = (k + 1 < idxs.length ? idxs[k + 1] : i + 16) - i;
+      return { s: i, d: cell.d, l: Math.max(1, Math.min(gap, 4)) };
+    });
+  }
+  /** Cycle a grid cell: rest → R → 3 → 5 → ♭7 → octave → ghost → rest. */
+  cycleBassCell(i: number): void {
+    if (i < 0 || i >= this.bassCustom.length) return;
+    const order: Array<DegTok | 'ghost' | null> = [null, 'R', '3', '5', 'b7', 'O', 'ghost'];
+    const cur = this.bassCustom[i];
+    const key: DegTok | 'ghost' | null = cur ? (cur.g ? 'ghost' : cur.d ?? null) : null;
+    const nextKey = order[(order.indexOf(key) + 1) % order.length];
+    const arr = this.bassCustom.slice();
+    arr[i] = nextKey === null ? null : nextKey === 'ghost' ? { g: true } : { d: nextKey };
+    this.bassCustom = arr;
+    this.bassPatId = 'custom'; // editing makes the custom line the active groove
+    // Give immediate feedback: sound just the edited step over the current chord.
+    if (nextKey && !this.jzPlaying) {
+      const { ch, next } = this.bassContext();
+      if (nextKey === 'ghost') { if (this.soundOn) this.audio.ghost(bassRootMidi(ch.rootPc)); }
+      else this.playMidis([resolveBassStep(nextKey, ch, next, this.tonicPc)], 0.32);
+    }
+  }
+  /** Copy a library groove into the editable grid as a starting point. */
+  seedBassCustom(id: string): void {
+    const pat = BASS_PATTERNS.find((p) => p.id === id);
+    const arr: Array<{ d?: DegTok; g?: boolean } | null> = Array(16).fill(null);
+    if (pat) pat.steps.forEach((st) => { if (st.s >= 0 && st.s < 16) arr[st.s] = st.g ? { g: true } : { d: st.d }; });
+    this.bassCustom = arr;
+    this.bassPatId = 'custom';
+    if (!this.jzPlaying) { const s = this.customSteps(); if (s.length) this.playBassBar(s); }
+  }
+  clearBassCustom(): void {
+    this.bassCustom = Array(16).fill(null);
+    this.bassPatId = 'custom';
+  }
+  // The chord (and the one after) the bass should currently resolve against.
+  private bassContext(): { ch: Chord; next: Chord } {
+    const chs = this.jzChanges;
+    const i = this.jzSel >= 0 ? this.jzSel : 0;
+    const ch: Chord = chs.length ? chs[i] : { rootPc: this.tonicPc, intervals: INT.dom7, name: '', fn: 'T' };
+    const next = chs.length ? chs[(i + 1) % chs.length] : ch;
+    return { ch, next };
   }
   playTrick(id: string): void {
     const tk = BASS_TRICKS.find((t) => t.id === id);
@@ -180,11 +242,7 @@ export class WorkbenchStore {
   }
   /** One bar of steps, solo, over the current harmonic context. */
   private playBassBar(steps: BassStep[]): void {
-    const chs = this.jzChanges;
-    const i = this.jzSel >= 0 ? this.jzSel : 0;
-    // No progression yet: demo over a dominant on the tonic (the funk default).
-    const ch: Chord = chs.length ? chs[i] : { rootPc: this.tonicPc, intervals: INT.dom7, name: '', fn: 'T' };
-    const next = chs.length ? chs[(i + 1) % chs.length] : ch;
+    const { ch, next } = this.bassContext();
     this.scheduleBassSteps(steps, ch, next, (60000 / this.tempo) * 4);
   }
   private scheduleBassSteps(steps: BassStep[], ch: Chord, next: Chord, barMs: number): void {
@@ -253,6 +311,31 @@ export class WorkbenchStore {
   releaseChord(): void {
     if (!this.holding) return;
     this.holding = false;
+    this.audio.releaseHeld();
+  }
+  // Computer-keyboard chords: A S D F G H J play the seven diatonic chords of
+  // the current key in order, K the tonic an octave up. Press-and-hold sustains
+  // the chord for as long as the key is down. Monophonic — a new key releases
+  // the one ringing (holdMidis does that for us), so `kbActive` only tracks
+  // which key owns the sound, so a stray key-up doesn't cut a later press.
+  private kbActive = -1;
+  kbHold(deg: number): void {
+    if (this.mode !== 'workshop') return;
+    const dia = diatonicList(this.tonicPc, this.scale, this.ext);
+    if (!dia.length) return;
+    const src = dia[Math.min(deg, dia.length - 1)]; // K (deg 7) reuses the tonic
+    const c: Chord = { rootPc: src.rootPc, intervals: src.intervals, name: src.name, roman: src.roman || '', fn: src.fn || 'T' };
+    const voiced = jChVoiced(c, this.jzVoicing);
+    this.activeChord = voiced;
+    this.kbActive = deg;
+    if (this.soundOn && !this.jzPlaying) {
+      const octUp = deg >= dia.length;
+      this.audio.holdMidis(gMidis(voiced).map((m) => (octUp ? m + 12 : m)), 0.018);
+    }
+  }
+  kbRelease(deg: number): void {
+    if (this.kbActive !== deg) return; // an older key that was already superseded
+    this.kbActive = -1;
     this.audio.releaseHeld();
   }
   addChange(ch: Chord): void {
@@ -385,8 +468,8 @@ export class WorkbenchStore {
     // Bass style: lay the selected groove under this bar's chord, resolved
     // fresh each bar so pattern swaps and chord edits land on the next ONE.
     if (this.wsStyle === 'bass' && this.bassOn && this.bassPatId) {
-      const pat = BASS_PATTERNS.find((p) => p.id === this.bassPatId);
-      if (pat) this.scheduleBassSteps(pat.steps, ch, chs[(i + 1) % chs.length], this.jBeatMs());
+      const steps = this.activeBassSteps();
+      if (steps) this.scheduleBassSteps(steps, ch, chs[(i + 1) % chs.length], this.jBeatMs());
     }
   };
   startJazz(): void {
@@ -823,6 +906,16 @@ export class WorkbenchStore {
     const bassLegend = (Object.keys(BASS_ROLE_META) as BassRole[]).map((r) => ({ name: BASS_ROLE_META[r].name, color: BASS_ROLE_META[r].color }));
     const bassTricks = BASS_TRICKS.map((tk) => ({ id: tk.id, name: tk.name, why: tk.why }));
     const bassActive = BASS_PATTERNS.find((p) => p.id === this.bassPatId);
+    // Build-your-own line: the 16 editable cells, coloured like the pattern
+    // previews, plus seed chips (the current group's grooves) to start from.
+    const bassCustomSelected = this.bassPatId === 'custom';
+    const bassCustomCells = this.bassCustom.map((cell, s) => {
+      if (!cell) return { label: '', bg: s % 4 === 0 ? '#e7d9ba' : '#f0e6cf', fg: '#c9ba98' };
+      const color = BASS_ROLE_META[bassRole(cell as BassStep)].color;
+      return { label: cell.g ? '×' : BASS_TOK_LABEL[cell.d!], bg: color, fg: '#fff' };
+    });
+    const bassCustomEmpty = this.bassCustom.every((c) => !c);
+    const bassSeedChips = BASS_PATTERNS.filter((p) => p.group === this.bassGroup).map((p) => ({ id: p.id, name: p.name }));
 
     // explore selected
     let exploreOpen = false, selName = '', selRoman = '', showIIV = false, showV = false;
@@ -929,7 +1022,8 @@ export class WorkbenchStore {
       styBassBg: this.wsStyle === 'bass' ? '#c2562e' : 'transparent', styBassFg: this.wsStyle === 'bass' ? '#fff' : '#5c4a30',
       clDia, cadences, clProgs, invChips, showIIV, showV,
       bassGroupChips, bassPats, bassLegend, bassTricks,
-      bassActiveName: bassActive ? bassActive.name : 'none',
+      bassCustomCells, bassCustomSelected, bassCustomEmpty, bassSeedChips,
+      bassActiveName: bassActive ? bassActive.name : bassCustomSelected ? 'Custom line' : 'none',
       mixChordsBg: this.bassChordsOn ? '#3f6b5f' : '#f6efe0', mixChordsFg: this.bassChordsOn ? '#fff' : '#5c4a30',
       mixBassBg: this.bassOn ? '#3f6b5f' : '#f6efe0', mixBassFg: this.bassOn ? '#fff' : '#5c4a30',
       subs,

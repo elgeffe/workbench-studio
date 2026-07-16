@@ -17,13 +17,34 @@
     store.isDesktop = window.matchMedia('(min-width: 981px)').matches;
   }
 
+  // A S D F G H J = the seven diatonic chords in order, K = the tonic octave up.
+  // Hold to sustain; a new key releases the previous one (monophonic).
+  const CHORD_KEYS: Record<string, number> = { a: 0, s: 1, d: 2, f: 3, g: 4, h: 5, j: 6, k: 7 };
+  function isTyping(t: EventTarget | null): boolean {
+    const el = t as HTMLElement | null;
+    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  }
+  function onKeyDown(e: KeyboardEvent) {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || store.mode !== 'workshop' || isTyping(e.target)) return;
+    const deg = CHORD_KEYS[e.key.toLowerCase()];
+    if (deg !== undefined) store.kbHold(deg);
+  }
+  function onKeyUp(e: KeyboardEvent) {
+    const deg = CHORD_KEYS[e.key.toLowerCase()];
+    if (deg !== undefined) store.kbRelease(deg);
+  }
+
   $effect(() => {
     const mq = window.matchMedia('(min-width: 981px)');
     const update = () => (store.isDesktop = mq.matches);
     update();
     mq.addEventListener('change', update);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
     return () => {
       mq.removeEventListener('change', update);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
       store.destroy();
     };
   });
