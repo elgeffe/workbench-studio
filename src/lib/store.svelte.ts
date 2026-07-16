@@ -10,11 +10,12 @@ import {
 } from './engine/constants';
 import {
   mod12, spell, cname, gI, gPcs, gMidis, chordMidis, keyNameStr, scaleNotesStr,
+  playedPcs, droppedPcs,
   diatonicList, subsFor, colorChordDefs, jChVoiced, jzNotes, jFamily, invChord,
   jazzVoicing, type DiatonicChord,
 } from './engine/theory';
 import {
-  genreDefs, patternDefs, jazzChapters, PAT_GROUPS, quickProgDefs, cadenceDefs,
+  genreDefs, patternDefs, jazzChapters, PAT_SHAPES_TAB, PAT_TABS, quickProgDefs, cadenceDefs,
   classicalProgDefs, jzBorrowDefs, jzSecondaryDefs, type ChordDef, type JazzChapter,
 } from './engine/data';
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
@@ -415,17 +416,24 @@ export class WorkbenchStore {
   private litInfo() {
     const t = this.tonicPc;
     const activePat = patternDefs().find((p) => p.id === this.patId) || patternDefs()[0];
-    if (this.mode === 'patterns') {
+    // The Chord Shapes tab is chord-driven, not scale-driven: fall through to the
+    // active-chord lighting below so tapping a shape lights that chord.
+    if (this.mode === 'patterns' && this.patCat !== PAT_SHAPES_TAB) {
       const ints = activePat.int || activePat.scaleInt || [];
       const lit = ints.map((i) => (t + i) % 12);
       const litSet = new Set(lit);
       const chordSet = new Set(INT[activePat.chord].map((i) => (t + i) % 12));
-      return { root: t, litSet, chordSet, activePat };
+      return { root: t, litSet, chordSet, dropSet: new Set<number>(), activePat };
     }
-    const lit = this.activeChord ? gPcs(this.activeChord) : [];
-    const root = this.activeChord ? this.activeChord.rootPc : -1;
-    const litSet = new Set(lit);
-    return { root, litSet, chordSet: litSet, activePat };
+    const ac = this.activeChord;
+    // Lit = the notes we actually voice (after best-practice dropping); the
+    // dropped chord tones still belong to the chord, so we surface them greyed
+    // out rather than hiding them. chordSet keeps the full stack for colouring.
+    const litSet = new Set(ac ? playedPcs(ac) : []);
+    const dropSet = new Set(ac ? droppedPcs(ac) : []);
+    const chordSet = new Set(ac ? gPcs(ac) : []);
+    const root = ac ? ac.rootPc : -1;
+    return { root, litSet, chordSet, dropSet, activePat };
   }
 
   private buildCircle(): { wedges: Wedge[]; circleLabel: string; circleHint: string } {
@@ -510,16 +518,20 @@ export class WorkbenchStore {
     }
   }
 
-  private buildInstruments(root: number, litSet: Set<number>, chordSet: Set<number>) {
+  private buildInstruments(root: number, litSet: Set<number>, chordSet: Set<number>, dropSet: Set<number>) {
     const ac = this.activeChord;
     const frets = 13;
     const cell = (open: number, f: number): FretCell => {
       const pc = (open + f) % 12;
       const isLit = litSet.has(pc);
+      // A chord tone omitted by best-practice voicing: still shown, but greyed
+      // and faded so it reads as "belongs to the chord, but not played".
+      const isDrop = !isLit && dropSet.has(pc);
       let bg = '#3f6b5f', glow = 'none';
       if (pc === root) { bg = '#c2562e'; glow = '0 0 0 2px rgba(194,86,46,.3)'; }
+      else if (isDrop) { bg = '#b3a68f'; }
       else if (!chordSet.has(pc)) { bg = '#97a59c'; }
-      return { showLit: isLit, dot: false, barreThru: false, litOpacity: '1', finger: '', dotColor: '', note: spell(pc, this.tonicPc), bg, glow };
+      return { showLit: isLit || isDrop, dot: false, barreThru: false, litOpacity: isDrop ? '0.4' : '1', finger: '', dotColor: '', note: spell(pc, this.tonicPc), bg, glow };
     };
     const buildFret = (opens: number[], labels: string[]): FretRow[] =>
       opens.map((o, si) => ({ label: labels[si], openDot: null, cells: Array.from({ length: frets }, (_, f) => cell(o, f)) }));
@@ -572,21 +584,23 @@ export class WorkbenchStore {
     const pianoWhite: PianoKey[] = [], pianoBlack: PianoKey[] = [];
     keys.forEach((k) => {
       const isLit = litSet.has(k.pc), isRoot = k.pc === root, mk = pianoMark[k.m];
+      // Dropped chord tone: labelled but greyed, so it reads as "belongs, not played".
+      const isDrop = !isLit && dropSet.has(k.pc);
       const dim = overlayOn && isLit && !mk;
       if (k.white) {
         pianoWhite.push({
           left: (wIdx * wp).toFixed(3), width: wp.toFixed(3), pc: k.pc,
-          note: isLit ? spell(k.pc, this.tonicPc) : '',
-          bg: dim ? '#e7d9bf' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : '#f4ecdb',
-          fg: dim ? '#c4b290' : isLit ? '#fff' : '#b9a988', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
+          note: isLit || isDrop ? spell(k.pc, this.tonicPc) : '',
+          bg: dim ? '#e7d9bf' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#e0d4bc' : '#f4ecdb',
+          fg: dim ? '#c4b290' : isLit ? '#fff' : isDrop ? '#a2957a' : '#b9a988', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
         });
         wIdx++;
       } else {
         pianoBlack.push({
           left: (wIdx * wp - wp * 0.31).toFixed(3), width: (wp * 0.62).toFixed(3), pc: k.pc,
-          note: isLit ? spell(k.pc, this.tonicPc) : '',
-          bg: dim ? '#4a3a28' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : '#241a10',
-          fg: dim ? '#8c7a5e' : isLit ? '#fff' : '#7a6a4e', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
+          note: isLit || isDrop ? spell(k.pc, this.tonicPc) : '',
+          bg: dim ? '#4a3a28' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#5a4c39' : '#241a10',
+          fg: dim ? '#8c7a5e' : isLit ? '#fff' : isDrop ? '#9a8a6d' : '#7a6a4e', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
         });
       }
     });
@@ -595,7 +609,7 @@ export class WorkbenchStore {
 
   private computeView() {
     const t = this.tonicPc;
-    const { root, litSet, chordSet, activePat } = this.litInfo();
+    const { root, litSet, chordSet, dropSet, activePat } = this.litInfo();
     const dia = diatonicList(t, this.scale, this.ext);
     const ac = this.activeChord;
 
@@ -643,8 +657,9 @@ export class WorkbenchStore {
     }) : [];
 
     // patterns tab
-    const patCat = PAT_GROUPS.includes(this.patCat) ? this.patCat : 'Scales';
-    const patCatChips = PAT_GROUPS.map((g) => ({ name: g, border: g === patCat ? '#3f6b5f' : '#cbb792', bg: g === patCat ? '#3f6b5f' : '#f6efe0', fg: g === patCat ? '#fff' : '#5c4a30' }));
+    const patCat = PAT_TABS.includes(this.patCat) ? this.patCat : 'Scales';
+    const patShapesTab = patCat === PAT_SHAPES_TAB;
+    const patCatChips = PAT_TABS.map((g) => ({ name: g, border: g === patCat ? '#3f6b5f' : '#cbb792', bg: g === patCat ? '#3f6b5f' : '#f6efe0', fg: g === patCat ? '#fff' : '#5c4a30' }));
     const patChips = patternDefs().filter((p) => p.group === patCat).map((p) => ({ id: p.id, name: p.name, weight: p.id === activePat.id ? '700' : '500', border: p.id === activePat.id ? '#c2562e' : '#cbb792', bg: p.id === activePat.id ? '#fbeede' : '#f6efe0' }));
     const patInt = activePat.int || activePat.scaleInt || [];
     const patChordName = spell(t, t) + SUF[activePat.chord];
@@ -786,7 +801,7 @@ export class WorkbenchStore {
       : null;
 
     // instruments
-    const inst = this.buildInstruments(root, litSet, chordSet);
+    const inst = this.buildInstruments(root, litSet, chordSet, dropSet);
 
     const sigPc = this.circleView === 'min' ? (t + 3) % 12 : t;
 
@@ -830,7 +845,7 @@ export class WorkbenchStore {
       subs,
       // patterns
       patCatChips, patChips, patName: activePat.name, patTip: activePat.tip, patChordName, activePat,
-      patDegrees, patSeqNotes, patHasSeq: !!activePat.seq, patShapes,
+      patDegrees, patSeqNotes, patHasSeq: !!activePat.seq, patShapes, patShapesTab,
       // learn
       jazzNav, jazzBlocks, jazzTitle: jzc.name, jazzIntro: jzc.intro, jazzTag: jzc.tag,
       jzChangesView, jzEmpty: this.jzChanges.length === 0,
@@ -846,8 +861,8 @@ export class WorkbenchStore {
       earMsg: this.earMsg, earMsgColor: this.earMsg.indexOf('✓') >= 0 ? '#3f6b5f' : '#c2562e',
       // dock / instruments
       dockExpanded: this.dockOpen, dockChevron: this.dockOpen ? '▼ HIDE' : '▲ SHOW',
-      dockName: this.mode === 'patterns' ? spell(t, t) + ' ' + activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
-      dockNotes: this.mode === 'patterns' ? patNotes + '   ·   over ' + patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
+      dockName: this.mode === 'patterns' && !patShapesTab ? spell(t, t) + ' ' + activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
+      dockNotes: this.mode === 'patterns' && !patShapesTab ? patNotes + '   ·   over ' + patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
       ...inst,
       fingerBg: this.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: this.fingerOn ? '#fff' : '#5c4a30',
       // mobile tab bar

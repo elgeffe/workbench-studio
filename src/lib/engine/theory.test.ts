@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { spell, cname, diatonicList, subsFor, jazzVoicing, invChord, mod12, gPcs } from './theory';
+import { spell, cname, diatonicList, subsFor, jazzVoicing, invChord, mod12, gPcs, playedIntervals, playedPcs, droppedPcs } from './theory';
 import { INT } from './constants';
 
 describe('note spelling', () => {
@@ -80,5 +80,47 @@ describe('pitch classes', () => {
   it('computes chord tones', () => {
     expect(gPcs({ rootPc: 0, intervals: INT.maj })).toEqual([0, 4, 7]);
     expect(gPcs({ rootPc: 7, intervals: INT.dom7 })).toEqual([7, 11, 2, 5]);
+  });
+});
+
+describe('best-practice note dropping for extended chords', () => {
+  it('leaves triads and plain 7ths untouched', () => {
+    expect(playedIntervals(INT.maj)).toEqual([0, 4, 7]);
+    expect(playedIntervals(INT.dom7)).toEqual([0, 4, 7, 10]);
+    expect(playedIntervals(INT.maj7)).toEqual([0, 4, 7, 11]);
+    expect(playedIntervals(INT.min7)).toEqual([0, 3, 7, 10]);
+  });
+
+  it('drops the perfect 5th on 9th chords', () => {
+    expect(playedIntervals(INT.dom9)).toEqual([0, 4, 10, 14]); // C9 → C E B♭ D
+    expect(playedIntervals(INT.maj9)).toEqual([0, 4, 11, 14]);
+    expect(playedIntervals(INT.min9)).toEqual([0, 3, 10, 14]);
+  });
+
+  it('keeps a diminished 5th on a half-diminished 9th (it defines the chord)', () => {
+    expect(playedIntervals(INT.m9b5)).toEqual([0, 3, 6, 10, 14]);
+  });
+
+  it('drops the 3rd on a dominant/major 11th (the 11 clashes with the 3rd)', () => {
+    expect(playedIntervals(INT.dom11)).toEqual([0, 10, 14, 17]); // no 3rd, no 5th
+    expect(playedIntervals(INT.maj11)).toEqual([0, 11, 14, 17]);
+  });
+
+  it('keeps the 3rd on a minor 11th (a minor 3rd and 11 do not clash)', () => {
+    expect(playedIntervals(INT.min11)).toEqual([0, 3, 10, 14, 17]);
+  });
+
+  it('drops the 11th on a 13th chord, keeping the guide-tone 3rd', () => {
+    // a contiguously stacked dominant 13th: R 3 5 7 9 11 13
+    const dom13full = [0, 4, 7, 10, 14, 17, 21];
+    expect(playedIntervals(dom13full)).toEqual([0, 4, 10, 14, 21]); // 5th and 11th gone
+    // the app's own dom13 table already omits the 11th; only the 5th drops
+    expect(playedIntervals(INT.dom13)).toEqual([0, 4, 10, 14, 21]);
+  });
+
+  it('exposes the sounded and greyed-out pitch classes for the instruments', () => {
+    const c9 = { rootPc: 0, intervals: INT.dom9 };
+    expect(playedPcs(c9)).toEqual([0, 4, 10, 2]); // C E B♭ D
+    expect(droppedPcs(c9)).toEqual([7]); // G is shown greyed, not played
   });
 });

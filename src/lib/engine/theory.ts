@@ -34,10 +34,49 @@ export function gPcs(ch: Chord): number[] {
   return gI(ch).map((i) => mod12(ch.rootPc + i));
 }
 
+// Best-practice voicing: which chord tones actually *sound*. Once a chord
+// reaches the 9th or beyond, textbook voicings omit tones that muddy the sound
+// or clash — the chord's name is never touched, only the notes we play:
+//   • the perfect 5th is dropped as soon as a 9th is present. It is harmonically
+//     redundant and just thickens the middle, so a plain C9 sounds C–E–B♭–D.
+//   • a natural 11th sits a ♭9 above a major 3rd — a harsh clash. On an 11th
+//     chord we drop the 3rd so the 11 rings clean (the classic dominant-11 /
+//     "sus" colour); on a 13th chord we keep the guide-tone 3rd and drop the
+//     clashing 11th instead.
+// Altered / characteristic tones (♭5, ♯5, ♯11, ♭13) are always kept — they
+// define the chord. Triads and plain 7ths are returned untouched.
+export function playedIntervals(intervals: number[]): number[] {
+  const reduce = (iv: number) => iv % 12;
+  const hasExtension = intervals.some((iv) => iv >= 12); // a 9th or higher is stacked on
+  const has13 = intervals.some((iv) => iv >= 12 && (reduce(iv) === 8 || reduce(iv) === 9));
+  const nat11 = intervals.find((iv) => iv >= 12 && reduce(iv) === 5);
+  const maj3 = intervals.find((iv) => iv < 12 && reduce(iv) === 4);
+  const perf5 = intervals.find((iv) => iv < 12 && reduce(iv) === 7);
+  const drop = new Set<number>();
+  if (hasExtension && perf5 !== undefined) drop.add(perf5);
+  if (nat11 !== undefined && maj3 !== undefined) {
+    if (has13) drop.add(nat11); // 13th chord — keep the 3rd, drop the 11th
+    else drop.add(maj3); // plain 11th chord — drop the 3rd, keep the 11th
+  }
+  return drop.size ? intervals.filter((iv) => !drop.has(iv)) : intervals;
+}
+
+// Pitch classes actually sounded, after best-practice note dropping.
+export function playedPcs(ch: Chord): number[] {
+  return playedIntervals(gI(ch)).map((i) => mod12(ch.rootPc + i));
+}
+
+// Pitch classes that belong to the chord but are dropped from the voicing —
+// shown greyed-out on the instruments so you can still see they belong.
+export function droppedPcs(ch: Chord): number[] {
+  const played = new Set(playedPcs(ch));
+  return [...new Set(gPcs(ch))].filter((pc) => !played.has(pc));
+}
+
 export function gMidis(ch: Chord): number[] {
   if (ch.midis) return ch.midis;
   const base = 48 + ch.rootPc;
-  return [base - 12, ...gI(ch).map((i) => base + i)];
+  return [base - 12, ...playedIntervals(gI(ch)).map((i) => base + i)];
 }
 
 export function keyNameStr(tonicPc: number, scale: ScaleId): string {
