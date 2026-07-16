@@ -255,6 +255,31 @@ export class WorkbenchStore {
     this.holding = false;
     this.audio.releaseHeld();
   }
+  // Computer-keyboard chords: A S D F G H J play the seven diatonic chords of
+  // the current key in order, K the tonic an octave up. Press-and-hold sustains
+  // the chord for as long as the key is down. Monophonic — a new key releases
+  // the one ringing (holdMidis does that for us), so `kbActive` only tracks
+  // which key owns the sound, so a stray key-up doesn't cut a later press.
+  private kbActive = -1;
+  kbHold(deg: number): void {
+    if (this.mode !== 'workshop') return;
+    const dia = diatonicList(this.tonicPc, this.scale, this.ext);
+    if (!dia.length) return;
+    const src = dia[Math.min(deg, dia.length - 1)]; // K (deg 7) reuses the tonic
+    const c: Chord = { rootPc: src.rootPc, intervals: src.intervals, name: src.name, roman: src.roman || '', fn: src.fn || 'T' };
+    const voiced = jChVoiced(c, this.jzVoicing);
+    this.activeChord = voiced;
+    this.kbActive = deg;
+    if (this.soundOn && !this.jzPlaying) {
+      const octUp = deg >= dia.length;
+      this.audio.holdMidis(gMidis(voiced).map((m) => (octUp ? m + 12 : m)), 0.018);
+    }
+  }
+  kbRelease(deg: number): void {
+    if (this.kbActive !== deg) return; // an older key that was already superseded
+    this.kbActive = -1;
+    this.audio.releaseHeld();
+  }
   addChange(ch: Chord): void {
     const c: Chord = { rootPc: ch.rootPc, intervals: gI(ch), name: ch.name, roman: ch.roman || '', fn: ch.fn || 'T' };
     this.jzChanges = [...this.jzChanges, c];

@@ -87,6 +87,13 @@
     </div>
   </div>
 
+  {#if store.isDesktop}
+    <div class="mono" style="font-size:9px;letter-spacing:.08em;color:#a08a64;margin:-6px 0 16px;display:flex;align-items:center;gap:6px">
+      <span style="font-size:11px">⌨</span> Keys
+      <b style="color:#7a6b50">A S D F G H J</b> play the diatonic chords in order · <b style="color:#7a6b50">K</b> the tonic octave up · hold to sustain
+    </div>
+  {/if}
+
   <!-- explore selected -->
   {#if v.exploreOpen}
     <div style="background:#f3ead4;border:1px solid #e0cfae;border-radius:10px;padding:14px 15px;margin-bottom:16px">
