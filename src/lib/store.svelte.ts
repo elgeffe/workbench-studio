@@ -10,6 +10,7 @@ import {
 } from './engine/constants';
 import {
   mod12, spell, cname, gI, gPcs, gMidis, chordMidis, keyNameStr, scaleNotesStr,
+  playedPcs, droppedPcs,
   diatonicList, subsFor, colorChordDefs, jChVoiced, jzNotes, jFamily, invChord,
   jazzVoicing, type DiatonicChord,
 } from './engine/theory';
@@ -420,12 +421,17 @@ export class WorkbenchStore {
       const lit = ints.map((i) => (t + i) % 12);
       const litSet = new Set(lit);
       const chordSet = new Set(INT[activePat.chord].map((i) => (t + i) % 12));
-      return { root: t, litSet, chordSet, activePat };
+      return { root: t, litSet, chordSet, dropSet: new Set<number>(), activePat };
     }
-    const lit = this.activeChord ? gPcs(this.activeChord) : [];
-    const root = this.activeChord ? this.activeChord.rootPc : -1;
-    const litSet = new Set(lit);
-    return { root, litSet, chordSet: litSet, activePat };
+    const ac = this.activeChord;
+    // Lit = the notes we actually voice (after best-practice dropping); the
+    // dropped chord tones still belong to the chord, so we surface them greyed
+    // out rather than hiding them. chordSet keeps the full stack for colouring.
+    const litSet = new Set(ac ? playedPcs(ac) : []);
+    const dropSet = new Set(ac ? droppedPcs(ac) : []);
+    const chordSet = new Set(ac ? gPcs(ac) : []);
+    const root = ac ? ac.rootPc : -1;
+    return { root, litSet, chordSet, dropSet, activePat };
   }
 
   private buildCircle(): { wedges: Wedge[]; circleLabel: string; circleHint: string } {
@@ -510,16 +516,20 @@ export class WorkbenchStore {
     }
   }
 
-  private buildInstruments(root: number, litSet: Set<number>, chordSet: Set<number>) {
+  private buildInstruments(root: number, litSet: Set<number>, chordSet: Set<number>, dropSet: Set<number>) {
     const ac = this.activeChord;
     const frets = 13;
     const cell = (open: number, f: number): FretCell => {
       const pc = (open + f) % 12;
       const isLit = litSet.has(pc);
+      // A chord tone omitted by best-practice voicing: still shown, but greyed
+      // and faded so it reads as "belongs to the chord, but not played".
+      const isDrop = !isLit && dropSet.has(pc);
       let bg = '#3f6b5f', glow = 'none';
       if (pc === root) { bg = '#c2562e'; glow = '0 0 0 2px rgba(194,86,46,.3)'; }
+      else if (isDrop) { bg = '#b3a68f'; }
       else if (!chordSet.has(pc)) { bg = '#97a59c'; }
-      return { showLit: isLit, dot: false, barreThru: false, litOpacity: '1', finger: '', dotColor: '', note: spell(pc, this.tonicPc), bg, glow };
+      return { showLit: isLit || isDrop, dot: false, barreThru: false, litOpacity: isDrop ? '0.4' : '1', finger: '', dotColor: '', note: spell(pc, this.tonicPc), bg, glow };
     };
     const buildFret = (opens: number[], labels: string[]): FretRow[] =>
       opens.map((o, si) => ({ label: labels[si], openDot: null, cells: Array.from({ length: frets }, (_, f) => cell(o, f)) }));
@@ -572,21 +582,23 @@ export class WorkbenchStore {
     const pianoWhite: PianoKey[] = [], pianoBlack: PianoKey[] = [];
     keys.forEach((k) => {
       const isLit = litSet.has(k.pc), isRoot = k.pc === root, mk = pianoMark[k.m];
+      // Dropped chord tone: labelled but greyed, so it reads as "belongs, not played".
+      const isDrop = !isLit && dropSet.has(k.pc);
       const dim = overlayOn && isLit && !mk;
       if (k.white) {
         pianoWhite.push({
           left: (wIdx * wp).toFixed(3), width: wp.toFixed(3), pc: k.pc,
-          note: isLit ? spell(k.pc, this.tonicPc) : '',
-          bg: dim ? '#e7d9bf' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : '#f4ecdb',
-          fg: dim ? '#c4b290' : isLit ? '#fff' : '#b9a988', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
+          note: isLit || isDrop ? spell(k.pc, this.tonicPc) : '',
+          bg: dim ? '#e7d9bf' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#e0d4bc' : '#f4ecdb',
+          fg: dim ? '#c4b290' : isLit ? '#fff' : isDrop ? '#a2957a' : '#b9a988', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
         });
         wIdx++;
       } else {
         pianoBlack.push({
           left: (wIdx * wp - wp * 0.31).toFixed(3), width: (wp * 0.62).toFixed(3), pc: k.pc,
-          note: isLit ? spell(k.pc, this.tonicPc) : '',
-          bg: dim ? '#4a3a28' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : '#241a10',
-          fg: dim ? '#8c7a5e' : isLit ? '#fff' : '#7a6a4e', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
+          note: isLit || isDrop ? spell(k.pc, this.tonicPc) : '',
+          bg: dim ? '#4a3a28' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#5a4c39' : '#241a10',
+          fg: dim ? '#8c7a5e' : isLit ? '#fff' : isDrop ? '#9a8a6d' : '#7a6a4e', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
         });
       }
     });
@@ -595,7 +607,7 @@ export class WorkbenchStore {
 
   private computeView() {
     const t = this.tonicPc;
-    const { root, litSet, chordSet, activePat } = this.litInfo();
+    const { root, litSet, chordSet, dropSet, activePat } = this.litInfo();
     const dia = diatonicList(t, this.scale, this.ext);
     const ac = this.activeChord;
 
@@ -786,7 +798,7 @@ export class WorkbenchStore {
       : null;
 
     // instruments
-    const inst = this.buildInstruments(root, litSet, chordSet);
+    const inst = this.buildInstruments(root, litSet, chordSet, dropSet);
 
     const sigPc = this.circleView === 'min' ? (t + 3) % 12 : t;
 
