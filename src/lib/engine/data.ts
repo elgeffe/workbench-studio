@@ -49,9 +49,35 @@ export function genreDefs(): Genre[] {
       { name: 'Lydian Vamp', tempo: 132, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'maj', roman: 'II' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'maj', roman: 'II' }] },
       { name: 'Power I–IV–V', tempo: 140, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 0, q: 'maj', roman: 'I' }] },
     ] },
-    { name: 'Funk / Soul', items: [
-      { name: 'Funk Vamp', tempo: 108, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }] },
-      { name: 'Soul I–iii–IV', tempo: 96, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 4, q: 'min', roman: 'iii' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+    { name: 'Funk', items: [
+      { name: 'One-Chord I9 (James Brown)', tempo: 104, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
+      { name: 'Dorian Funk i9–IV9', tempo: 100, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
+      { name: 'Funk Vamp i7–IV7', tempo: 108, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+      { name: 'P-Funk i7–♭VII9', tempo: 96, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+    ] },
+    { name: 'Soul', items: [
+      { name: 'Soul I–iii–IV–V', tempo: 96, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 4, q: 'min', roman: 'iii' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+      { name: 'Sweet Soul I–IV (My Girl)', tempo: 102, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
+      { name: 'Southern Soul I–III7–IV–II7', tempo: 104, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 4, q: 'dom7', roman: 'III7', fn: 'D' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 2, q: 'dom7', roman: 'II7', fn: 'D' }] },
+      { name: 'Motown I7–IV7–V7', tempo: 112, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'dom7', roman: 'I7' }] },
+    ] },
+    { name: 'Neo-Soul', items: [
+      { name: 'Neo ii9–V13–Imaj9', tempo: 84, chords: [{ iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 7, q: 'dom13', roman: 'V13', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }] },
+      { name: 'Lush Descent IVmaj9–iii7–ii9–Imaj9', tempo: 76, chords: [{ iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }, { iv: 4, q: 'min7', roman: 'iii7' }, { iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }] },
+      { name: 'D’Angelo i9–iv9', tempo: 72, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }] },
+      { name: 'Backdoor Imaj9–♭VII9', tempo: 80, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }] },
+    ] },
+    { name: 'Jazz Fusion', items: [
+      { name: 'Headhunters i7–IV7', tempo: 96, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }] },
+      { name: 'Sus Voyage I7sus–♭III7sus', tempo: 104, chords: [{ iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }] },
+      { name: 'Cantaloupe i7–♭VI7–vi7', tempo: 112, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 8, q: 'dom7', roman: '♭VI7', fn: 'S' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+      { name: '80s Fusion i11–♭VIImaj7', tempo: 100, chords: [{ iv: 0, q: 'min11', roman: 'i11' }, { iv: 10, q: 'maj7', roman: '♭VIImaj7', fn: 'S' }, { iv: 0, q: 'min11', roman: 'i11' }, { iv: 10, q: 'maj7', roman: '♭VIImaj7', fn: 'S' }] },
+    ] },
+    { name: 'Disco', items: [
+      { name: 'Four-on-the-Floor i7–♭VII', tempo: 116, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'S' }] },
+      { name: 'Survive Circle (full cycle)', tempo: 112, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }, { iv: 10, q: 'dom7', roman: '♭VII7', fn: 'D' }, { iv: 3, q: 'maj7', roman: '♭IIImaj7' }, { iv: 8, q: 'maj7', roman: '♭VImaj7', fn: 'S' }, { iv: 2, q: 'm7b5', roman: 'iiø7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+      { name: 'Chic Groove i7–IV9', tempo: 118, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
+      { name: 'Uptown ii7–iii7–IVmaj7', tempo: 114, chords: [{ iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 4, q: 'min7', roman: 'iii7' }, { iv: 5, q: 'maj7', roman: 'IVmaj7', fn: 'S' }, { iv: 4, q: 'min7', roman: 'iii7' }] },
     ] },
     { name: 'Latin / Flamenco', items: [
       { name: 'Andalusian', tempo: 96, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII' }, { iv: 8, q: 'maj', roman: '♭VI' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
@@ -97,10 +123,16 @@ export function patternDefs(): Pattern[] {
     { group: 'Genre Licks', id: 'lickrock', name: 'Rock Pentatonic Run', scaleInt: [0, 3, 5, 7, 10], chord: 'min7', seq: [0, 3, 5, 7, 10, 12, 10, 7], tip: 'Straight up minor-pentatonic box 1 and back — the bread-and-butter rock solo move.' },
     { group: 'Genre Licks', id: 'lickfunk', name: 'Funk Dorian Riff', scaleInt: [0, 2, 3, 5, 7, 9, 10], chord: 'min7', seq: [0, 3, 5, 7, 9, 7, 5, 3], tip: 'Dorian’s natural 6 gives the funk lift — loop it over a m7 vamp and stay in the pocket.' },
     { group: 'Genre Licks', id: 'lickjazz', name: 'Bebop Enclosure', scaleInt: [0, 2, 4, 5, 7, 9, 10], chord: 'dom7', seq: [-1, 1, 0, 4, 7, 10], tip: 'Chromatically box in the root (below & above), then arpeggiate up to the ♭7 — instant bebop.' },
+
+    { group: 'Bassline Grooves', id: 'bassoct', name: 'Disco Octave Pump', scaleInt: [0, 3, 5, 7, 10], chord: 'min7', deg: ['1', '8'], seq: [0, 12, 0, 12, 0, 12, 10, 12], tip: 'Root–octave eighth notes locked to the four-on-the-floor kick — the engine of disco (Bernard Edwards, “Good Times”). Sneak the ♭7 in as a pickup back to the root.' },
+    { group: 'Bassline Grooves', id: 'bassjamerson', name: 'Motown 1–5–6–♭7 Walk', scaleInt: [0, 2, 4, 5, 7, 9, 10], chord: 'dom7', deg: ['1', '5', '6', '♭7'], seq: [0, 7, 9, 10, 12, 10, 9, 7], tip: 'The James Jamerson / boogie cell: walk 1–5–6–♭7 up to the octave and back. Works over any dominant or blues chord — the bedrock of Motown and soul.' },
+    { group: 'Bassline Grooves', id: 'bassjackson', name: 'Paul Jackson Dorian Riff', scaleInt: [0, 2, 3, 5, 7, 9, 10], chord: 'min7', deg: ['1', '2', '♭3', '5', '♭7'], seq: [0, 3, 0, 2, 3, 7, 10, 7], tip: 'Headhunters-style: a short, syncopated riff from Dorian that repeats until it’s hypnotic. Paul Jackson’s secret is the space — the rests are as funky as the notes.' },
+    { group: 'Bassline Grooves', id: 'bassmarcus', name: 'Marcus Miller Slap Octaves', scaleInt: [0, 3, 5, 7, 10], chord: 'min7', deg: ['1', '♭7', '7', '8'], seq: [0, 12, 10, 12, 0, 12, 11, 12], tip: 'Thumb the root, pluck the octave, and slide in chromatically (♭7–7–8) à la Marcus Miller. On bass, mute the strings for percussive ghost notes between the hits.' },
+    { group: 'Bassline Grooves', id: 'basschrom', name: 'Chromatic Approach Walk', scaleInt: [0, 4, 7, 10], chord: 'dom7', deg: ['1', '3', '5', '♭7'], seq: [0, 3, 4, 6, 7, 10, 11, 12], tip: 'Target the chord tones (3, 5, octave) and approach each from a half-step below. Chromatic approach notes are what make a funk line walk instead of hop.' },
   ];
 }
 
-export const PAT_GROUPS = ['Scales', 'Pentatonic & Blues', 'Arpeggios', 'Genre Licks'];
+export const PAT_GROUPS = ['Scales', 'Pentatonic & Blues', 'Arpeggios', 'Genre Licks', 'Bassline Grooves'];
 
 // ---- Learn-mode jazz curriculum ----
 
@@ -222,6 +254,63 @@ export function jazzChapters(tonicPc: number): JazzChapter[] {
           { iv: 7, q: 'dom7', fn: 'D', intervals: [0, 4, 7, 10, 13], name: 'V7♭9' },
           { iv: 0, q: 'min7', fn: 'T', name: 'i7' }] },
         { kind: 'callout', text: 'Spotting ii–V–Is is reading jazz. A tune in C might tonicise other keys for a bar or two — each is its own little ii–V. Once your hands know the shape, the changes stop looking scary.' },
+      ] },
+    { key: 'groove', name: 'Groove Harmony', tag: '70s & 80s',
+      intro: 'Funk, soul, neo-soul and disco flipped the rules: instead of travelling through changes, the band parks on one or two rich chords and lets rhythm do the storytelling. The harmony is a texture — extended, modal, hypnotic. This is the sound of the 70s and 80s.',
+      blocks: [
+        { kind: 'h', text: 'Funk: the vamp is the song' },
+        { kind: 'p', text: 'James Brown built entire tunes on a single dominant 9 chord. Herbie Hancock’s Headhunters lived on two chords from Dorian — the minor i with its bright natural 6, answered by a dominant IV. Loop it and the groove IS the form.' },
+        { kind: 'seq', label: 'Dorian funk vamp · i9–IV9', rows: [
+          { iv: 0, q: 'min9', name: 'i9' },
+          { iv: 5, q: 'dom9', fn: 'S', name: 'IV9' },
+          { iv: 0, q: 'min9', name: 'i9' },
+          { iv: 5, q: 'dom9', fn: 'S', name: 'IV9' }] },
+        { kind: 'h', text: 'Soul: gospel triads with grit' },
+        { kind: 'p', text: 'Classic 60s–70s soul keeps the church progressions (I–IV, I–iii–IV) but plays every chord with a 7 and a backbeat. Motown even makes the I a dominant 7 — bluesy, not “wrong”.' },
+        { kind: 'seq', label: 'Motown vamp · I7–IV7–V7', rows: [
+          { iv: 0, q: 'dom7', name: 'I7' },
+          { iv: 5, q: 'dom7', fn: 'S', name: 'IV7' },
+          { iv: 7, q: 'dom7', fn: 'D', name: 'V7' },
+          { iv: 0, q: 'dom7', name: 'I7' }] },
+        { kind: 'h', text: 'Neo-soul: extensions as air' },
+        { kind: 'p', text: 'D’Angelo, Erykah Badu, Robert Glasper: take the jazz ii–V–I, slow it down, and voice everything with 9s, 11s and 13s. The extensions aren’t tension to resolve — they’re the atmosphere. Nudge chords in half a beat late and let them blur.' },
+        { kind: 'seq', label: 'Neo-soul cadence · ii9–V13–Imaj9', rows: [
+          { iv: 2, q: 'min9', fn: 'S', name: 'ii9' },
+          { iv: 7, q: 'dom13', fn: 'D', name: 'V13' },
+          { iv: 0, q: 'maj9', fn: 'T', name: 'Imaj9' }] },
+        { kind: 'h', text: 'Disco: minor keys around the circle' },
+        { kind: 'p', text: 'Disco loves a minor key on the move — chains of m7 chords falling in fifths (the “I Will Survive” cycle), all glued to a four-on-the-floor kick. Here’s the first half of the full circle.' },
+        { kind: 'seq', label: 'Disco cycle · i7–iv7–♭VII7–♭IIImaj7', rows: [
+          { iv: 0, q: 'min7', name: 'i7' },
+          { iv: 5, q: 'min7', fn: 'S', name: 'iv7' },
+          { iv: 10, q: 'dom7', fn: 'D', name: '♭VII7' },
+          { iv: 3, q: 'maj7', name: '♭IIImaj7' }] },
+        { kind: 'callout', text: 'The 70s/80s recipe: pick ONE or TWO chords, extend them (9s and 13s), choose a mode with character (Dorian, Mixolydian), and repeat until it feels inevitable. Load the Funk, Neo-Soul and Disco templates in the Workshop and jam over them.' },
+      ] },
+    { key: 'bass', name: 'Funky Basslines', tag: 'THE POCKET',
+      intro: 'A funky bassline is rhythm first, notes second. Paul Jackson (Headhunters), James Jamerson (Motown), Bernard Edwards (Chic) and Marcus Miller all obey the same laws: land the root on the ONE, decorate with a small set of trusted notes, and leave space for the groove to breathe.',
+      blocks: [
+        { kind: 'h', text: 'Law 1 · own the ONE' },
+        { kind: 'p', text: 'Whatever else happens, the root lands on beat one — that’s James Brown’s law. Everything after the downbeat is syncopation, ghost notes and anticipation, but the ONE anchors the whole band.' },
+        { kind: 'h', text: 'Law 2 · a small trusted palette' },
+        { kind: 'p', text: 'Funk bass rarely uses the whole scale. The core palette over any groove chord: root, 5, 6, ♭7 and the octave — plus chromatic passing notes squeezed between them. Hear the key colour-pairs:' },
+        { kind: 'chords', rows: [
+          { iv: 0, q: 'maj', intervals: [0, 12], name: 'R + octave', sub: 'the disco pump' },
+          { iv: 0, q: 'maj', intervals: [0, 10], name: 'R + ♭7', sub: 'the funk growl' },
+          { iv: 0, q: 'maj', intervals: [0, 7, 9], name: 'R · 5 · 6', sub: 'the Motown walk cell' },
+          { iv: 0, q: 'maj', intervals: [0, 3, 5], name: 'R · ♭3 · 4', sub: 'the dorian riff cell' }] },
+        { kind: 'h', text: 'Law 3 · ghost notes are the funk' },
+        { kind: 'p', text: 'Between the real notes, funk bassists mute the string and pluck anyway — a pitchless “chk”. A line like 1 · (ghost) · ♭7 · (ghost) · 1 turns the bass into a drum. On the workbench, imagine the rests in every pattern as ghosted 16ths.' },
+        { kind: 'h', text: 'Paul Jackson · the riff that never quits' },
+        { kind: 'p', text: 'On Headhunters, Paul Jackson plays short Dorian riffs — heavily syncopated, full of space — and repeats them until they’re hypnotic, shifting one note at a time as the groove evolves. Try it: Patterns → Bassline Grooves → “Paul Jackson Dorian Riff”, looped over the Workshop’s “Headhunters i7–IV7” template.' },
+        { kind: 'h', text: 'Marcus Miller · slap, octaves, chromatics' },
+        { kind: 'p', text: 'Marcus Miller’s slap style: thumb the root, pluck the octave, connect targets with chromatic approach notes (♭7–7–8), and pepper everything with dead-note 16ths. The pattern “Marcus Miller Slap Octaves” walks the shape; the “Chromatic Approach Walk” drills the connective tissue.' },
+        { kind: 'h', text: 'Jamerson & Edwards · the walking pocket' },
+        { kind: 'p', text: 'James Jamerson walks 1–5–6–♭7 cells with chromatic pickups under Motown; Bernard Edwards drives disco with relentless root–octave eighths (“Good Times” — the line hip-hop was born over). Both live in the Bassline Grooves patterns.' },
+        { kind: 'seq', label: 'Groove to practise over · i9–IV9', rows: [
+          { iv: 0, q: 'min9', name: 'i9' },
+          { iv: 5, q: 'dom9', fn: 'S', name: 'IV9' }] },
+        { kind: 'callout', text: 'Practise with the metronome on 2 and 4, lock your root to the imaginary kick drum, and remember Jackson’s rule: if it doesn’t groove as two bars looped forever, it doesn’t groove.' },
       ] },
   ];
 }

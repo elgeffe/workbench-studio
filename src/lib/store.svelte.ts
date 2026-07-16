@@ -5,7 +5,7 @@
 
 import {
   INT, SUF, MAJOR, CIRCLE, SCALES, DIA_TRI, DIA_SEV, ROMAN, ROMAN7, FN,
-  FNCOLOR, FNTINT, FNNAME, FNWHY, KEYSIG,
+  FNCOLOR, FNTINT, FNNAME, FNWHY, KEYSIG, QLABEL,
   type Chord, type Fn, type ScaleId,
 } from './engine/constants';
 import {
@@ -652,6 +652,28 @@ export class WorkbenchStore {
     const patNotes = patInt.map((i) => spell((t + i) % 12, t)).join('  ·  ');
     const patSeqNotes = activePat.seq ? activePat.seq.map((o) => spell(t + o, t)).join(' ') : '';
 
+    // chord shapes on the circle of fifths: each quality draws one fixed
+    // polygon; changing the root only rotates it. The wheel is rotated so the
+    // current tonic sits at 12 o'clock, so a quality's shape never moves.
+    const shapeTonicIdx = CIRCLE.indexOf(t);
+    const shapePos = (pc: number): [number, number] => {
+      const a = ((CIRCLE.indexOf(pc) - shapeTonicIdx) * 30 - 90) * Math.PI / 180;
+      return [40 + 30 * Math.cos(a), 40 + 30 * Math.sin(a)];
+    };
+    const shapeLabels: Record<string, string> = { ...QLABEL, sus4: 'Sus 4', dom7: 'Dominant 7', m7b5: 'Half-dim', dim7: 'Diminished 7' };
+    const patShapes = ['maj', 'min', 'dim', 'aug', 'sus4', 'maj7', 'min7', 'dom7', 'm7b5', 'dim7'].map((q) => {
+      const pcs = INT[q].map((i) => mod12(t + i));
+      const pset = new Set(pcs);
+      const dots = CIRCLE.map((pc) => {
+        const [x, y] = shapePos(pc);
+        return { x: +x.toFixed(1), y: +y.toFixed(1), on: pset.has(pc), root: pc === t };
+      });
+      const poly = pcs.map((pc) => shapePos(pc).map((n) => n.toFixed(1)).join(',')).join(' ');
+      const nm = spell(t, t) + SUF[q];
+      const ch: Chord = { rootPc: t, intervals: INT[q], name: nm, fn: 'T' };
+      return { q, name: nm, label: shapeLabels[q] || q, poly, dots, ch };
+    });
+
     // learn (jazz curriculum)
     const JZ = jazzChapters(t);
     const jzi = Math.min(this.jazzCh || 0, JZ.length - 1);
@@ -808,7 +830,7 @@ export class WorkbenchStore {
       subs,
       // patterns
       patCatChips, patChips, patName: activePat.name, patTip: activePat.tip, patChordName, activePat,
-      patDegrees, patSeqNotes, patHasSeq: !!activePat.seq,
+      patDegrees, patSeqNotes, patHasSeq: !!activePat.seq, patShapes,
       // learn
       jazzNav, jazzBlocks, jazzTitle: jzc.name, jazzIntro: jzc.intro, jazzTag: jzc.tag,
       jzChangesView, jzEmpty: this.jzChanges.length === 0,

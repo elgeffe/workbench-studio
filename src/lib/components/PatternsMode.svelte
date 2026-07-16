@@ -45,6 +45,26 @@
     <div class="mono click" style="flex:none;align-self:center;font-size:11px;letter-spacing:.06em;color:#fff;background:#3f6b5f;padding:12px 16px;border-radius:8px;box-shadow:0 4px 0 #2c4f45;text-align:center" role="button" tabindex="0" onclick={() => store.playPattern(v.activePat)} onkeydown={(e) => e.key === 'Enter' && store.playPattern(v.activePat)}>▶ HEAR<br />PATTERN</div>
   </div>
 
+  <div style="margin-top:22px;padding-top:16px;border-top:1px solid #ddccac">
+    <div class="mono" style="font-size:9px;letter-spacing:.14em;color:#8a7350;margin-bottom:5px">CHORD SHAPES · CIRCLE OF 5THS</div>
+    <div class="caption" style="font-size:13px;color:#5c4a30;max-width:520px;margin-bottom:12px">Plot a chord’s notes on the circle of fifths and join them up: every quality draws one fixed shape. Change the root and the shape just rotates — here the wheel is turned so your tonic sits at 12 o’clock, so each shape is the quality’s fingerprint. Tap one to hear it.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      {#each v.patShapes as s (s.q)}
+        <div class="click" style="flex:none;width:104px;background:#f6efe0;border:1px solid #ddccac;border-radius:9px;padding:8px 6px 9px;text-align:center" role="button" tabindex="0" onclick={() => store.hitChord(s.ch)} onkeydown={(e) => e.key === 'Enter' && store.hitChord(s.ch)}>
+          <svg viewBox="0 0 80 80" width="80" height="80" style="display:block;margin:0 auto">
+            <circle cx="40" cy="40" r="30" fill="none" stroke="#e0cfae" stroke-width="1.5" />
+            <polygon points={s.poly} fill="rgba(63,107,95,.16)" stroke="#3f6b5f" stroke-width="1.6" stroke-linejoin="round" />
+            {#each s.dots as d, di (di)}
+              <circle cx={d.x} cy={d.y} r={d.on ? 4 : 1.8} fill={d.root ? '#c2562e' : d.on ? '#3f6b5f' : '#d8c7a8'} />
+            {/each}
+          </svg>
+          <div style="font-size:14px;font-weight:700;color:#2c261d;line-height:1.1;margin-top:4px;white-space:nowrap">{s.name}</div>
+          <div class="mono" style="font-size:8px;letter-spacing:.06em;color:#8a7350;margin-top:2px">{s.label}</div>
+        </div>
+      {/each}
+    </div>
+  </div>
+
   <div class="mono" style="display:flex;gap:14px;flex-wrap:wrap;font-size:9px;letter-spacing:.08em;color:#7a6b50;margin-top:18px">
     <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#c2562e;display:inline-block"></span>ROOT</div>
     <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#3f6b5f;display:inline-block"></span>CHORD TONE</div>

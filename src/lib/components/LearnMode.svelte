@@ -5,8 +5,8 @@
 </script>
 
 <div>
-  <div class="eyebrow" style="margin-bottom:4px">Learn · jazz harmony in {v.keyName}</div>
-  <div class="caption" style="font-size:13px;max-width:560px;margin-bottom:13px">Five building blocks of jazz harmony. Every chord and progression plays through the instruments — change the key up top to take it anywhere. Want to build your own changes? Head to the <b>Workshop → Jazz</b> mode.</div>
+  <div class="eyebrow" style="margin-bottom:4px">Learn · jazz &amp; groove harmony in {v.keyName}</div>
+  <div class="caption" style="font-size:13px;max-width:560px;margin-bottom:13px">Seven building blocks of jazz &amp; groove harmony — from extensions to funky basslines. Every chord and progression plays through the instruments — change the key up top to take it anywhere. Want to build your own changes? Head to the <b>Workshop → Jazz</b> mode.</div>
 
   <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;border-bottom:1px solid #ddccac">
     {#each v.jazzNav as c (c.i)}
