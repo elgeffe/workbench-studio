@@ -25,8 +25,20 @@ export class AudioEngine {
       const lp = this.actx.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.value = 3000;
+      // Safety limiter. Many-voice chords can momentarily sum past ±1.0, and
+      // anything beyond full scale hard-clips at the DAC — the fizzy crackle
+      // once heard on 9th/13th chords. Per-hit scaling (chordAmp) keeps the
+      // average level in check; this catches the transient overshoots. The
+      // high threshold leaves triads untouched.
+      const lim = this.actx.createDynamicsCompressor();
+      lim.threshold.value = -3;
+      lim.knee.value = 3;
+      lim.ratio.value = 20;
+      lim.attack.value = 0.001;
+      lim.release.value = 0.1;
       this.master.connect(lp);
-      lp.connect(this.actx.destination);
+      lp.connect(lim);
+      lim.connect(this.actx.destination);
     }
     if (this.actx.state === 'suspended') void this.actx.resume();
   }
@@ -44,15 +56,26 @@ export class AudioEngine {
     else void ctx.resume().then(fn, fn);
   }
 
-  private voice(midi: number, t: number, dur: number): void {
+  /**
+   * Per-voice level for an n-note hit. Triads (with their doubled bass root,
+   * 4 voices) keep the classic Workbench level; bigger stacks scale down so
+   * the summed signal stays clear of full scale instead of clipping. The 0.7
+   * exponent sits between equal-peak and equal-power, so a 13th chord sounds
+   * about as loud as a triad — just clean.
+   */
+  private chordAmp(n: number): number {
+    return n <= 4 ? 0.22 : 0.22 * Math.pow(4 / n, 0.7);
+  }
+
+  private voice(midi: number, t: number, dur: number, amp = 0.22): void {
     const ctx = this.actx!;
     const f = 440 * Math.pow(2, (midi - 69) / 12);
     const o1 = ctx.createOscillator(); o1.type = 'triangle'; o1.frequency.value = f;
     const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f; o2.detune.value = 5;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.13, t + 0.1);
+    g.gain.exponentialRampToValueAtTime(amp, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(amp * 0.59, t + 0.1);
     g.gain.exponentialRampToValueAtTime(0.0006, t + dur);
     // Exponential ramps never reach zero; ease to true silence before the
     // oscillator stops so it isn't cut mid-waveform (which clicks).
@@ -65,7 +88,8 @@ export class AudioEngine {
   playMidis(midis: number[], dur = 1.2, stagger = 0): void {
     this.run(() => {
       const t0 = this.actx!.currentTime + 0.03;
-      midis.forEach((m, i) => this.voice(m, t0 + i * stagger, dur));
+      const amp = this.chordAmp(midis.length);
+      midis.forEach((m, i) => this.voice(m, t0 + i * stagger, dur, amp));
     });
   }
 
@@ -107,6 +131,7 @@ export class AudioEngine {
       if (this.holdSeq !== id) return; // superseded before the context was ready
       const ctx = this.actx!;
       const t0 = ctx.currentTime + 0.02;
+      const amp = this.chordAmp(midis.length);
       midis.forEach((m, i) => {
         const t = t0 + i * stagger;
         const f = 440 * Math.pow(2, (m - 69) / 12);
@@ -115,8 +140,8 @@ export class AudioEngine {
         const g = ctx.createGain();
         g.gain.value = 0.0001; // silent from creation — the default of 1 pops if released before t
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
-        g.gain.exponentialRampToValueAtTime(0.16, t + 0.12); // settle to a sustain level and hold
+        g.gain.exponentialRampToValueAtTime(amp, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(amp * 0.73, t + 0.12); // settle to a sustain level and hold
         o1.connect(g); o2.connect(g); g.connect(this.master!);
         o1.start(t); o2.start(t);
         this.held.push({ o1, o2, g, start: t });
