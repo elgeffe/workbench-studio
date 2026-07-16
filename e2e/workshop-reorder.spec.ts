@@ -41,7 +41,7 @@ test('reorders via mouse drag', async ({ page }) => {
   expectRotated(before, await cells.allInnerTexts());
 });
 
-test('reorders via touch drag', async ({ page }) => {
+test('reorders via touch after a long-press', async ({ page }) => {
   const cells = await loadProgression(page);
   const before = await cells.allInnerTexts();
   expect(before.length).toBeGreaterThan(2);
@@ -50,6 +50,7 @@ test('reorders via touch drag', async ({ page }) => {
   const to = await center(cells.first());
   const client = await page.context().newCDPSession(page);
   await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from.x, y: from.y }] });
+  await page.waitForTimeout(360); // hold still to pick the chip up before dragging
   for (let s = 1; s <= 8; s++) {
     const x = from.x + ((to.x - from.x) * s) / 8;
     await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: to.y }] });
@@ -57,4 +58,24 @@ test('reorders via touch drag', async ({ page }) => {
   await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 
   expectRotated(before, await cells.allInnerTexts());
+});
+
+test('a quick touch swipe scrolls, it does not reorder', async ({ page }) => {
+  const cells = await loadProgression(page);
+  const before = await cells.allInnerTexts();
+  expect(before.length).toBeGreaterThan(2);
+
+  const from = await center(cells.nth(before.length - 1));
+  const to = await center(cells.first());
+  const client = await page.context().newCDPSession(page);
+  // No hold: swipe immediately. This is a scroll gesture now, so the order
+  // must stay exactly as it was.
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from.x, y: from.y }] });
+  for (let s = 1; s <= 8; s++) {
+    const x = from.x + ((to.x - from.x) * s) / 8;
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: to.y }] });
+  }
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+
+  expect(await cells.allInnerTexts()).toEqual(before);
 });
