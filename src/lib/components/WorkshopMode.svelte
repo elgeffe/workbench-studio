@@ -48,6 +48,7 @@
       <div class="mono click" style="font-size:10px;letter-spacing:.06em;padding:7px 14px;border-radius:6px;background:{v.styClassicBg};color:{v.styClassicFg}" role="button" tabindex="0" onclick={() => store.setWsStyle('classic')} onkeydown={(e) => e.key === 'Enter' && store.setWsStyle('classic')}>CLASSIC</div>
       <div class="mono click" style="font-size:10px;letter-spacing:.06em;padding:7px 14px;border-radius:6px;background:{v.styJazzBg};color:{v.styJazzFg}" role="button" tabindex="0" onclick={() => store.setWsStyle('jazz')} onkeydown={(e) => e.key === 'Enter' && store.setWsStyle('jazz')}>JAZZ</div>
       <div class="mono click" style="font-size:10px;letter-spacing:.06em;padding:7px 14px;border-radius:6px;background:{v.styClassicalBg};color:{v.styClassicalFg}" role="button" tabindex="0" onclick={() => store.setWsStyle('classical')} onkeydown={(e) => e.key === 'Enter' && store.setWsStyle('classical')}>CLASSICAL</div>
+      <div class="mono click" style="font-size:10px;letter-spacing:.06em;padding:7px 14px;border-radius:6px;background:{v.styBassBg};color:{v.styBassFg}" role="button" tabindex="0" onclick={() => store.setWsStyle('bass')} onkeydown={(e) => e.key === 'Enter' && store.setWsStyle('bass')}>BASS</div>
     </div>
   </div>
 
@@ -233,5 +234,67 @@
       {/each}
     </div>
     <div class="caption" style="font-size:13.5px;color:#5c4a30">Tap a triad to pre-hear it, <b>+</b> to place it. Select a placed chord to set its <b>inversion</b> (figured-bass 6 / 6-4), add a leading <b>V</b>, or substitute — the bones of voice-led classical harmony.</div>
+  {/if}
+
+  <!-- BASS palette -->
+  {#if v.wsStyleBass}
+    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">STARTING POINTS · {v.wsGenreName} · load a groove to play under</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px">
+      {#each v.wsGenres as g (g.i)}
+        <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.04em;padding:6px 11px;border-radius:6px;border:1px solid {g.border};background:{g.bg};color:{g.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setWsGenre(g.i)} onkeydown={(e) => e.key === 'Enter' && store.setWsGenre(g.i)}>{g.name}</div>
+      {/each}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px">
+      {#each v.wsPatterns as p, i (i)}
+        <div class="serif click" style="font-size:14px;font-weight:600;padding:7px 13px;border-radius:14px;border:1.5px solid #c2562e;background:#fbeede;color:#2c261d" role="button" tabindex="0" onclick={() => store.setProgression(p.defs)} onkeydown={(e) => e.key === 'Enter' && store.setProgression(p.defs)}>{p.name}</div>
+      {/each}
+    </div>
+
+    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">THE BASSLINE · {v.bassActiveName} · follows each chord as the loop plays</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px">
+      {#each v.bassGroupChips as g (g.name)}
+        <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.04em;padding:6px 11px;border-radius:6px;border:1px solid {g.border};background:{g.bg};color:{g.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setBassGroup(g.name)} onkeydown={(e) => e.key === 'Enter' && store.setBassGroup(g.name)}>{g.name}</div>
+      {/each}
+      <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.04em;padding:6px 11px;border-radius:6px;border:1px solid {v.bassOff ? '#9a3f1f' : '#cbb792'};background:{v.bassOff ? '#9a3f1f' : '#f6efe0'};color:{v.bassOff ? '#fff' : '#5c4a30'};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setBassPat(null)} onkeydown={(e) => e.key === 'Enter' && store.setBassPat(null)}>✕ NO BASS</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      {#each v.bassPats as p (p.id)}
+        <div class="click" style="flex:1 1 290px;min-width:270px;max-width:440px;border:1.5px solid {p.border};background:{p.bg};box-shadow:{p.shadow};border-radius:9px;padding:11px 12px" role="button" tabindex="0" onclick={() => store.setBassPat(p.id)} onkeydown={(e) => e.key === 'Enter' && store.setBassPat(p.id)}>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px">
+            <span style="font-size:16px;font-weight:700;color:#2c261d">{p.name}</span>
+            <span class="mono" style="font-size:7.5px;letter-spacing:.05em;color:#fff;background:#5c4a30;padding:3px 7px;border-radius:9px;white-space:nowrap">{p.tag}</span>
+          </div>
+          <div style="display:flex;gap:2px;margin:8px 0 7px">
+            {#each p.cells as c, s (s)}
+              <div class="mono" style="flex:1;height:22px;border-radius:3px;background:{c.bg};color:{c.fg};font-size:8px;line-height:22px;text-align:center;overflow:hidden;margin-left:{s > 0 && s % 4 === 0 ? '4px' : '0'}">{c.label}</div>
+            {/each}
+          </div>
+          <div class="caption" style="font-size:12px;color:#6b5a3e">{p.tip}</div>
+        </div>
+      {/each}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px">
+      {#each v.bassLegend as l (l.name)}
+        <span style="display:inline-flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;border-radius:3px;background:{l.color};flex:none"></span>
+          <span class="mono" style="font-size:9px;letter-spacing:.05em;color:#7a6b50">{l.name}</span>
+        </span>
+      {/each}
+      <span class="mono" style="font-size:9px;letter-spacing:.05em;color:#a08a64">· 16 sixteenths = one bar per chord · ↑↓ approach the next chord · → lands its root early</span>
+    </div>
+
+    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">TRICKS OF THE TRADE · tap to hear each move over your current chord</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      {#each v.bassTricks as tk (tk.id)}
+        <div class="click" style="flex:1 1 205px;min-width:195px;max-width:310px;border:1px solid #e0cfae;background:#fbf6ea;border-radius:8px;padding:10px 12px" role="button" tabindex="0" onclick={() => store.playTrick(tk.id)} onkeydown={(e) => e.key === 'Enter' && store.playTrick(tk.id)}>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px">
+            <span style="font-size:15px;font-weight:700;color:#2c261d">{tk.name}</span>
+            <span class="mono" style="font-size:9px;color:#c2562e">▶</span>
+          </div>
+          <div class="caption" style="font-size:12px;color:#6b5a3e">{tk.why}</div>
+        </div>
+      {/each}
+    </div>
+    <div class="caption" style="font-size:13.5px;color:#5c4a30">Load a progression, pick a groove, hit <b>▶ PLAY</b> — the bassline transposes itself through every change (in BASS each chord lasts a full 4-beat bar). Selecting a pattern previews one bar solo; watch it land on the bass fretboard in the side panel.</div>
   {/if}
 </div>

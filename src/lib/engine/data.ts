@@ -316,7 +316,7 @@ export function jazzChapters(tonicPc: number): JazzChapter[] {
         { kind: 'seq', label: 'Groove to practise over · i9–IV9', rows: [
           { iv: 0, q: 'min9', name: 'i9' },
           { iv: 5, q: 'dom9', fn: 'S', name: 'IV9' }] },
-        { kind: 'callout', text: 'Practise with the metronome on 2 and 4, lock your root to the imaginary kick drum, and remember Jackson’s rule: if it doesn’t groove as two bars looped forever, it doesn’t groove.' },
+        { kind: 'callout', text: 'Practise with the metronome on 2 and 4, lock your root to the imaginary kick drum, and remember Jackson’s rule: if it doesn’t groove as two bars looped forever, it doesn’t groove. Then build your own: Workshop → BASS lays any of these grooves under your chord changes, live.' },
       ] },
   ];
 }

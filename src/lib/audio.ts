@@ -69,6 +69,27 @@ export class AudioEngine {
     });
   }
 
+  /**
+   * Ghost note: the muted, pitchless "chk" a bassist plays between real notes.
+   * A very short, quiet, heavily damped pluck at the given register — enough
+   * attack to mark the subdivision, gone before it reads as a pitch.
+   */
+  ghost(midi: number): void {
+    this.run(() => {
+      const ctx = this.actx!;
+      const t = ctx.currentTime + 0.02;
+      const f = 440 * Math.pow(2, (midi - 69) / 12);
+      const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.055, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0004, t + 0.055);
+      g.gain.linearRampToValueAtTime(0, t + 0.08);
+      o.connect(g); g.connect(this.master!);
+      o.start(t); o.stop(t + 0.1);
+    });
+  }
+
   // Voices currently sustained by a press-and-hold gesture.
   private held: Array<{ o1: OscillatorNode; o2: OscillatorNode; g: GainNode; start: number }> = [];
   // Bumped on every release; lets a hold that is still waiting for the context

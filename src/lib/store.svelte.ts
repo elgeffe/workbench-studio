@@ -19,10 +19,14 @@ import {
   classicalProgDefs, jzBorrowDefs, jzSecondaryDefs, type ChordDef, type JazzChapter,
 } from './engine/data';
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
+import {
+  BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS, BASS_ROLE_META, BASS_TOK_LABEL,
+  bassRole, bassRootMidi, resolveBassStep, type BassStep, type BassRole,
+} from './engine/bass';
 import { AudioEngine } from './audio';
 
 export type Mode = 'circle' | 'workshop' | 'ear' | 'patterns' | 'jazz';
-export type WsStyle = 'classic' | 'jazz' | 'classical';
+export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
 
 // ---------- view-model shapes ----------
 export interface Chip { name: string; bg: string; fg: string; border: string }
@@ -62,6 +66,8 @@ export class WorkbenchStore {
   earMsg = $state('');
 
   wsGenre = $state(0);
+  bassGroup = $state(BASS_GROUPS[0]);
+  bassPatId = $state<string | null>('discopump');
   patCat = $state('Scales');
   patId = $state('major');
   jazzCh = $state(0);
@@ -87,6 +93,7 @@ export class WorkbenchStore {
   private jIdx = 0; // next progression index the live loop will play
   private seqTimers: ReturnType<typeof setTimeout>[] = [];
   private singleTimers: ReturnType<typeof setTimeout>[] = [];
+  private bassTimers: ReturnType<typeof setTimeout>[] = [];
 
   constructor() {
     // Prepare an ear-training target so the tab isn't empty, but stay silent:
@@ -99,6 +106,7 @@ export class WorkbenchStore {
     if (this.jloop) clearInterval(this.jloop);
     this.seqTimers.forEach((id) => clearTimeout(id));
     this.singleTimers.forEach((id) => clearTimeout(id));
+    this.bassTimers.forEach((id) => clearTimeout(id));
   }
 
   // ---- audio wrappers (respect the mute toggle) ----
@@ -143,7 +151,49 @@ export class WorkbenchStore {
   }
   setCircleDir(d: 'fifths' | 'fourths'): void { this.circleDir = d; }
   setWsGenre(i: number): void { this.wsGenre = i; }
-  setWsStyle(s: WsStyle): void { this.wsStyle = s; }
+  setWsStyle(s: WsStyle): void {
+    this.wsStyle = s;
+    // Bass style stretches each chord slot to a full bar; retime a live loop.
+    if (this.jzPlaying && this.jloop) {
+      clearInterval(this.jloop);
+      this.jloop = setInterval(this.jTick, this.jBeatMs());
+    }
+  }
+  setBassGroup(g: string): void { this.bassGroup = g; }
+  setBassPat(id: string | null): void {
+    this.bassPatId = id;
+    // Solo one-bar preview so you hear the groove before committing; a live
+    // loop just picks the new pattern up on its next bar instead.
+    if (id && !this.jzPlaying) {
+      const pat = BASS_PATTERNS.find((p) => p.id === id);
+      if (pat) this.playBassBar(pat.steps);
+    }
+  }
+  playTrick(id: string): void {
+    const tk = BASS_TRICKS.find((t) => t.id === id);
+    if (tk) this.playBassBar(tk.demo);
+  }
+  /** One bar of steps, solo, over the current harmonic context. */
+  private playBassBar(steps: BassStep[]): void {
+    const chs = this.jzChanges;
+    const i = this.jzSel >= 0 ? this.jzSel : 0;
+    // No progression yet: demo over a dominant on the tonic (the funk default).
+    const ch: Chord = chs.length ? chs[i] : { rootPc: this.tonicPc, intervals: INT.dom7, name: '', fn: 'T' };
+    const next = chs.length ? chs[(i + 1) % chs.length] : ch;
+    this.scheduleBassSteps(steps, ch, next, (60000 / this.tempo) * 4);
+  }
+  private scheduleBassSteps(steps: BassStep[], ch: Chord, next: Chord, barMs: number): void {
+    this.bassTimers.forEach((id) => clearTimeout(id));
+    this.bassTimers = [];
+    const stepMs = barMs / 16;
+    steps.forEach((st) => {
+      this.bassTimers.push(setTimeout(() => {
+        if (!this.soundOn) return;
+        if (st.g) this.audio.ghost(bassRootMidi(ch.rootPc));
+        else if (st.d) this.playMidis([resolveBassStep(st.d, ch, next, this.tonicPc)], Math.max(0.16, ((st.l ?? 1.6) * stepMs) / 1000));
+      }, Math.round(st.s * stepMs)));
+    });
+  }
   toggleFinger(): void { this.fingerOn = !this.fingerOn; }
   setJzInv(i: number): void { this.jzInv = i; }
   setVoicing(v: 'full' | 'shell'): void { this.jzVoicing = v; }
@@ -302,13 +352,17 @@ export class WorkbenchStore {
   }
   stopJazz(): void {
     if (this.jloop) { clearInterval(this.jloop); this.jloop = null; }
+    this.bassTimers.forEach((id) => clearTimeout(id));
+    this.bassTimers = [];
     this.jzPlaying = false;
     this.jzStep = -1;
   }
   toggleJazzPlay(): void {
     if (this.jzPlaying) this.stopJazz(); else this.startJazz();
   }
-  private jBeatMs(): number { return (60000 / this.tempo) * 2; }
+  // Bass style gives each chord a full 4-beat bar so the groove pattern has
+  // room to breathe; the other styles keep the original brisk 2-beat slots.
+  private jBeatMs(): number { return (60000 / this.tempo) * (this.wsStyle === 'bass' ? 4 : 2); }
   // One beat of the live loop. Reads this.jzChanges fresh each tick (never a
   // captured snapshot) so chords swapped, added, or removed mid-playback take
   // effect on the very next beat.
@@ -321,6 +375,12 @@ export class WorkbenchStore {
     this.activeChord = jChVoiced(ch, this.jzVoicing);
     this.playChord(jChVoiced(ch, this.jzVoicing), 0.02);
     this.jIdx = i + 1;
+    // Bass style: lay the selected groove under this bar's chord, resolved
+    // fresh each bar so pattern swaps and chord edits land on the next ONE.
+    if (this.wsStyle === 'bass' && this.bassPatId) {
+      const pat = BASS_PATTERNS.find((p) => p.id === this.bassPatId);
+      if (pat) this.scheduleBassSteps(pat.steps, ch, chs[(i + 1) % chs.length], this.jBeatMs());
+    }
   };
   startJazz(): void {
     if (!this.jzChanges.length) return;
@@ -739,6 +799,24 @@ export class WorkbenchStore {
     const cadences = cadenceDefs.map((c) => ({ name: c.name, defs: c.defs }));
     const clProgs = classicalProgDefs.map((p) => ({ name: p.name, defs: p.defs }));
 
+    // bass workbench palette
+    const bassGroupChips = BASS_GROUPS.map((g) => ({ name: g, border: g === this.bassGroup ? '#3f6b5f' : '#cbb792', bg: g === this.bassGroup ? '#3f6b5f' : '#f6efe0', fg: g === this.bassGroup ? '#fff' : '#5c4a30' }));
+    const bassPats = BASS_PATTERNS.filter((p) => p.group === this.bassGroup).map((p) => {
+      const sel = p.id === this.bassPatId;
+      // 16 cells, one per 16th: coloured by the note's role in the line, a
+      // grey × for ghosts, faint for rests (downbeats slightly darker).
+      const cells = Array.from({ length: 16 }, (_, s) => {
+        const st = p.steps.find((x) => x.s === s);
+        if (!st) return { label: '', bg: s % 4 === 0 ? '#e7d9ba' : '#f0e6cf', fg: 'transparent' };
+        const color = BASS_ROLE_META[bassRole(st)].color;
+        return { label: st.g ? '×' : BASS_TOK_LABEL[st.d!], bg: color, fg: '#fff' };
+      });
+      return { id: p.id, name: p.name, tag: p.tag, tip: p.tip, cells, border: sel ? '#c2562e' : '#e0cfae', bg: sel ? '#fbeede' : '#fbf6ea', shadow: sel ? '0 0 0 2px #c2562e' : 'none' };
+    });
+    const bassLegend = (Object.keys(BASS_ROLE_META) as BassRole[]).map((r) => ({ name: BASS_ROLE_META[r].name, color: BASS_ROLE_META[r].color }));
+    const bassTricks = BASS_TRICKS.map((tk) => ({ id: tk.id, name: tk.name, why: tk.why }));
+    const bassActive = BASS_PATTERNS.find((p) => p.id === this.bassPatId);
+
     // explore selected
     let exploreOpen = false, selName = '', selRoman = '', showIIV = false, showV = false;
     let extChips: Array<{ label: string; ch: Chord }> = [];
@@ -837,11 +915,14 @@ export class WorkbenchStore {
       acNotes, acWhy: ac ? FNWHY[ac.fn || 'T'] : '',
       // workshop
       wsGenres, wsPatterns, wsGenreName, colorChords,
-      wsStyleClassic: this.wsStyle === 'classic', wsStyleJazz: this.wsStyle === 'jazz', wsStyleClassical: this.wsStyle === 'classical',
+      wsStyleClassic: this.wsStyle === 'classic', wsStyleJazz: this.wsStyle === 'jazz', wsStyleClassical: this.wsStyle === 'classical', wsStyleBass: this.wsStyle === 'bass',
       styClassicBg: this.wsStyle === 'classic' ? '#c2562e' : 'transparent', styClassicFg: this.wsStyle === 'classic' ? '#fff' : '#5c4a30',
       styJazzBg: this.wsStyle === 'jazz' ? '#c2562e' : 'transparent', styJazzFg: this.wsStyle === 'jazz' ? '#fff' : '#5c4a30',
       styClassicalBg: this.wsStyle === 'classical' ? '#c2562e' : 'transparent', styClassicalFg: this.wsStyle === 'classical' ? '#fff' : '#5c4a30',
+      styBassBg: this.wsStyle === 'bass' ? '#c2562e' : 'transparent', styBassFg: this.wsStyle === 'bass' ? '#fff' : '#5c4a30',
       clDia, cadences, clProgs, invChips, showIIV, showV,
+      bassGroupChips, bassPats, bassLegend, bassTricks,
+      bassActiveName: bassActive ? bassActive.name : 'none', bassOff: !this.bassPatId,
       subs,
       // patterns
       patCatChips, patChips, patName: activePat.name, patTip: activePat.tip, patChordName, activePat,
