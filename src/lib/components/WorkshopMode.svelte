@@ -358,18 +358,6 @@
       <div class="caption" style="font-size:11.5px;color:#6b5a3e;margin-top:8px">Tap a step to cycle <b>rest → R → 3 → 5 → ♭7 → 8 → ×</b> (ghost). Seed from a groove above, then tweak — each note sustains to the next, and the line transposes through your progression when you hit <b>▶ PLAY</b>.</div>
     </div>
 
-    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">TRICKS OF THE TRADE · tap to hear each move over your current chord</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
-      {#each v.bassTricks as tk (tk.id)}
-        <div class="click" style="flex:1 1 205px;min-width:195px;max-width:310px;border:1px solid #e0cfae;background:#fbf6ea;border-radius:8px;padding:10px 12px" role="button" tabindex="0" onclick={() => store.playTrick(tk.id)} onkeydown={(e) => e.key === 'Enter' && store.playTrick(tk.id)}>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px">
-            <span style="font-size:15px;font-weight:700;color:#2c261d">{tk.name}</span>
-            <span class="mono" style="font-size:9px;color:#c2562e">▶</span>
-          </div>
-          <div class="caption" style="font-size:12px;color:#6b5a3e">{tk.why}</div>
-        </div>
-      {/each}
-    </div>
-    <div class="caption" style="font-size:13.5px;color:#5c4a30">Load a progression, pick a groove, hit <b>▶ PLAY</b> — the bassline transposes itself through every change (in BASS each chord lasts a full 4-beat bar). Use <b>MIX</b> to mute the chords or the bass and study either half alone. Selecting a pattern previews one bar solo; watch it land on the bass fretboard in the side panel.</div>
+    <div class="caption" style="font-size:13.5px;color:#5c4a30">Load a progression, pick a groove, hit <b>▶ PLAY</b> — the bassline transposes itself through every change (in BASS each chord lasts a full 4-beat bar). Use <b>MIX</b> to mute the chords or the bass and study either half alone. Selecting a pattern previews one bar solo; watch it land on the bass fretboard in the side panel. Learn the moves behind these lines in <b>Learn → Tricks of the trade</b>.</div>
   {/if}
 </div>
