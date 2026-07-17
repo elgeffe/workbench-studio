@@ -20,6 +20,11 @@ test.describe('mobile layout', () => {
     await page.getByTestId('dock-bar').click();
     await expect(page.getByText('PIANO · C3–C5')).toBeVisible();
     await expect(page.getByText('GUITAR · EADGBE')).toBeVisible();
+    // the whole panel fits without inner scrolling — the bass fretboard at the
+    // bottom is fully in view and the container has no scrollable overflow
+    await expect(page.getByText('BASS · EADG')).toBeInViewport();
+    const scrollable = await page.getByTestId('dock-panel').evaluate((el) => el.scrollHeight > el.clientHeight + 1);
+    expect(scrollable).toBe(false);
   });
 
   test('navigates modes via the bottom tab bar', async ({ page }) => {

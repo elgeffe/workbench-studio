@@ -103,7 +103,10 @@
 {#if !store.isDesktop}
 <div class="wb-dockbar">
   {#if v.dockExpanded}
-    <div style="background:linear-gradient(#efe3ca,#e9dcc0);border-top:1px solid #cbb792;box-shadow:0 -12px 30px -14px rgba(60,40,16,.4);max-height:52vh;overflow-y:auto;padding:14px 14px 10px">
+    <!-- Cap = full dynamic viewport minus the dock bar + tab bar (~108px +
+         safe area), so the whole panel is visible without inner scrolling;
+         overflow stays as a fallback for very short (landscape) screens. -->
+    <div data-testid="dock-panel" style="background:linear-gradient(#efe3ca,#e9dcc0);border-top:1px solid #cbb792;box-shadow:0 -12px 30px -14px rgba(60,40,16,.4);max-height:calc(100dvh - 108px - env(safe-area-inset-bottom));overflow-y:auto;padding:14px 14px 10px">
       <Instruments variant="dock" />
     </div>
   {/if}
