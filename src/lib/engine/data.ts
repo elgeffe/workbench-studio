@@ -2,6 +2,7 @@
 // jazz curriculum. Ported verbatim from the original Workbench.
 
 import { spell, cname } from './theory';
+import { FRET_TABS } from './fretpatterns';
 import type { Fn } from './constants';
 
 export interface ChordDef {
@@ -138,7 +139,9 @@ export const PAT_GROUPS = ['Scales', 'Pentatonic & Blues', 'Arpeggios', 'Genre L
 // qualities on the circle of fifths rather than listing scale/lick patterns, so
 // it lives alongside the pattern groups but is not one of them.
 export const PAT_SHAPES_TAB = 'Chord Shapes';
-export const PAT_TABS = [...PAT_GROUPS, PAT_SHAPES_TAB];
+// Fretboard-diagram tabs (scale boxes, CAGED, chord shapes on the neck) are
+// defined in engine/fretpatterns.ts and slot in between.
+export const PAT_TABS = [...PAT_GROUPS, ...FRET_TABS, PAT_SHAPES_TAB];
 
 // ---- Learn-mode jazz curriculum ----
 

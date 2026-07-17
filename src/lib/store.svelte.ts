@@ -15,9 +15,10 @@ import {
   jazzVoicing, type DiatonicChord,
 } from './engine/theory';
 import {
-  genreDefs, patternDefs, jazzChapters, PAT_SHAPES_TAB, PAT_TABS, quickProgDefs, cadenceDefs,
+  genreDefs, patternDefs, jazzChapters, PAT_GROUPS, PAT_SHAPES_TAB, PAT_TABS, quickProgDefs, cadenceDefs,
   classicalProgDefs, jzBorrowDefs, jzSecondaryDefs, type ChordDef, type JazzChapter,
 } from './engine/data';
+import { FRET_TABS, fretTab, type Diagram } from './engine/fretpatterns';
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
 import {
   BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS, BASS_ROLE_META, BASS_TOK_LABEL,
@@ -567,6 +568,14 @@ export class WorkbenchStore {
     const down = up.slice(0, -1).reverse();
     [...up, ...down].forEach((m, i) => this.singleTimers.push(setTimeout(() => this.playMidis([m], 0.45), i * 135)));
   }
+  /** Sound a fretboard diagram: scale boxes run note-by-note, chords strum. */
+  playFretDiagram(d: Diagram): void {
+    if (!this.soundOn) return;
+    this.singleTimers.forEach((id) => clearTimeout(id));
+    this.singleTimers = [];
+    if (d.kind === 'chord') { this.playMidis(d.midis, 1.5, 0.045); return; }
+    d.midis.forEach((m, i) => this.singleTimers.push(setTimeout(() => this.playMidis([m], 0.45), i * 140)));
+  }
 
   // ---- drums groovebox ----
   private drTpl() {
@@ -717,9 +726,10 @@ export class WorkbenchStore {
   private litInfo() {
     const t = this.tonicPc;
     const activePat = patternDefs().find((p) => p.id === this.patId) || patternDefs()[0];
-    // The Chord Shapes tab is chord-driven, not scale-driven: fall through to the
-    // active-chord lighting below so tapping a shape lights that chord.
-    if (this.mode === 'patterns' && this.patCat !== PAT_SHAPES_TAB) {
+    // Only the pattern-library groups drive scale lighting; the Chord Shapes
+    // and fret-diagram tabs are chord/diagram-driven, so they fall through to
+    // the active-chord lighting below.
+    if (this.mode === 'patterns' && PAT_GROUPS.includes(this.patCat)) {
       const ints = activePat.int || activePat.scaleInt || [];
       const lit = ints.map((i) => (t + i) % 12);
       const litSet = new Set(lit);
@@ -963,6 +973,9 @@ export class WorkbenchStore {
     // patterns tab
     const patCat = PAT_TABS.includes(this.patCat) ? this.patCat : 'Scales';
     const patShapesTab = patCat === PAT_SHAPES_TAB;
+    const patFretTab = FRET_TABS.includes(patCat);
+    const patLibTab = PAT_GROUPS.includes(patCat);
+    const patFret = patFretTab ? fretTab(patCat, t) : { intro: '', cards: [] };
     const patCatChips = PAT_TABS.map((g) => ({ name: g, border: g === patCat ? '#3f6b5f' : '#cbb792', bg: g === patCat ? '#3f6b5f' : '#f6efe0', fg: g === patCat ? '#fff' : '#5c4a30' }));
     const patChips = patternDefs().filter((p) => p.group === patCat).map((p) => ({ id: p.id, name: p.name, weight: p.id === activePat.id ? '700' : '500', border: p.id === activePat.id ? '#c2562e' : '#cbb792', bg: p.id === activePat.id ? '#fbeede' : '#f6efe0' }));
     const patInt = activePat.int || activePat.scaleInt || [];
@@ -1225,6 +1238,7 @@ export class WorkbenchStore {
       // patterns
       patCatChips, patChips, patName: activePat.name, patTip: activePat.tip, patChordName, activePat,
       patDegrees, patSeqNotes, patHasSeq: !!activePat.seq, patShapes, patShapesTab,
+      patFretTab, patFretIntro: patFret.intro, patFretCards: patFret.cards,
       // learn
       jazzNav, jazzBlocks, jazzTitle: jzc.name, jazzIntro: jzc.intro, jazzTag: jzc.tag,
       jzChangesView, jzEmpty: this.jzChanges.length === 0,
@@ -1251,8 +1265,8 @@ export class WorkbenchStore {
       earMsg: this.earMsg, earMsgColor: this.earMsg.indexOf('✓') >= 0 ? '#3f6b5f' : '#c2562e',
       // dock / instruments
       dockExpanded: this.dockOpen, dockChevron: this.dockOpen ? '▼ HIDE' : '▲ SHOW',
-      dockName: this.mode === 'patterns' && !patShapesTab ? spell(t, t) + ' ' + activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
-      dockNotes: this.mode === 'patterns' && !patShapesTab ? patNotes + '   ·   over ' + patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
+      dockName: this.mode === 'patterns' && patLibTab ? spell(t, t) + ' ' + activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
+      dockNotes: this.mode === 'patterns' && patLibTab ? patNotes + '   ·   over ' + patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
       ...inst,
       fingerBg: this.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: this.fingerOn ? '#fff' : '#5c4a30',
       // mobile tab bar
