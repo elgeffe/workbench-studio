@@ -58,7 +58,7 @@ test.describe('learn: rhythm & drums tab', () => {
     await page.goto('/');
     await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'jazz' }).click();
     // harmony curriculum is the default
-    await expect(page.getByText('Seven building blocks of jazz & groove harmony')).toBeVisible();
+    await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();
     await page.getByTestId('learn-tabs').getByText('Rhythm & Drums').click();
     await expect(page.getByText('The Backbeat', { exact: true })).toBeVisible();
     await expect(page.getByText('The Clave — a Timeline', { exact: true })).toBeVisible();
@@ -69,7 +69,7 @@ test.describe('learn: rhythm & drums tab', () => {
     await expect(page.getByText('BASSLINE MOVES', { exact: true })).toBeVisible();
     // and back
     await page.getByTestId('learn-tabs').getByText('Harmony & Jazz').click();
-    await expect(page.getByText('Seven building blocks of jazz & groove harmony')).toBeVisible();
+    await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();
     await expect(page.getByText('Tricks of the trade')).toBeHidden();
   });
 });

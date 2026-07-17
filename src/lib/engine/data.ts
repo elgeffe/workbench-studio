@@ -261,6 +261,42 @@ export function jazzChapters(tonicPc: number): JazzChapter[] {
           { iv: 0, q: 'min7', fn: 'T', name: 'i7' }] },
         { kind: 'callout', text: 'Spotting ii–V–Is is reading jazz. A tune in C might tonicise other keys for a bar or two — each is its own little ii–V. Once your hands know the shape, the changes stop looking scary.' },
       ] },
+    { key: 'keychange', name: 'Key Changes', tag: 'MODULATION',
+      intro: 'A key change (modulation) moves the whole tonal centre — a new “home” chord, a new set of diatonic chords. Done well it re-lights a song: the final chorus lifts, the bridge breathes different air, a long piece gets a second act. The craft is in the join: how you travel decides whether it feels inevitable or bolted on.',
+      blocks: [
+        { kind: 'h', text: 'When is a key change appropriate?' },
+        { kind: 'p', text: 'Three classic moments: (1) the last chorus — jump up a half or whole step for pure energy; (2) the bridge — slip to a related key (the IV, the V, or the relative minor) for contrast, then come home; (3) a new section of a longer piece — modulate to the dominant key and let it become the temporary home. The common thread: change key at a structural seam, landing the new tonic on a strong downbeat.' },
+        { kind: 'h', text: 'The smooth way · pivot chord' },
+        { kind: 'p', text: 'Find a chord both keys share and let it change its meaning mid-air. Modulating up a fifth, the vi of the old key is the ii of the new one: the ear enters the chord in the old key and leaves it in the new. Then the new key’s V7 seals it.' },
+        { kind: 'seq', label: 'Pivot up a 5th · I → vi (=ii of V) → V7-of-new → new I', rows: [
+          { iv: 0, q: 'maj7', name: 'Imaj7', sub: 'old home' },
+          { iv: 9, q: 'min7', fn: 'S', name: 'vi7', sub: 'pivot — also ii of the new key' },
+          { iv: 2, q: 'dom7', fn: 'D', name: 'II7', sub: 'the NEW key’s V7' },
+          { iv: 7, q: 'maj7', name: 'Vmaj7', sub: 'new home, a 5th up' }] },
+        { kind: 'h', text: 'The jazz way · ii–V into anywhere' },
+        { kind: 'p', text: 'Any key is two chords away: play the new key’s ii–V and land. This is how standards drift through three keys in eight bars — each destination gets its own little ii–V escort. Here’s a lift up a minor third:' },
+        { kind: 'seq', label: 'ii–V into ♭III · new key a minor 3rd up', rows: [
+          { iv: 5, q: 'min7', fn: 'S', name: 'iv7', sub: 'ii of the new key' },
+          { iv: 10, q: 'dom7', fn: 'D', name: '♭VII7', sub: 'V of the new key' },
+          { iv: 3, q: 'maj7', name: '♭IIImaj7', sub: 'new home' }] },
+        { kind: 'h', text: 'The pop way · the truck-driver lift' },
+        { kind: 'p', text: 'For the final chorus, just go — up a semitone (or a whole tone), no pivot, maximum drama. If you want a hint of glue, hit the new key’s V7 for one beat first; the ear snaps to the new centre instantly.' },
+        { kind: 'seq', label: 'Semitone lift · I → V7-of-new → new I (♭II)', rows: [
+          { iv: 0, q: 'maj', name: 'I', sub: 'last time in the old key' },
+          { iv: 8, q: 'dom7', fn: 'D', name: 'V7/♭II', sub: 'one beat of glue' },
+          { iv: 1, q: 'maj', name: '♭II', sub: 'everything a fret higher' }] },
+        { kind: 'seq', label: 'Whole-tone lift · I → V7-of-new → new I (II)', rows: [
+          { iv: 0, q: 'maj', name: 'I' },
+          { iv: 9, q: 'dom7', fn: 'D', name: 'V7/II', sub: 'V of the new key' },
+          { iv: 2, q: 'maj', name: 'II', sub: 'new home, a tone up' }] },
+        { kind: 'h', text: 'The free moves · relative & parallel' },
+        { kind: 'p', text: 'Relative keys (C major ↔ A minor) share every note — no accidentals change, you just start treating vi as home. Parallel keys (C major ↔ C minor) keep the root and swap the colour; ending a minor song on the major I is the famous Picardy third. Hear major-home versus its parallel minor-home:' },
+        { kind: 'chords', rows: [
+          { iv: 0, q: 'maj', name: 'I', sub: 'major home' },
+          { iv: 0, q: 'min', name: 'i (parallel)', sub: 'same root, darker world' },
+          { iv: 9, q: 'min', name: 'vi (relative)', sub: 'same notes, new home' }] },
+        { kind: 'callout', text: 'Rules of thumb: neighbours on the circle of fifths share 6 of 7 notes, so those modulations feel smooth; distant keys feel dramatic. Prepare the arrival with the new key’s V7 (or a full ii–V), land the new I on a strong beat, then confirm it with a cadence. Try it live: in the Workshop’s Jazz palette, the SECONDARY DOMINANTS row is a rack of doorways into other keys — and the key strip up top retunes the whole app when you follow one.' },
+      ] },
     { key: 'groove', name: 'Groove Harmony', tag: '70s & 80s',
       intro: 'Funk, soul, neo-soul and disco flipped the rules: instead of travelling through changes, the band parks on one or two rich chords and lets rhythm do the storytelling. The harmony is a texture — extended, modal, hypnotic. This is the sound of the 70s and 80s.',
       blocks: [
