@@ -448,9 +448,71 @@ function barreCards(t: number): FretCard[] {
   });
 }
 
+// ---------- Bass chords: E-string and A-string root grips ----------
+
+// Down low, stacked thirds turn to mud — bass chords work because they're
+// sparse and WIDE: root + 5th, root + octave, or root + tenth (a 3rd spread
+// an octave). Two families, like guitar barre chords: root on the E string
+// or root on the A string.
+type BassGrip = { name: string; spec: FretShapeSpec };
+const bassE = (name: string, dots: ShapeDot[], mutes: number[]): BassGrip => (
+  { name, spec: { inst: 'bass', anchorS: 0, anchorF: dots[0].f, mutes, dots } });
+const bassA = (name: string, anchorF: number, dots: ShapeDot[], mutes: number[]): BassGrip => (
+  { name, spec: { inst: 'bass', anchorS: 1, anchorF, mutes, dots } });
+
+const BASS_CHORD_CARDS: Array<{ id: string; name: string; tag: string; tip: string; grips: BassGrip[] }> = [
+  { id: 'bpower', name: 'Power & octave · E root', tag: 'ROOT ON E',
+    tip: 'The bread and butter. Root + 5th says “chord” without naming major or minor; add the octave on the D string and you get the three-finger triangle every rock and disco line lives in. Works under ANY chord the band plays.',
+    grips: [
+      bassE('R + 5', [{ s: 0, f: 0, role: 'R' }, { s: 1, f: 2, role: '5' }], [2, 3]),
+      bassE('R + 5 + 8', [{ s: 0, f: 0, role: 'R' }, { s: 1, f: 2, role: '5' }, { s: 2, f: 2, role: 'R' }], [3]),
+    ] },
+  { id: 'bpowerA', name: 'Power & octave · A root', tag: 'ROOT ON A',
+    tip: 'The same triangle moved up one string — root on the A, 5th on the D, octave on the G. Learn both families and, like guitar barre chords, you can grab any root without running down the neck.',
+    grips: [
+      bassA('R + 5', 0, [{ s: 1, f: 0, role: 'R' }, { s: 2, f: 2, role: '5' }], [0, 3]),
+      bassA('R + 5 + 8', 0, [{ s: 1, f: 0, role: 'R' }, { s: 2, f: 2, role: '5' }, { s: 3, f: 2, role: 'R' }], [0]),
+    ] },
+  { id: 'btenths', name: 'Tenths · E root', tag: 'THE PRETTY ONE',
+    tip: 'The bassist’s prettiest “chord”: root on the E, 3rd played an octave up (a TENTH) on the G string — the wide spacing keeps it clear where a plain 3rd would be mud. Major and minor differ by one fret; skip the middle strings and let both notes ring.',
+    grips: [
+      bassE('major 10th', [{ s: 0, f: 0, role: 'R' }, { s: 3, f: 1, role: '3' }], [1, 2]),
+      bassE('minor 10th', [{ s: 0, f: 0, role: 'R' }, { s: 3, f: 0, role: '♭3' }], [1, 2]),
+    ] },
+  { id: 'bsevE', name: 'Sevenths · E root', tag: 'ROOT ON E',
+    tip: 'Three-note colour grips: the ♭7 sits on the D string at the SAME fret as the root, then the G string names the quality — 3 one fret up (dominant), ♭3 same fret (minor 7), or 7 one fret up on the D for major 7. Mute the A string with the fretting finger’s underside.',
+    grips: [
+      bassE('dom 7', [{ s: 0, f: 0, role: 'R' }, { s: 2, f: 0, role: '♭7' }, { s: 3, f: 1, role: '3' }], [1]),
+      bassE('minor 7', [{ s: 0, f: 0, role: 'R' }, { s: 2, f: 0, role: '♭7' }, { s: 3, f: 0, role: '♭3' }], [1]),
+      bassE('major 7', [{ s: 0, f: 0, role: 'R' }, { s: 2, f: 1, role: '7' }, { s: 3, f: 1, role: '3' }], [1]),
+    ] },
+  { id: 'btriA', name: 'Triads · A root', tag: 'ROOT ON A',
+    tip: 'Full triads with the octave on top: root on the A, 3rd tucked below on the D string, octave on the G. The major grip leans back one fret for the 3; the minor grip reaches back two for the ♭3. Great for chord stabs when the guitarist drops out.',
+    grips: [
+      bassA('major · R 3 8', 1, [{ s: 1, f: 1, role: 'R' }, { s: 2, f: 0, role: '3' }, { s: 3, f: 3, role: 'R' }], [0]),
+      bassA('minor · R ♭3 8', 2, [{ s: 1, f: 2, role: 'R' }, { s: 2, f: 0, role: '♭3' }, { s: 3, f: 4, role: 'R' }], [0]),
+    ] },
+  { id: 'bsevA', name: 'Seventh shells · A root', tag: 'ROOT ON A',
+    tip: 'The A-root colour grips: dominant packs R–3–♭7 into three frets; the m7/dom shell (R–5–♭7, no 3rd) is the pro favourite — it fits minor AND dominant chords, so one grip covers half a funk tune.',
+    grips: [
+      bassA('dom 7 · R 3 ♭7', 1, [{ s: 1, f: 1, role: 'R' }, { s: 2, f: 0, role: '3' }, { s: 3, f: 1, role: '♭7' }], [0]),
+      bassA('7 shell · R 5 ♭7', 0, [{ s: 1, f: 0, role: 'R' }, { s: 2, f: 2, role: '5' }, { s: 3, f: 0, role: '♭7' }], [0]),
+    ] },
+];
+
+function bassChordCards(t: number): FretCard[] {
+  return BASS_CHORD_CARDS.map((c) => ({
+    id: c.id, name: c.name, tag: c.tag, tip: c.tip,
+    diagrams: c.grips.map((g) => {
+      const d = buildDiagram(g.spec, t, 'chord');
+      return { ...d, name: `${g.name} · fret ${d.startFret}` };
+    }),
+  }));
+}
+
 // ---------- tab registry ----------
 
-export const FRET_TABS = ['Fretboard Boxes', 'CAGED', 'Soloing', 'Barre Chords'];
+export const FRET_TABS = ['Fretboard Boxes', 'CAGED', 'Soloing', 'Barre Chords', 'Bass Chords'];
 
 export function fretTab(tab: string, tonicPc: number): { intro: string; cards: FretCard[] } {
   const key = spell(tonicPc, tonicPc);
@@ -476,6 +538,12 @@ export function fretTab(tab: string, tonicPc: number): { intro: string; cards: F
     return {
       intro: `Every barre chord in ${key}, visually: the dark bar is your index finger laid flat, the dots are the other fingers. Technique first — thumb LOW behind the neck, index rolled slightly onto its bony edge, elbow tucked in; practise around frets 5–7 where the string tension is friendliest, and squeeze only as hard as the clean note needs. Then learn the four qualities in both families below. Tap to strum.`,
       cards: barreCards(tonicPc),
+    };
+  }
+  if (tab === 'Bass Chords') {
+    return {
+      intro: `Chords on bass are sparse on purpose: stacked close 3rds turn to mud down low, so bassists play WIDE — root + 5th, root + octave, root + tenth. Like guitar barre chords, everything comes in two families: root on the E string or root on the A string. All grips below are ${key} — × marks strings you mute with a spare finger. Tap to hear one ring.`,
+      cards: bassChordCards(tonicPc),
     };
   }
   return { intro: '', cards: [] };

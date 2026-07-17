@@ -91,6 +91,26 @@ describe('fret pattern diagrams', () => {
     expect(maj.diagrams[1].startFret).toBe(3); // C on A
   });
 
+  it('bass chord grips spell the intervals their names promise', () => {
+    const { cards } = fretTab('Bass Chords', 7); // G
+    const grip = (cardId: string, i: number) => cards.find((c) => c.id === cardId)!.diagrams[i];
+    // intervals above the root, order-insensitive
+    const ints = (d: Diagram) => d.midis.slice(1).map((m) => (m - d.midis[0]) % 12).sort((a, b) => a - b);
+    expect(ints(grip('bpower', 0))).toEqual([7]);
+    expect(ints(grip('bpower', 1))).toEqual([0, 7]); // 5th + octave
+    expect(ints(grip('btenths', 0))).toEqual([4]); // major 10th ≡ 3rd
+    expect(ints(grip('btenths', 1))).toEqual([3]);
+    expect(ints(grip('bsevE', 0))).toEqual([4, 10]); // R 3 b7
+    expect(ints(grip('bsevE', 1))).toEqual([3, 10]);
+    expect(ints(grip('bsevE', 2))).toEqual([4, 11]);
+    expect(ints(grip('btriA', 0))).toEqual([0, 4]); // R 3 8
+    expect(ints(grip('btriA', 1))).toEqual([0, 3]);
+    expect(ints(grip('bsevA', 0))).toEqual([4, 10]);
+    expect(ints(grip('bsevA', 1))).toEqual([7, 10]);
+    // every grip's lowest note is the root of the key
+    for (const c of cards) for (const d of c.diagrams) expect(d.midis[0] % 12).toBe(7);
+  });
+
   it('movable shapes never sit at the nut', () => {
     // A one-dot movable shape anchored on E: tonic E would land at fret 0
     const d = buildDiagram(
