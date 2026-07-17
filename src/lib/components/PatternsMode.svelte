@@ -34,6 +34,9 @@
                   <FretDiagram {d} />
                 </div>
               {/each}
+              {#if !card.diagrams.length && card.phrase}
+                <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.06em;color:#fff;background:#3f6b5f;padding:11px 15px;border-radius:7px;box-shadow:0 3px 0 #2c4f45" role="button" tabindex="0" onclick={() => store.playPattern({ seq: card.phrase })} onkeydown={(e) => e.key === 'Enter' && store.playPattern({ seq: card.phrase })}>▶ HEAR THE PHRASE</div>
+              {/if}
             </div>
             <div class="caption" style="font-size:12.5px;color:#6b5a3e;line-height:1.45">{card.tip}</div>
           </div>

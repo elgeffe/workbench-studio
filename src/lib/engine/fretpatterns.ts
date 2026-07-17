@@ -47,6 +47,7 @@ export interface FretCard {
   tag: string;
   tip: string;
   diagrams: Diagram[];
+  phrase?: number[]; // diagram-less cards (piano): semitone offsets, played over the tonic
 }
 
 const GTR_MIDIS = [40, 45, 50, 55, 59, 64]; // E A D G B e
@@ -313,9 +314,100 @@ function cagedCards(t: number): FretCard[] {
   return cards;
 }
 
+// ---------- Soloing: where major and minor pentatonic meet ----------
+
+// Membership colours for the overlap diagrams: notes only in the minor
+// pentatonic, only in the major pentatonic, or shared by both.
+const MIN_ONLY = '#46617c', MAJ_ONLY = '#b07d23', SHARED = '#3f6b5f';
+
+// The hybrid box: minor pentatonic box 1 and the major pentatonic laid over
+// each other in ONE position at the root fret.
+const HYBRID_BOX: FretShapeSpec = { inst: 'guitar', anchorS: 0, anchorF: 0, dots: [
+  { s: 0, f: 0, role: 'R' }, { s: 0, f: 2, role: '2', color: MAJ_ONLY }, { s: 0, f: 3, role: '♭3', color: MIN_ONLY }, { s: 0, f: 4, role: '3', color: MAJ_ONLY },
+  { s: 1, f: 0, role: '4', color: MIN_ONLY }, { s: 1, f: 2, role: '5', color: SHARED }, { s: 1, f: 4, role: '6', color: MAJ_ONLY },
+  { s: 2, f: 0, role: '♭7', color: MIN_ONLY }, { s: 2, f: 2, role: 'R' }, { s: 2, f: 4, role: '2', color: MAJ_ONLY },
+  { s: 3, f: 0, role: '♭3', color: MIN_ONLY }, { s: 3, f: 1, role: '3', color: MAJ_ONLY }, { s: 3, f: 2, role: '4', color: MIN_ONLY },
+  { s: 4, f: 0, role: '5', color: SHARED }, { s: 4, f: 2, role: '6', color: MAJ_ONLY }, { s: 4, f: 3, role: '♭7', color: MIN_ONLY },
+  { s: 5, f: 0, role: 'R' }, { s: 5, f: 2, role: '2', color: MAJ_ONLY }, { s: 5, f: 3, role: '♭3', color: MIN_ONLY }, { s: 5, f: 4, role: '3', color: MAJ_ONLY },
+] };
+// …and the same overlap on a bass (identical to the guitar's four lowest strings).
+const HYBRID_BASS: FretShapeSpec = { inst: 'bass', anchorS: 0, anchorF: 0, dots: [
+  { s: 0, f: 0, role: 'R' }, { s: 0, f: 2, role: '2', color: MAJ_ONLY }, { s: 0, f: 3, role: '♭3', color: MIN_ONLY }, { s: 0, f: 4, role: '3', color: MAJ_ONLY },
+  { s: 1, f: 0, role: '4', color: MIN_ONLY }, { s: 1, f: 2, role: '5', color: SHARED }, { s: 1, f: 4, role: '6', color: MAJ_ONLY },
+  { s: 2, f: 0, role: '♭7', color: MIN_ONLY }, { s: 2, f: 2, role: 'R' }, { s: 2, f: 4, role: '2', color: MAJ_ONLY },
+  { s: 3, f: 0, role: '♭3', color: MIN_ONLY }, { s: 3, f: 1, role: '3', color: MAJ_ONLY }, { s: 3, f: 2, role: '4', color: MIN_ONLY },
+] };
+
+// Minor pentatonic box 1 shape with the roles read as the MAJOR pentatonic —
+// the "same fingering, three frets down" half of the famous trick.
+const BOX1_AS_MAJOR: FretShapeSpec = { inst: 'guitar', anchorS: 0, anchorF: 3, dots: [
+  { s: 0, f: 0, role: '6' }, { s: 0, f: 3, role: 'R' },
+  { s: 1, f: 0, role: '2' }, { s: 1, f: 2, role: '3' },
+  { s: 2, f: 0, role: '5' }, { s: 2, f: 2, role: '6' },
+  { s: 3, f: 0, role: 'R' }, { s: 3, f: 2, role: '2' },
+  { s: 4, f: 0, role: '3' }, { s: 4, f: 3, role: '5' },
+  { s: 5, f: 0, role: '6' }, { s: 5, f: 3, role: 'R' },
+] };
+
+// Blues scale in box-1 position: the minor pentatonic plus the two ♭5 dots.
+const BLUES_BOX: FretShapeSpec = { inst: 'guitar', anchorS: 0, anchorF: 0, dots: [
+  { s: 0, f: 0, role: 'R' }, { s: 0, f: 3, role: '♭3' },
+  { s: 1, f: 0, role: '4' }, { s: 1, f: 1, role: '♭5' }, { s: 1, f: 2, role: '5' },
+  { s: 2, f: 0, role: '♭7' }, { s: 2, f: 2, role: 'R' },
+  { s: 3, f: 0, role: '♭3' }, { s: 3, f: 2, role: '4' }, { s: 3, f: 3, role: '♭5' },
+  { s: 4, f: 0, role: '5' }, { s: 4, f: 3, role: '♭7' },
+  { s: 5, f: 0, role: 'R' }, { s: 5, f: 3, role: '♭3' },
+] };
+
+function soloCards(t: number): FretCard[] {
+  const key = spell(t, t);
+  const rootFret = mod12(t - 4) || 12; // key root on the low E string
+  const majFret = rootFret - 3 < 0 ? rootFret + 9 : rootFret - 3;
+  return [
+    { id: 'hybrid',
+      name: 'The hybrid box · major ∩ minor',
+      tag: 'THE JOHN MAYER MOVE',
+      tip: `The trick you half-remember, exactly: in ${key} the MINOR pentatonic box sits AT the root fret (${rootFret}) — tough and bluesy — and the identical fingering THREE FRETS DOWN (${majFret}) is the MAJOR pentatonic — sweet and singing. Right at the root fret they overlap into this hybrid: green notes belong to both, gold are the major (sweet) side, blue the minor (blues) side. Rule of thumb: lean major over major/I chords, lean minor for grit, resolve on the green notes.`,
+      diagrams: [buildDiagram(HYBRID_BOX, t, 'run')] },
+    { id: 'sameshape',
+      name: 'Same shape, two sounds',
+      tag: 'SLIDE 3 FRETS',
+      tip: `Proof by fingering: the left diagram is the minor pentatonic at fret ${rootFret}; the right is the SAME shape moved to fret ${majFret}, where it becomes ${key} major pentatonic (the root moves to a different dot). One box memorised, two complete sounds — switch mid-solo when the band moves from moody to bright.`,
+      diagrams: [
+        buildDiagram({ inst: 'guitar', anchorS: 0, anchorF: 0, dots: PENT_BOXES[0].dots }, t, 'run', `minor · fret ${rootFret}`),
+        buildDiagram(BOX1_AS_MAJOR, t, 'run', `major · fret ${majFret}`),
+      ] },
+    { id: 'bluesbox',
+      name: 'Blues scale · box 1',
+      tag: 'THE BLUE NOTE',
+      tip: 'Minor pentatonic plus the ♭5 “blue note”. Best practice: bend or slide THROUGH the ♭5, never camp on it — it’s a passing sting that resolves to the 4 or the 5. This is the vocabulary of every blues and rock solo since the ’50s.',
+      diagrams: [buildDiagram(BLUES_BOX, t, 'run')] },
+    { id: 'hybridbass',
+      name: 'The hybrid box on bass',
+      tag: 'GUITAR & BASS SHARE THIS',
+      tip: 'A bass is the guitar’s four lowest strings, so the whole major/minor overlap transfers 1:1 — same frets, same colours. For fills, bassists live on the gold 6 and blue ♭7 around the root; land back on the R when the ONE comes around.',
+      diagrams: [buildDiagram(HYBRID_BASS, t, 'run')] },
+    { id: 'pnotarget',
+      name: 'Piano · chord-tone targeting',
+      tag: 'SOLO LIKE A HORN',
+      tip: 'The strongest solo notes are the chord’s own 3rd and 7th. Practise: left hand holds a root+7th shell, right hand runs the scale but LANDS on 3 or 7 at every bar line. This phrase climbs the chord tones and falls back by step — hear how every landing sounds inevitable.',
+      diagrams: [], phrase: [0, 4, 7, 11, 12, 11, 9, 7, 5, 4] },
+    { id: 'pnofourths',
+      name: 'Piano · pentatonic in fourths',
+      tag: 'THE HERBIE MOVE',
+      tip: 'Run the minor pentatonic but skip every other note, so the line moves in stacked fourths — instantly modern, funky and open. A favourite of Herbie Hancock and every neo-soul keys player. Fingers 1–2 leapfrog up the keyboard.',
+      diagrams: [], phrase: [0, 5, 3, 7, 5, 10, 7, 12] },
+    { id: 'pnocrush',
+      name: 'Piano · the blues crush',
+      tag: 'GRACE NOTES',
+      tip: 'Piano can’t bend strings — it crushes instead: strike the ♭3 and slide instantly to the 3 (fingers 2→3 on adjacent keys). This phrase seasons a major line with two crushes; it’s the pianist’s translation of a guitar bend.',
+      diagrams: [], phrase: [0, 3, 4, 7, 9, 10, 9, 7, 3, 4, 0] },
+  ];
+}
+
 // ---------- tab registry ----------
 
-export const FRET_TABS = ['Fretboard Boxes', 'CAGED'];
+export const FRET_TABS = ['Fretboard Boxes', 'CAGED', 'Soloing'];
 
 export function fretTab(tab: string, tonicPc: number): { intro: string; cards: FretCard[] } {
   const key = spell(tonicPc, tonicPc);
@@ -329,6 +421,12 @@ export function fretTab(tab: string, tonicPc: number): { intro: string; cards: F
     return {
       intro: `The five open grips every guitarist knows — C, A, G, E, D — are secretly one system. Slide any grip up the neck (your index finger barring where the nut used to be) and it still plays a major chord; the five shapes chain together so ${key} major lives in five positions that tile the whole fretboard. Diagrams below are anchored to ${key} — the dark bar is the barre. Tap to strum.`,
       cards: cagedCards(tonicPc),
+    };
+  }
+  if (tab === 'Soloing') {
+    return {
+      intro: `Best-practice soloing patterns for guitar, bass and piano in ${key} — built around the spot where the major and minor pentatonics overlap. In the overlap diagrams the colours mean membership: green = in both scales, gold = major-only (sweet), blue = minor-only (blues). Tap a diagram or phrase to hear it.`,
+      cards: soloCards(tonicPc),
     };
   }
   return { intro: '', cards: [] };

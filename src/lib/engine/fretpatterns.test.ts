@@ -60,6 +60,19 @@ describe('fret pattern diagrams', () => {
     expect(dKey.barres).toHaveLength(1);
   });
 
+  it('the hybrid soloing box is exactly the union of both pentatonics', () => {
+    const { cards } = fretTab('Soloing', 9); // A
+    const hybrid = cards.find((c) => c.id === 'hybrid')!.diagrams[0];
+    // A minor pent ∪ A major pent: A B C C# D E F# G
+    const union = [9, 11, 0, 1, 2, 4, 6, 7].map((p) => p % 12).sort((a, b) => a - b);
+    expect([...pcs(hybrid)].sort((a, b) => a - b)).toEqual(union);
+    // same-shape card: both diagrams are rooted on the key, 3 frets apart
+    const pair = cards.find((c) => c.id === 'sameshape')!.diagrams;
+    expect(pair[0].startFret - pair[1].startFret).toBe(3);
+    expect([...pcs(pair[0])].sort((a, b) => a - b)).toEqual([0, 2, 4, 7, 9]); // A minor pent
+    expect([...pcs(pair[1])].sort((a, b) => a - b)).toEqual([1, 4, 6, 9, 11]); // A major pent
+  });
+
   it('movable shapes never sit at the nut', () => {
     // A one-dot movable shape anchored on E: tonic E would land at fret 0
     const d = buildDiagram(
