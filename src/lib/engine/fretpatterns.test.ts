@@ -42,6 +42,24 @@ describe('fret pattern diagrams', () => {
     }
   });
 
+  it('CAGED shapes climb the neck in order and stay in the major triad', () => {
+    const { cards } = fretTab('CAGED', 0); // C
+    const at = (id: string) => cards.find((c) => c.id === id)!.diagrams[0];
+    expect(at('cagC').startFret).toBe(0);
+    expect(at('cagA').startFret).toBe(3);
+    expect(at('cagG').startFret).toBe(5);
+    expect(at('cagE').startFret).toBe(8);
+    expect(at('cagD').startFret).toBe(10);
+    for (const id of ['cagC', 'cagA', 'cagG', 'cagE', 'cagD']) {
+      for (const p of pcs(at(id))) expect([0, 4, 7]).toContain(p); // C E G only
+    }
+    // in its home key the C grip is open — the barre falls on the nut and is dropped
+    expect(at('cagC').barres).toHaveLength(0);
+    // as a barre chord in D, the same grip keeps its barre
+    const dKey = fretTab('CAGED', 2).cards.find((c) => c.id === 'cagC')!.diagrams[0];
+    expect(dKey.barres).toHaveLength(1);
+  });
+
   it('movable shapes never sit at the nut', () => {
     // A one-dot movable shape anchored on E: tonic E would land at fret 0
     const d = buildDiagram(

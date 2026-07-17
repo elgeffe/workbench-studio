@@ -91,7 +91,11 @@ export function buildDiagram(
     startFret,
     frets: Array.from({ length: cols }, (_, i) => startFret + i),
     dots,
-    barres: (spec.barres || []).map((b) => ({ col: b.f - lo, row0: n - 1 - b.s1, row1: n - 1 - b.s0 })),
+    // A barre that lands at absolute fret 0 is just the nut — drop it, the
+    // open strings play themselves (this is what makes CAGED grips render as
+    // their open forms in the home key and as barres everywhere else).
+    barres: (spec.barres || []).filter((b) => b.f + base > 0)
+      .map((b) => ({ col: b.f - lo, row0: n - 1 - b.s1, row1: n - 1 - b.s0 })),
     mutes: (spec.mutes || []).map((s) => n - 1 - s),
     midis,
     kind,
@@ -259,9 +263,59 @@ function boxesCards(t: number): FretCard[] {
   return cards;
 }
 
+// ---------- CAGED: five grips, one system ----------
+
+// The five open-chord grips as movable major shapes. Each carries the barre it
+// needs when it leaves the nut; in its "home" position the barre falls on the
+// nut and disappears (see buildDiagram), so C major renders as the open C grip.
+const CAGED_SHAPES: Array<{ id: string; letter: string; rootStr: string; spec: FretShapeSpec; tip: string }> = [
+  { id: 'cagC', letter: 'C', rootStr: 'A', tip: 'The open-C grip made movable: your ring finger carries the root on the A string, index bars where the nut used to be. The stretch buys you the sweetest, most open-sounding voicing of the five.',
+    spec: { inst: 'guitar', anchorS: 1, anchorF: 3, mutes: [0], barres: [{ f: 0, s0: 1, s1: 5 }], dots: [
+      { s: 1, f: 3, role: 'R' }, { s: 2, f: 2, role: '3' }, { s: 3, f: 0, role: '5' }, { s: 4, f: 1, role: 'R' }, { s: 5, f: 0, role: '3' },
+    ] } },
+  { id: 'cagA', letter: 'A', rootStr: 'A', tip: 'Root under the barre on the A string; the ring finger (or three fingers) stacks the 5–R–3 column two frets up. With the E shape, this is the workhorse barre chord.',
+    spec: { inst: 'guitar', anchorS: 1, anchorF: 0, mutes: [0], barres: [{ f: 0, s0: 1, s1: 5 }], dots: [
+      { s: 1, f: 0, role: 'R' }, { s: 2, f: 2, role: '5' }, { s: 3, f: 2, role: 'R' }, { s: 4, f: 2, role: '3' }, { s: 5, f: 0, role: '5' },
+    ] } },
+  { id: 'cagG', letter: 'G', rootStr: 'E', tip: 'The open-G grip. Players rarely barre all of it — grab the bass side (root + 3rd) or the top three strings. Its root on the low E is the SAME fret where the E shape’s scale box lives.',
+    spec: { inst: 'guitar', anchorS: 0, anchorF: 3, barres: [{ f: 0, s0: 0, s1: 5 }], dots: [
+      { s: 0, f: 3, role: 'R' }, { s: 1, f: 2, role: '3' }, { s: 2, f: 0, role: '5' }, { s: 3, f: 0, role: 'R' }, { s: 4, f: 0, role: '3' }, { s: 5, f: 3, role: 'R' },
+    ] } },
+  { id: 'cagE', letter: 'E', rootStr: 'E', tip: 'The king of barre shapes: index flat across the whole fret, roots on both E strings and the octave on the D string. If you learn one movable grip, learn this one.',
+    spec: { inst: 'guitar', anchorS: 0, anchorF: 0, barres: [{ f: 0, s0: 0, s1: 5 }], dots: [
+      { s: 0, f: 0, role: 'R' }, { s: 1, f: 2, role: '5' }, { s: 2, f: 2, role: 'R' }, { s: 3, f: 1, role: '3' }, { s: 4, f: 0, role: '5' }, { s: 5, f: 0, role: 'R' },
+    ] } },
+  { id: 'cagD', letter: 'D', rootStr: 'D', tip: 'The treble triangle: root on the D string, melody note (the 3rd) on top. Perfect for chord stabs and double-stop fills high on the neck.',
+    spec: { inst: 'guitar', anchorS: 2, anchorF: 0, mutes: [0, 1], barres: [{ f: 0, s0: 2, s1: 5 }], dots: [
+      { s: 2, f: 0, role: 'R' }, { s: 3, f: 2, role: '5' }, { s: 4, f: 3, role: 'R' }, { s: 5, f: 2, role: '3' },
+    ] } },
+];
+
+function cagedCards(t: number): FretCard[] {
+  const key = spell(t, t);
+  const built = CAGED_SHAPES.map((c) => ({ ...c, d: buildDiagram(c.spec, t, 'chord') }));
+  const cards: FretCard[] = built.map((c) => ({
+    id: c.id,
+    name: `${c.letter} shape · ${key} major`,
+    tag: c.d.startFret === 0 ? `ROOT ON ${c.rootStr} · OPEN` : `ROOT ON ${c.rootStr} · FRET ${c.d.startFret}`,
+    tip: c.tip,
+    diagrams: [c.d],
+  }));
+  const orderedDiagrams = [...built].sort((a, b) => a.d.startFret - b.d.startFret)
+    .map((c) => ({ ...c.d, name: `${c.letter} shape` }));
+  cards.push({
+    id: 'cagmap',
+    name: `The CAGED map of ${key}`,
+    tag: 'HOW TO APPLY IT',
+    tip: `One chord, five doors — ${key} major everywhere on the neck, in this order low to high (then the cycle repeats an octave up). Where one shape ends, the next begins: the C shape's top notes are the A shape's bottom notes, and so on through C→A→G→E→D. Apply it three ways: (1) grab whichever shape is nearest instead of jumping down the neck; (2) each shape is an anchor for its scale box (Fretboard Boxes tab) — chord under the fingers, scale around it; (3) play the same chord through all five shapes in time to hear one harmony climb the register.`,
+    diagrams: orderedDiagrams,
+  });
+  return cards;
+}
+
 // ---------- tab registry ----------
 
-export const FRET_TABS = ['Fretboard Boxes'];
+export const FRET_TABS = ['Fretboard Boxes', 'CAGED'];
 
 export function fretTab(tab: string, tonicPc: number): { intro: string; cards: FretCard[] } {
   const key = spell(tonicPc, tonicPc);
@@ -269,6 +323,12 @@ export function fretTab(tab: string, tonicPc: number): { intro: string; cards: F
     return {
       intro: `The neck in hand-sized sections. Each card is one position — a dotted box you can play without moving your hand — anchored to ${key}: change key up top and every box slides to the right fret. Orange is the root. Learn one box deeply, then join its neighbours; the five pentatonic boxes tile the entire fretboard. Tap a diagram to hear it.`,
       cards: boxesCards(tonicPc),
+    };
+  }
+  if (tab === 'CAGED') {
+    return {
+      intro: `The five open grips every guitarist knows — C, A, G, E, D — are secretly one system. Slide any grip up the neck (your index finger barring where the nut used to be) and it still plays a major chord; the five shapes chain together so ${key} major lives in five positions that tile the whole fretboard. Diagrams below are anchored to ${key} — the dark bar is the barre. Tap to strum.`,
+      cards: cagedCards(tonicPc),
     };
   }
   return { intro: '', cards: [] };
