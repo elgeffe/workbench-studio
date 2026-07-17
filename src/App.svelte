@@ -5,6 +5,7 @@
   import Instruments from './lib/components/Instruments.svelte';
   import CircleMode from './lib/components/CircleMode.svelte';
   import WorkshopMode from './lib/components/WorkshopMode.svelte';
+  import DrumsMode from './lib/components/DrumsMode.svelte';
   import EarMode from './lib/components/EarMode.svelte';
   import PatternsMode from './lib/components/PatternsMode.svelte';
   import LearnMode from './lib/components/LearnMode.svelte';
@@ -77,6 +78,8 @@
           <CircleMode />
         {:else if v.isWorkshop}
           <WorkshopMode />
+        {:else if v.isDrums}
+          <DrumsMode />
         {:else if v.isEar}
           <EarMode />
         {:else if v.isPatterns}

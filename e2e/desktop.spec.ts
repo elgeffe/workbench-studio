@@ -31,6 +31,9 @@ test.describe('desktop layout', () => {
     await tabs.getByRole('tab', { name: 'workshop' }).click();
     await expect(page.getByText('Your progression')).toBeVisible();
 
+    await tabs.getByRole('tab', { name: 'drums' }).click();
+    await expect(page.getByTestId('drum-grid')).toBeVisible();
+
     await tabs.getByRole('tab', { name: 'ear' }).click();
     await expect(page.getByText('TAP TO PLAY · LISTEN')).toBeVisible();
 
