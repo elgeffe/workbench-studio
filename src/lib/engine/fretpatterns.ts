@@ -405,9 +405,52 @@ function soloCards(t: number): FretCard[] {
   ];
 }
 
+// ---------- Barre chords: the E and A families ----------
+
+// Every barre chord is one of two families: root on the low E (the E shape)
+// or root on the A (the A shape). Four qualities each — the fingers move,
+// the barre stays. All movable: at the nut these are open chords, not barres.
+const BARRE_E = (dots: ShapeDot[]): FretShapeSpec => (
+  { inst: 'guitar', anchorS: 0, anchorF: 0, movable: true, barres: [{ f: 0, s0: 0, s1: 5 }], dots });
+const BARRE_A = (dots: ShapeDot[]): FretShapeSpec => (
+  { inst: 'guitar', anchorS: 1, anchorF: 0, movable: true, mutes: [0], barres: [{ f: 0, s0: 1, s1: 5 }], dots });
+
+const BARRE_SHAPES: Array<{ id: string; name: string; tag: string; tip: string; e: FretShapeSpec; a: FretShapeSpec }> = [
+  { id: 'barmaj', name: 'Major barre', tag: 'THE TWO FAMILIES',
+    tip: 'Root on the low E (E shape) or on the A string (A shape) — every major barre chord is one of these two. Learn the root notes of both bass strings and you can grab any major chord anywhere: just pick whichever shape is closer.',
+    e: BARRE_E([{ s: 0, f: 0, role: 'R' }, { s: 1, f: 2, role: '5' }, { s: 2, f: 2, role: 'R' }, { s: 3, f: 1, role: '3' }, { s: 4, f: 0, role: '5' }, { s: 5, f: 0, role: 'R' }]),
+    a: BARRE_A([{ s: 1, f: 0, role: 'R' }, { s: 2, f: 2, role: '5' }, { s: 3, f: 2, role: 'R' }, { s: 4, f: 2, role: '3' }, { s: 5, f: 0, role: '5' }]) },
+  { id: 'barmin', name: 'Minor barre', tag: 'ONE FINGER LESS',
+    tip: 'One semitone from major: the 3rd drops onto the barre and becomes ♭3. In the E shape your middle finger simply lifts off; in the A shape the ring-finger column shrinks by one. Feel how one note flips the whole mood.',
+    e: BARRE_E([{ s: 0, f: 0, role: 'R' }, { s: 1, f: 2, role: '5' }, { s: 2, f: 2, role: 'R' }, { s: 3, f: 0, role: '♭3' }, { s: 4, f: 0, role: '5' }, { s: 5, f: 0, role: 'R' }]),
+    a: BARRE_A([{ s: 1, f: 0, role: 'R' }, { s: 2, f: 2, role: '5' }, { s: 3, f: 2, role: 'R' }, { s: 4, f: 1, role: '♭3' }, { s: 5, f: 0, role: '5' }]) },
+  { id: 'bardom7', name: 'Dominant 7 barre', tag: 'LIFT THE OCTAVE',
+    tip: 'Start from the major barre and lift the octave off the D (E shape) or G (A shape) string — the ♭7 hiding under the barre is exposed. Blues rhythm playing is basically this chord marched around the neck.',
+    e: BARRE_E([{ s: 0, f: 0, role: 'R' }, { s: 1, f: 2, role: '5' }, { s: 2, f: 0, role: '♭7' }, { s: 3, f: 1, role: '3' }, { s: 4, f: 0, role: '5' }, { s: 5, f: 0, role: 'R' }]),
+    a: BARRE_A([{ s: 1, f: 0, role: 'R' }, { s: 2, f: 2, role: '5' }, { s: 3, f: 0, role: '♭7' }, { s: 4, f: 2, role: '3' }, { s: 5, f: 0, role: '5' }]) },
+  { id: 'barmin7', name: 'Minor 7 barre', tag: 'THE LAZY LUXURY',
+    tip: 'Minor and dominant tricks combined: ♭3 AND ♭7 both live on or under the barre, so the E shape needs just two fingers besides the bar. The most-used comping grip in funk and soul — light, quick, easy to move.',
+    e: BARRE_E([{ s: 0, f: 0, role: 'R' }, { s: 1, f: 2, role: '5' }, { s: 2, f: 0, role: '♭7' }, { s: 3, f: 0, role: '♭3' }, { s: 4, f: 0, role: '5' }, { s: 5, f: 0, role: 'R' }]),
+    a: BARRE_A([{ s: 1, f: 0, role: 'R' }, { s: 2, f: 2, role: '5' }, { s: 3, f: 0, role: '♭7' }, { s: 4, f: 1, role: '♭3' }, { s: 5, f: 0, role: '5' }]) },
+];
+
+function barreCards(t: number): FretCard[] {
+  return BARRE_SHAPES.map((b) => {
+    const e = buildDiagram(b.e, t, 'chord');
+    const a = buildDiagram(b.a, t, 'chord');
+    return {
+      id: b.id, name: b.name, tag: b.tag, tip: b.tip,
+      diagrams: [
+        { ...e, name: `E shape · fret ${e.startFret}` },
+        { ...a, name: `A shape · fret ${a.startFret}` },
+      ],
+    };
+  });
+}
+
 // ---------- tab registry ----------
 
-export const FRET_TABS = ['Fretboard Boxes', 'CAGED', 'Soloing'];
+export const FRET_TABS = ['Fretboard Boxes', 'CAGED', 'Soloing', 'Barre Chords'];
 
 export function fretTab(tab: string, tonicPc: number): { intro: string; cards: FretCard[] } {
   const key = spell(tonicPc, tonicPc);
@@ -427,6 +470,12 @@ export function fretTab(tab: string, tonicPc: number): { intro: string; cards: F
     return {
       intro: `Best-practice soloing patterns for guitar, bass and piano in ${key} — built around the spot where the major and minor pentatonics overlap. In the overlap diagrams the colours mean membership: green = in both scales, gold = major-only (sweet), blue = minor-only (blues). Tap a diagram or phrase to hear it.`,
       cards: soloCards(tonicPc),
+    };
+  }
+  if (tab === 'Barre Chords') {
+    return {
+      intro: `Every barre chord in ${key}, visually: the dark bar is your index finger laid flat, the dots are the other fingers. Technique first — thumb LOW behind the neck, index rolled slightly onto its bony edge, elbow tucked in; practise around frets 5–7 where the string tension is friendliest, and squeeze only as hard as the clean note needs. Then learn the four qualities in both families below. Tap to strum.`,
+      cards: barreCards(tonicPc),
     };
   }
   return { intro: '', cards: [] };

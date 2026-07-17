@@ -73,6 +73,24 @@ describe('fret pattern diagrams', () => {
     expect([...pcs(pair[1])].sort((a, b) => a - b)).toEqual([1, 4, 6, 9, 11]); // A major pent
   });
 
+  it('barre chords spell their qualities and always carry a barre', () => {
+    const { cards } = fretTab('Barre Chords', 0); // C
+    const want: Record<string, number[]> = {
+      barmaj: [0, 4, 7], barmin: [0, 3, 7], bardom7: [0, 4, 7, 10], barmin7: [0, 3, 7, 10],
+    };
+    for (const c of cards) {
+      for (const d of c.diagrams) {
+        for (const p of pcs(d)) expect(want[c.id]).toContain(p);
+        expect(d.barres.length).toBe(1); // movable — the barre never vanishes into the nut
+        expect(d.startFret).toBeGreaterThanOrEqual(1);
+      }
+    }
+    // E family sits at the low-E root fret, A family at the A-string root fret
+    const maj = cards.find((c) => c.id === 'barmaj')!;
+    expect(maj.diagrams[0].startFret).toBe(8); // C on low E
+    expect(maj.diagrams[1].startFret).toBe(3); // C on A
+  });
+
   it('movable shapes never sit at the nut', () => {
     // A one-dot movable shape anchored on E: tonic E would land at fret 0
     const d = buildDiagram(
