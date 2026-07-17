@@ -20,12 +20,20 @@ test.describe('mobile layout', () => {
     await page.getByTestId('dock-bar').click();
     await expect(page.getByText('PIANO · C3–C5')).toBeVisible();
     await expect(page.getByText('GUITAR · EADGBE')).toBeVisible();
+    // the whole panel fits without inner scrolling — the bass fretboard at the
+    // bottom is fully in view and the container has no scrollable overflow
+    await expect(page.getByText('BASS · EADG')).toBeInViewport();
+    const scrollable = await page.getByTestId('dock-panel').evaluate((el) => el.scrollHeight > el.clientHeight + 1);
+    expect(scrollable).toBe(false);
   });
 
   test('navigates modes via the bottom tab bar', async ({ page }) => {
     const tabs = page.getByTestId('mobile-tabs');
     await tabs.getByRole('tab', { name: 'workshop' }).click();
     await expect(page.getByText('Your progression')).toBeVisible();
+
+    await tabs.getByRole('tab', { name: 'drums' }).click();
+    await expect(page.getByTestId('drum-grid')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'ear' }).click();
     await expect(page.getByText('TAP TO PLAY · LISTEN')).toBeVisible();

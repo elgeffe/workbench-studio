@@ -23,9 +23,15 @@ import {
   BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS, BASS_ROLE_META, BASS_TOK_LABEL,
   bassRole, bassRootMidi, resolveBassStep, type BassStep, type BassRole, type DegTok,
 } from './engine/bass';
+import {
+  DRUM_VOICES, DRUM_COUNT, DRUM_GROUPS, RHYTHM_CONCEPTS,
+  drumTemplates, composeGrid, swingDelaySteps,
+  type DrumVoiceId, type DrumGrid, type DrumLayerPart,
+} from './engine/drums';
 import { AudioEngine } from './audio';
 
-export type Mode = 'circle' | 'workshop' | 'ear' | 'patterns' | 'jazz';
+export type Mode = 'circle' | 'workshop' | 'drums' | 'ear' | 'patterns' | 'jazz';
+export type LearnTab = 'harmony' | 'rhythm' | 'bass';
 export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
 
 // ---------- view-model shapes ----------
@@ -88,6 +94,20 @@ export class WorkbenchStore {
   jzPlaying = $state(false);
   jzStep = $state(-1);
 
+  // ---- drums groovebox ----
+  // The grid is materialised state (not derived) so the user can edit any
+  // cell; picking a template or a layer count re-composes it from the source.
+  drTplId = $state('rock');
+  drLayerN = $state(drumTemplates()[0].layers.length);
+  drGrid = $state<DrumGrid>(composeGrid(drumTemplates()[0], drumTemplates()[0].layers.length));
+  drMuted = $state<DrumVoiceId[]>([]);
+  drPlaying = $state(false);
+  drStep = $state(-1);
+  drTempo = $state(104);
+  drSwing = $state(50);
+
+  learnTab = $state<LearnTab>('harmony');
+
   dockOpen = $state(false);
   circleView = $state<'maj' | 'min'>('maj');
   circleDir = $state<'fifths' | 'fourths'>('fifths');
@@ -101,6 +121,8 @@ export class WorkbenchStore {
   private seqTimers: ReturnType<typeof setTimeout>[] = [];
   private singleTimers: ReturnType<typeof setTimeout>[] = [];
   private bassTimers: ReturnType<typeof setTimeout>[] = [];
+  private drLoop: ReturnType<typeof setInterval> | null = null;
+  private drTimers: ReturnType<typeof setTimeout>[] = [];
 
   constructor() {
     // Prepare an ear-training target so the tab isn't empty, but stay silent:
@@ -114,6 +136,8 @@ export class WorkbenchStore {
     this.seqTimers.forEach((id) => clearTimeout(id));
     this.singleTimers.forEach((id) => clearTimeout(id));
     this.bassTimers.forEach((id) => clearTimeout(id));
+    if (this.drLoop) clearInterval(this.drLoop);
+    this.drTimers.forEach((id) => clearTimeout(id));
   }
 
   // ---- audio wrappers (respect the mute toggle) ----
@@ -510,6 +534,120 @@ export class WorkbenchStore {
     [...up, ...down].forEach((m, i) => this.singleTimers.push(setTimeout(() => this.playMidis([m], 0.45), i * 135)));
   }
 
+  // ---- drums groovebox ----
+  private drTpl() {
+    const tpls = drumTemplates();
+    return tpls.find((t) => t.id === this.drTplId) || tpls[0];
+  }
+  setDrumTpl(id: string): void {
+    const tpl = drumTemplates().find((t) => t.id === id);
+    if (!tpl) return;
+    this.drTplId = id;
+    this.drLayerN = tpl.layers.length;
+    this.drGrid = composeGrid(tpl, tpl.layers.length);
+    this.drTempo = tpl.bpm;
+    this.drSwing = tpl.swing;
+    // A live loop keeps rolling but at the new tempo and pattern.
+    if (this.drPlaying) this.retimeDrums();
+  }
+  /** Show the groove built up to layer `n` (1-based); re-composes the grid. */
+  setDrLayers(n: number): void {
+    const tpl = this.drTpl();
+    this.drLayerN = Math.max(1, Math.min(n, tpl.layers.length));
+    this.drGrid = composeGrid(tpl, this.drLayerN);
+  }
+  /** Cycle a cell: rest → hit → accent → rest. Editing is always allowed. */
+  toggleDrumCell(v: DrumVoiceId, s: number): void {
+    if (s < 0 || s >= 16) return;
+    const g: DrumGrid = { ...this.drGrid, [v]: this.drGrid[v].slice() };
+    g[v][s] = ((g[v][s] + 1) % 3) as 0 | 1 | 2;
+    this.drGrid = g;
+    // Immediate feedback when the loop isn't already sounding the grid.
+    if (g[v][s] && !this.drPlaying && this.soundOn) this.audio.playDrumNow(v, g[v][s] === 2 ? 1 : 0.6);
+  }
+  previewDrumVoice(v: DrumVoiceId): void {
+    if (this.soundOn) this.audio.playDrumNow(v);
+  }
+  toggleDrMute(v: DrumVoiceId): void {
+    this.drMuted = this.drMuted.includes(v) ? this.drMuted.filter((x) => x !== v) : [...this.drMuted, v];
+  }
+  clearDrums(): void {
+    const g: DrumGrid = { ...this.drGrid };
+    DRUM_VOICES.forEach((v) => { g[v.id] = Array(16).fill(0); });
+    this.drGrid = g;
+  }
+  setDrTempo(v: number): void {
+    this.drTempo = v;
+    if (this.drPlaying) this.retimeDrums();
+  }
+  setDrSwing(v: number): void { this.drSwing = v; } // picked up on the next bar
+  private drBarMs(): number { return (60000 / this.drTempo) * 4; }
+  private retimeDrums(): void {
+    if (this.drLoop) clearInterval(this.drLoop);
+    this.drLoop = setInterval(this.drTick, this.drBarMs());
+  }
+  /** Turn a grid (minus muted voices) into one bar of scheduled hits. */
+  private gridHits(grid: DrumGrid, swing: number, stepSec: number): Array<{ v: DrumVoiceId; at: number; vel: number }> {
+    const hits: Array<{ v: DrumVoiceId; at: number; vel: number }> = [];
+    DRUM_VOICES.forEach(({ id }) => {
+      if (this.drMuted.includes(id)) return;
+      grid[id].forEach((cell, s) => {
+        if (!cell) return;
+        hits.push({ v: id, at: (s + swingDelaySteps(s, swing)) * stepSec, vel: cell === 2 ? 1 : 0.55 });
+      });
+    });
+    return hits;
+  }
+  // One bar of the live loop: schedule every hit sample-accurately against the
+  // audio clock, and step the UI playhead with plain timers (visual only, so
+  // jitter is fine there). Reads the grid fresh each bar, so edits, mutes and
+  // swing changes land on the next ONE.
+  private drTick = (): void => {
+    const barMs = this.drBarMs();
+    if (this.soundOn) this.audio.playDrums(this.gridHits(this.drGrid, this.drSwing, barMs / 16000));
+    this.drTimers.forEach((id) => clearTimeout(id));
+    this.drTimers = [];
+    for (let s = 0; s < 16; s++) {
+      this.drTimers.push(setTimeout(() => { this.drStep = s; }, Math.round((s * barMs) / 16)));
+    }
+  };
+  toggleDrumPlay(): void {
+    if (this.drPlaying) this.stopDrums(); else this.startDrums();
+  }
+  startDrums(): void {
+    this.audio.resume();
+    this.drPlaying = true;
+    this.drTick();
+    this.drLoop = setInterval(this.drTick, this.drBarMs());
+  }
+  stopDrums(): void {
+    if (this.drLoop) { clearInterval(this.drLoop); this.drLoop = null; }
+    this.drTimers.forEach((id) => clearTimeout(id));
+    this.drTimers = [];
+    this.drPlaying = false;
+    this.drStep = -1;
+  }
+
+  // ---- learn: rhythm theory ----
+  setLearnTab(t: LearnTab): void { this.learnTab = t; }
+  /** Play a rhythm concept's one-bar demo at its own tempo and feel. */
+  playRhythmDemo(id: string): void {
+    const c = RHYTHM_CONCEPTS.find((x) => x.id === id);
+    if (!c || !this.soundOn) return;
+    const grid: DrumGrid = {} as DrumGrid;
+    DRUM_VOICES.forEach((v) => { grid[v.id] = Array(16).fill(0); });
+    c.demo.forEach((part: DrumLayerPart) => {
+      part.on.forEach((s) => { grid[part.v][s] = 1; });
+      (part.acc || []).forEach((s) => { grid[part.v][s] = 2; });
+    });
+    const stepSec = (60 / c.bpm) * 4 / 16;
+    const hits: Array<{ v: DrumVoiceId; at: number; vel: number }> = [];
+    DRUM_VOICES.forEach(({ id: vid }) => grid[vid].forEach((cell, s) => {
+      if (cell) hits.push({ v: vid, at: (s + swingDelaySteps(s, c.swing)) * stepSec, vel: cell === 2 ? 1 : 0.55 });
+    }));
+    this.audio.playDrums(hits);
+  }
+
   // ---- ear training ----
   genEar(level: EarLevel, play = true): void {
     const target = genEarTarget(level);
@@ -839,6 +977,47 @@ export class WorkbenchStore {
       return { q, name: nm, label: shapeLabels[q] || q, poly, dots, ch };
     });
 
+    // drums groovebox
+    const DR_TPLS = drumTemplates();
+    const drTpl = DR_TPLS.find((x) => x.id === this.drTplId) || DR_TPLS[0];
+    const drGroups = DRUM_GROUPS.map((g) => ({
+      name: g,
+      chips: DR_TPLS.filter((x) => x.group === g).map((x) => ({
+        id: x.id, name: x.name, bpm: x.bpm,
+        border: x.id === drTpl.id ? '#c2562e' : '#cbb792',
+        bg: x.id === drTpl.id ? '#fbeede' : '#f6efe0',
+        fg: x.id === drTpl.id ? '#c2562e' : '#5c4a30',
+        weight: x.id === drTpl.id ? '700' : '500',
+      })),
+    }));
+    const drLayers = drTpl.layers.map((l, i) => ({
+      name: l.name, i,
+      on: i < this.drLayerN,
+      border: i < this.drLayerN ? '#3f6b5f' : '#cbb792',
+      bg: i < this.drLayerN ? '#3f6b5f' : '#f6efe0',
+      fg: i < this.drLayerN ? '#fff' : '#5c4a30',
+    }));
+    const drLayerWhy = drTpl.layers[Math.min(this.drLayerN, drTpl.layers.length) - 1]?.why || '';
+    const drRows = DRUM_VOICES.map((vc) => {
+      const muted = this.drMuted.includes(vc.id);
+      return {
+        id: vc.id, name: vc.name, short: vc.short, color: vc.color, muted,
+        cells: this.drGrid[vc.id].map((val, s) => ({
+          s, val,
+          bg: val === 2 ? vc.color : val === 1 ? vc.color + '99' : s % 4 === 0 ? '#e7d9ba' : '#f0e6cf',
+          ring: this.drPlaying && this.drStep === s,
+          op: muted ? '0.35' : '1',
+        })),
+      };
+    });
+    const drCount = DRUM_COUNT.map((c, s) => ({
+      c, s,
+      strong: s % 4 === 0,
+      hot: this.drPlaying && this.drStep === s,
+    }));
+    const drEmpty = DRUM_VOICES.every((vc) => this.drGrid[vc.id].every((c) => c === 0));
+    const swingLabel = this.drSwing <= 52 ? 'straight' : this.drSwing < 62 ? 'loose' : this.drSwing < 71 ? 'shuffle' : 'hard shuffle';
+
     // learn (jazz curriculum)
     const JZ = jazzChapters(t);
     const jzi = Math.min(this.jazzCh || 0, JZ.length - 1);
@@ -1001,7 +1180,7 @@ export class WorkbenchStore {
       soundLabelShort: this.soundOn ? '♪ ON' : '✕ MUTE',
       soundBg: this.soundOn ? 'rgba(216,168,111,.16)' : 'transparent', soundFg: this.soundOn ? '#e9c79b' : '#9c8460',
       // mode flags
-      isCircle: this.mode === 'circle', isWorkshop: this.mode === 'workshop', isEar: this.mode === 'ear', isPatterns: this.mode === 'patterns', isJazz: this.mode === 'jazz',
+      isCircle: this.mode === 'circle', isWorkshop: this.mode === 'workshop', isDrums: this.mode === 'drums', isEar: this.mode === 'ear', isPatterns: this.mode === 'patterns', isJazz: this.mode === 'jazz',
       ringAnim: this.jzPlaying ? 'spin 8s linear infinite' : 'none',
       // circle
       wedges, circleLabel, circleHint, diatonic,
@@ -1036,6 +1215,17 @@ export class WorkbenchStore {
       jzPlayLabel: this.jzPlaying ? '■ STOP' : '▶ PLAY', jzPlayBg: this.jzPlaying ? '#9a3f1f' : '#c2562e', jzPlayShadow: this.jzPlaying ? '#6e2c12' : '#9a3f1f',
       vFullBg: this.jzVoicing === 'full' ? '#3f6b5f' : '#f6efe0', vFullFg: this.jzVoicing === 'full' ? '#fff' : '#5c4a30',
       vShellBg: this.jzVoicing === 'shell' ? '#3f6b5f' : '#f6efe0', vShellFg: this.jzVoicing === 'shell' ? '#fff' : '#5c4a30',
+      // drums
+      drGroups, drTplName: drTpl.name, drTip: drTpl.tip, drRows, drCount, drLayers, drLayerWhy, drEmpty,
+      drTempo: this.drTempo, drSwing: this.drSwing, drSwingLabel: swingLabel,
+      drPlayLabel: this.drPlaying ? '■ STOP' : '▶ PLAY',
+      drPlayBg: this.drPlaying ? '#9a3f1f' : '#c2562e', drPlayShadow: this.drPlaying ? '#6e2c12' : '#9a3f1f',
+      // learn tabs + rhythm theory
+      learnTabHarmony: this.learnTab === 'harmony', learnTabRhythm: this.learnTab === 'rhythm', learnTabBass: this.learnTab === 'bass',
+      learnTabs: ([['harmony', 'Harmony & Jazz'], ['rhythm', 'Rhythm & Drums'], ['bass', 'Bass']] as Array<[LearnTab, string]>).map(([id, name]) => ({
+        id, name, border: this.learnTab === id ? '#c2562e' : '#cbb792', bg: this.learnTab === id ? '#c2562e' : '#f6efe0', fg: this.learnTab === id ? '#fff' : '#5c4a30',
+      })),
+      rhythmConcepts: RHYTHM_CONCEPTS.map((c) => ({ id: c.id, name: c.name, tag: c.tag, text: c.text, bpm: c.bpm })),
       quickProgs, jzDia, jzBorrow, jzSecondary,
       exploreOpen, selName, selRoman, extChips, buildSubs,
       tempo: this.tempo, suggestText,
@@ -1050,9 +1240,9 @@ export class WorkbenchStore {
       ...inst,
       fingerBg: this.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: this.fingerOn ? '#fff' : '#5c4a30',
       // mobile tab bar
-      mtabs: ([['circle', '⟳', 'CIRCLE'], ['workshop', '▦', 'BUILD'], ['ear', '♪', 'EAR'], ['patterns', '▤', 'PATTERNS'], ['jazz', '♭', 'LEARN']] as Array<[Mode, string, string]>).map(([id, icon, label]) => ({ id, icon, label, fg: this.mode === id ? '#f1e7d3' : '#8a7350', bg: this.mode === id ? 'rgba(194,86,46,.32)' : 'transparent' })),
+      mtabs: ([['circle', '⟳', 'CIRCLE'], ['workshop', '▦', 'BUILD'], ['drums', '◉', 'DRUMS'], ['ear', '♪', 'EAR'], ['patterns', '▤', 'PATTERNS'], ['jazz', '♭', 'LEARN']] as Array<[Mode, string, string]>).map(([id, icon, label]) => ({ id, icon, label, fg: this.mode === id ? '#f1e7d3' : '#8a7350', bg: this.mode === id ? 'rgba(194,86,46,.32)' : 'transparent' })),
       // desktop top tabs
-      tabs: ([['circle', '⟳ Circle'], ['workshop', '▦ Workshop'], ['ear', '♪ Ear'], ['patterns', '▤ Patterns'], ['jazz', '♭ Learn']] as Array<[Mode, string]>).map(([id, label]) => ({ id, label, fg: this.mode === id ? '#c2562e' : '#8a7350', bd: this.mode === id ? '#c2562e' : 'transparent' })),
+      tabs: ([['circle', '⟳ Circle'], ['workshop', '▦ Workshop'], ['drums', '◉ Drums'], ['ear', '♪ Ear'], ['patterns', '▤ Patterns'], ['jazz', '♭ Learn']] as Array<[Mode, string]>).map(([id, label]) => ({ id, label, fg: this.mode === id ? '#c2562e' : '#8a7350', bd: this.mode === id ? '#c2562e' : 'transparent' })),
     };
   }
 }
