@@ -31,7 +31,7 @@ import {
 import { AudioEngine } from './audio';
 
 export type Mode = 'circle' | 'workshop' | 'drums' | 'ear' | 'patterns' | 'jazz';
-export type LearnTab = 'harmony' | 'rhythm';
+export type LearnTab = 'harmony' | 'rhythm' | 'bass';
 export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
 
 // ---------- view-model shapes ----------
@@ -1221,8 +1221,8 @@ export class WorkbenchStore {
       drPlayLabel: this.drPlaying ? '■ STOP' : '▶ PLAY',
       drPlayBg: this.drPlaying ? '#9a3f1f' : '#c2562e', drPlayShadow: this.drPlaying ? '#6e2c12' : '#9a3f1f',
       // learn tabs + rhythm theory
-      learnTabHarmony: this.learnTab === 'harmony', learnTabRhythm: this.learnTab === 'rhythm',
-      learnTabs: ([['harmony', 'Harmony & Jazz'], ['rhythm', 'Rhythm & Drums']] as Array<[LearnTab, string]>).map(([id, name]) => ({
+      learnTabHarmony: this.learnTab === 'harmony', learnTabRhythm: this.learnTab === 'rhythm', learnTabBass: this.learnTab === 'bass',
+      learnTabs: ([['harmony', 'Harmony & Jazz'], ['rhythm', 'Rhythm & Drums'], ['bass', 'Bass']] as Array<[LearnTab, string]>).map(([id, name]) => ({
         id, name, border: this.learnTab === id ? '#c2562e' : '#cbb792', bg: this.learnTab === id ? '#c2562e' : '#f6efe0', fg: this.learnTab === id ? '#fff' : '#5c4a30',
       })),
       rhythmConcepts: RHYTHM_CONCEPTS.map((c) => ({ id: c.id, name: c.name, tag: c.tag, text: c.text, bpm: c.bpm })),

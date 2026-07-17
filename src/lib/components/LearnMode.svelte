@@ -5,7 +5,7 @@
 </script>
 
 <div>
-  <div class="eyebrow" style="margin-bottom:4px">Learn · {v.learnTabRhythm ? 'rhythm & drum patterns' : 'jazz & groove harmony in ' + v.keyName}</div>
+  <div class="eyebrow" style="margin-bottom:4px">Learn · {v.learnTabRhythm ? 'rhythm & drum patterns' : v.learnTabBass ? 'bassline moves in ' + v.keyName : 'jazz & groove harmony in ' + v.keyName}</div>
 
   <!-- learn-area tabs: harmony curriculum vs rhythm theory -->
   <div data-testid="learn-tabs" style="display:flex;gap:7px;margin-bottom:13px">
@@ -27,6 +27,26 @@
           <div class="mono click" style="margin-left:auto;flex:none;font-size:10px;letter-spacing:.06em;color:#fff;background:#c2562e;padding:9px 14px;border-radius:7px;box-shadow:0 3px 0 #9a3f1f" role="button" tabindex="0" onclick={() => store.playRhythmDemo(c.id)} onkeydown={(e) => e.key === 'Enter' && store.playRhythmDemo(c.id)}>▶ HEAR IT</div>
         </div>
         <div class="serif" style="font-size:14.5px;color:#4a3d29;line-height:1.55">{c.text}</div>
+      </div>
+    {/each}
+  </div>
+
+  {:else if v.learnTabBass}
+  <!-- Bassline tricks of the trade — named techniques, each with a one-bar
+       audio demo over the current key (tap to hear). -->
+  <div style="display:flex;align-items:baseline;gap:11px;margin-bottom:6px;flex-wrap:wrap">
+    <span style="font-size:22px;font-weight:700;letter-spacing:-.01em">Tricks of the trade</span>
+    <span class="mono" style="font-size:8px;letter-spacing:.14em;color:#fff;background:#3f6b5f;padding:3px 8px;border-radius:9px">BASSLINE MOVES</span>
+  </div>
+  <div class="caption" style="font-size:14px;color:#5c4a30;line-height:1.5;max-width:560px;margin-bottom:14px">The handful of moves behind every great bassline — tap one to hear a one-bar demo in {v.keyName}. Build lines from them over in the <b>Workshop → Bass</b> mode.</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    {#each v.bassTricks as tk (tk.id)}
+      <div class="click" style="flex:1 1 205px;min-width:195px;max-width:310px;border:1px solid #e0cfae;background:#fbf6ea;border-radius:8px;padding:10px 12px" role="button" tabindex="0" onclick={() => store.playTrick(tk.id)} onkeydown={(e) => e.key === 'Enter' && store.playTrick(tk.id)}>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px">
+          <span style="font-size:15px;font-weight:700;color:#2c261d">{tk.name}</span>
+          <span class="mono" style="font-size:9px;color:#c2562e">▶</span>
+        </div>
+        <div class="caption" style="font-size:12px;color:#6b5a3e">{tk.why}</div>
       </div>
     {/each}
   </div>
@@ -85,26 +105,6 @@
       </div>
     {/if}
   {/each}
-
-  <!-- Bassline tricks of the trade — named techniques, each with a one-bar
-       audio demo over the current key (tap to hear). -->
-  <div style="border-top:1px solid #ddccac;margin-top:26px;padding-top:18px">
-    <div style="display:flex;align-items:baseline;gap:11px;margin-bottom:6px;flex-wrap:wrap">
-      <span style="font-size:22px;font-weight:700;letter-spacing:-.01em">Tricks of the trade</span>
-      <span class="mono" style="font-size:8px;letter-spacing:.14em;color:#fff;background:#3f6b5f;padding:3px 8px;border-radius:9px">BASSLINE MOVES</span>
-    </div>
-    <div class="caption" style="font-size:14px;color:#5c4a30;line-height:1.5;max-width:560px;margin-bottom:14px">The handful of moves behind every great bassline — tap one to hear a one-bar demo in {v.keyName}. Build lines from them over in the <b>Workshop → Bass</b> mode.</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px">
-      {#each v.bassTricks as tk (tk.id)}
-        <div class="click" style="flex:1 1 205px;min-width:195px;max-width:310px;border:1px solid #e0cfae;background:#fbf6ea;border-radius:8px;padding:10px 12px" role="button" tabindex="0" onclick={() => store.playTrick(tk.id)} onkeydown={(e) => e.key === 'Enter' && store.playTrick(tk.id)}>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px">
-            <span style="font-size:15px;font-weight:700;color:#2c261d">{tk.name}</span>
-            <span class="mono" style="font-size:9px;color:#c2562e">▶</span>
-          </div>
-          <div class="caption" style="font-size:12px;color:#6b5a3e">{tk.why}</div>
-        </div>
-      {/each}
-    </div>
-  </div>
   {/if}
+
 </div>

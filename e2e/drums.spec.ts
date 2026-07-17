@@ -63,8 +63,13 @@ test.describe('learn: rhythm & drums tab', () => {
     await expect(page.getByText('The Backbeat', { exact: true })).toBeVisible();
     await expect(page.getByText('The Clave — a Timeline', { exact: true })).toBeVisible();
     await expect(page.getByText('Swing & Shuffle', { exact: true })).toBeVisible();
+    // bassline tricks live in their own tab
+    await page.getByTestId('learn-tabs').getByText('Bass', { exact: true }).click();
+    await expect(page.getByText('Tricks of the trade')).toBeVisible();
+    await expect(page.getByText('BASSLINE MOVES', { exact: true })).toBeVisible();
     // and back
     await page.getByTestId('learn-tabs').getByText('Harmony & Jazz').click();
     await expect(page.getByText('Seven building blocks of jazz & groove harmony')).toBeVisible();
+    await expect(page.getByText('Tricks of the trade')).toBeHidden();
   });
 });
