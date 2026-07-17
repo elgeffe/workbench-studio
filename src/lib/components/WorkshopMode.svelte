@@ -125,6 +125,9 @@
       <span class="mono" style="font-size:11px;color:#2c261d;width:34px;text-align:right">{v.tempo}</span>
     </div>
   </div>
+  {#if !v.drEmpty}
+    <div class="mono" style="font-size:9px;letter-spacing:.06em;color:#a08a64;margin:-8px 0 14px">⟲ SYNCED WITH DRUMS — ▶ PLAY runs the drum groove and these changes on one clock. Mute or clear the beat in the Drums tab.</div>
+  {/if}
 
   {#if store.isDesktop}
     <div class="mono" style="font-size:9px;letter-spacing:.08em;color:#a08a64;margin:-6px 0 16px;display:flex;align-items:center;gap:6px">

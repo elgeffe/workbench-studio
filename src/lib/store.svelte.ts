@@ -60,7 +60,9 @@ export class WorkbenchStore {
   mode = $state<Mode>('circle');
   soundOn = $state(true);
   activeChord = $state<Chord | null>(null);
-  tempo = $state(96);
+  // One tempo for the whole app: the drum groove and the chord progression
+  // share a single transport clock, so there is only one BPM.
+  tempo = $state(104);
 
   earLevel = $state<EarLevel>('interval');
   earTarget = $state<EarTarget | null>(null);
@@ -103,7 +105,6 @@ export class WorkbenchStore {
   drMuted = $state<DrumVoiceId[]>([]);
   drPlaying = $state(false);
   drStep = $state(-1);
-  drTempo = $state(104);
   drSwing = $state(50);
 
   learnTab = $state<LearnTab>('harmony');
@@ -116,12 +117,15 @@ export class WorkbenchStore {
 
   // ---- non-reactive ----
   private audio = new AudioEngine();
-  private jloop: ReturnType<typeof setInterval> | null = null;
+  // The global transport: ONE interval, ticking every half bar (2 beats),
+  // drives both the drum groove (bar ticks) and the chord loop (half-bar
+  // slots, or bar slots in bass style) so the two stay locked as one band.
+  private trLoop: ReturnType<typeof setInterval> | null = null;
+  private trHalf = 0; // half-bar counter since transport start
   private jIdx = 0; // next progression index the live loop will play
   private seqTimers: ReturnType<typeof setTimeout>[] = [];
   private singleTimers: ReturnType<typeof setTimeout>[] = [];
   private bassTimers: ReturnType<typeof setTimeout>[] = [];
-  private drLoop: ReturnType<typeof setInterval> | null = null;
   private drTimers: ReturnType<typeof setTimeout>[] = [];
 
   constructor() {
@@ -132,11 +136,10 @@ export class WorkbenchStore {
   }
 
   destroy(): void {
-    if (this.jloop) clearInterval(this.jloop);
+    if (this.trLoop) clearInterval(this.trLoop);
     this.seqTimers.forEach((id) => clearTimeout(id));
     this.singleTimers.forEach((id) => clearTimeout(id));
     this.bassTimers.forEach((id) => clearTimeout(id));
-    if (this.drLoop) clearInterval(this.drLoop);
     this.drTimers.forEach((id) => clearTimeout(id));
   }
 
@@ -184,11 +187,8 @@ export class WorkbenchStore {
   setWsGenre(i: number): void { this.wsGenre = i; }
   setWsStyle(s: WsStyle): void {
     this.wsStyle = s;
-    // Bass style stretches each chord slot to a full bar; retime a live loop.
-    if (this.jzPlaying && this.jloop) {
-      clearInterval(this.jloop);
-      this.jloop = setInterval(this.jTick, this.jBeatMs());
-    }
+    // No retiming needed: the transport ticks every half bar regardless of
+    // style — bass style simply advances chords on bar ticks only.
   }
   setBassGroup(g: string): void { this.bassGroup = g; }
   toggleBassChords(): void { this.bassChordsOn = !this.bassChordsOn; }
@@ -462,25 +462,24 @@ export class WorkbenchStore {
       this.seqTimers.push(setTimeout(() => { this.activeChord = ch; this.playChord(ch, 0.02); }, i * 900));
     });
   }
-  stopJazz(): void {
-    if (this.jloop) { clearInterval(this.jloop); this.jloop = null; }
-    this.bassTimers.forEach((id) => clearTimeout(id));
-    this.bassTimers = [];
-    this.jzPlaying = false;
-    this.jzStep = -1;
-  }
-  toggleJazzPlay(): void {
-    if (this.jzPlaying) this.stopJazz(); else this.startJazz();
-  }
+  stopJazz(): void { this.stopTransport(); }
+  toggleJazzPlay(): void { this.togglePlay(); }
   // Bass style gives each chord a full 4-beat bar so the groove pattern has
   // room to breathe; the other styles keep the original brisk 2-beat slots.
   private jBeatMs(): number { return (60000 / this.tempo) * (this.wsStyle === 'bass' ? 4 : 2); }
-  // One beat of the live loop. Reads this.jzChanges fresh each tick (never a
-  // captured snapshot) so chords swapped, added, or removed mid-playback take
-  // effect on the very next beat.
+  // One chord slot of the live loop. Reads this.jzChanges fresh each tick
+  // (never a captured snapshot) so chords swapped, added, or removed
+  // mid-playback take effect on the very next slot.
   private jTick = (): void => {
     const chs = this.jzChanges;
-    if (!chs.length) { this.stopJazz(); return; }
+    if (!chs.length) {
+      // Progression emptied mid-play: the chords drop out; the drums (if any)
+      // keep the transport rolling, otherwise everything stops.
+      this.jzPlaying = false;
+      this.jzStep = -1;
+      if (!this.drPlaying) this.stopTransport();
+      return;
+    }
     const i = this.jIdx % chs.length;
     const ch = chs[i];
     this.jzStep = i;
@@ -496,21 +495,56 @@ export class WorkbenchStore {
       if (steps) this.scheduleBassSteps(steps, ch, chs[(i + 1) % chs.length], this.jBeatMs());
     }
   };
-  startJazz(): void {
-    if (!this.jzChanges.length) return;
+
+  // ---- global transport (Workshop + Drums as one band) ----
+  private halfBarMs(): number { return (60000 / this.tempo) * 2; }
+  private gridHasHits(): boolean { return DRUM_VOICES.some((v) => this.drGrid[v.id].some((c) => c !== 0)); }
+  /** Both play buttons drive this: one clock, everything starts and stops together. */
+  togglePlay(): void {
+    if (this.jzPlaying || this.drPlaying) this.stopTransport(); else this.startTransport();
+  }
+  startTransport(): void {
     this.audio.resume();
     this.jIdx = 0;
-    this.jzPlaying = true;
-    this.jTick();
-    this.jloop = setInterval(this.jTick, this.jBeatMs());
+    this.trHalf = 0;
+    this.jzPlaying = this.jzChanges.length > 0;
+    this.drPlaying = this.gridHasHits();
+    if (!this.jzPlaying && !this.drPlaying) return; // nothing to play yet
+    this.trTick();
+    this.trLoop = setInterval(this.trTick, this.halfBarMs());
   }
+  stopTransport(): void {
+    if (this.trLoop) { clearInterval(this.trLoop); this.trLoop = null; }
+    this.bassTimers.forEach((id) => clearTimeout(id));
+    this.bassTimers = [];
+    this.drTimers.forEach((id) => clearTimeout(id));
+    this.drTimers = [];
+    this.jzPlaying = false;
+    this.jzStep = -1;
+    this.drPlaying = false;
+    this.drStep = -1;
+  }
+  private retimeTransport(): void {
+    if (!this.trLoop) return;
+    clearInterval(this.trLoop);
+    this.trLoop = setInterval(this.trTick, this.halfBarMs());
+  }
+  // One half-bar of the band. Bar ticks fire the drums; chord slots fire every
+  // half bar (classic/jazz/classical) or every bar (bass style). Both halves
+  // are re-checked each bar so a part added mid-play joins on the next ONE.
+  private trTick = (): void => {
+    const barStart = this.trHalf % 2 === 0;
+    if (barStart) {
+      if (!this.drPlaying && this.gridHasHits()) this.drPlaying = true;
+      if (!this.jzPlaying && this.jzChanges.length) { this.jzPlaying = true; this.jIdx = 0; }
+      if (this.drPlaying) this.drTick();
+    }
+    if (this.jzPlaying && (this.wsStyle !== 'bass' || barStart)) this.jTick();
+    this.trHalf++;
+  };
   setTempo(v: number): void {
     this.tempo = v;
-    if (this.jzPlaying && this.jloop) {
-      // jIdx already points at the next chord; just re-time the interval.
-      clearInterval(this.jloop);
-      this.jloop = setInterval(this.jTick, this.jBeatMs());
-    }
+    this.retimeTransport();
   }
 
   // ---- patterns ----
@@ -545,10 +579,10 @@ export class WorkbenchStore {
     this.drTplId = id;
     this.drLayerN = tpl.layers.length;
     this.drGrid = composeGrid(tpl, tpl.layers.length);
-    this.drTempo = tpl.bpm;
+    this.tempo = tpl.bpm;
     this.drSwing = tpl.swing;
-    // A live loop keeps rolling but at the new tempo and pattern.
-    if (this.drPlaying) this.retimeDrums();
+    // A live transport keeps rolling but at the new tempo and pattern.
+    this.retimeTransport();
   }
   /** Show the groove built up to layer `n` (1-based); re-composes the grid. */
   setDrLayers(n: number): void {
@@ -576,16 +610,9 @@ export class WorkbenchStore {
     DRUM_VOICES.forEach((v) => { g[v.id] = Array(16).fill(0); });
     this.drGrid = g;
   }
-  setDrTempo(v: number): void {
-    this.drTempo = v;
-    if (this.drPlaying) this.retimeDrums();
-  }
+  setDrTempo(v: number): void { this.setTempo(v); } // one shared transport tempo
   setDrSwing(v: number): void { this.drSwing = v; } // picked up on the next bar
-  private drBarMs(): number { return (60000 / this.drTempo) * 4; }
-  private retimeDrums(): void {
-    if (this.drLoop) clearInterval(this.drLoop);
-    this.drLoop = setInterval(this.drTick, this.drBarMs());
-  }
+  private drBarMs(): number { return (60000 / this.tempo) * 4; }
   /** Turn a grid (minus muted voices) into one bar of scheduled hits. */
   private gridHits(grid: DrumGrid, swing: number, stepSec: number): Array<{ v: DrumVoiceId; at: number; vel: number }> {
     const hits: Array<{ v: DrumVoiceId; at: number; vel: number }> = [];
@@ -611,22 +638,8 @@ export class WorkbenchStore {
       this.drTimers.push(setTimeout(() => { this.drStep = s; }, Math.round((s * barMs) / 16)));
     }
   };
-  toggleDrumPlay(): void {
-    if (this.drPlaying) this.stopDrums(); else this.startDrums();
-  }
-  startDrums(): void {
-    this.audio.resume();
-    this.drPlaying = true;
-    this.drTick();
-    this.drLoop = setInterval(this.drTick, this.drBarMs());
-  }
-  stopDrums(): void {
-    if (this.drLoop) { clearInterval(this.drLoop); this.drLoop = null; }
-    this.drTimers.forEach((id) => clearTimeout(id));
-    this.drTimers = [];
-    this.drPlaying = false;
-    this.drStep = -1;
-  }
+  toggleDrumPlay(): void { this.togglePlay(); }
+  stopDrums(): void { this.stopTransport(); }
 
   // ---- learn: rhythm theory ----
   setLearnTab(t: LearnTab): void { this.learnTab = t; }
@@ -900,6 +913,9 @@ export class WorkbenchStore {
     const { root, litSet, chordSet, dropSet, activePat } = this.litInfo();
     const dia = diatonicList(t, this.scale, this.ext);
     const ac = this.activeChord;
+    // The play buttons in Drums and Workshop show the state of the ONE shared
+    // transport — pressing either starts/stops the whole band.
+    const transportOn = this.jzPlaying || this.drPlaying;
 
     // circle
     const { wedges, circleLabel, circleHint } = this.buildCircle();
@@ -1212,14 +1228,14 @@ export class WorkbenchStore {
       // learn
       jazzNav, jazzBlocks, jazzTitle: jzc.name, jazzIntro: jzc.intro, jazzTag: jzc.tag,
       jzChangesView, jzEmpty: this.jzChanges.length === 0,
-      jzPlayLabel: this.jzPlaying ? '■ STOP' : '▶ PLAY', jzPlayBg: this.jzPlaying ? '#9a3f1f' : '#c2562e', jzPlayShadow: this.jzPlaying ? '#6e2c12' : '#9a3f1f',
+      jzPlayLabel: transportOn ? '■ STOP' : '▶ PLAY', jzPlayBg: transportOn ? '#9a3f1f' : '#c2562e', jzPlayShadow: transportOn ? '#6e2c12' : '#9a3f1f',
       vFullBg: this.jzVoicing === 'full' ? '#3f6b5f' : '#f6efe0', vFullFg: this.jzVoicing === 'full' ? '#fff' : '#5c4a30',
       vShellBg: this.jzVoicing === 'shell' ? '#3f6b5f' : '#f6efe0', vShellFg: this.jzVoicing === 'shell' ? '#fff' : '#5c4a30',
       // drums
       drGroups, drTplName: drTpl.name, drTip: drTpl.tip, drRows, drCount, drLayers, drLayerWhy, drEmpty,
-      drTempo: this.drTempo, drSwing: this.drSwing, drSwingLabel: swingLabel,
-      drPlayLabel: this.drPlaying ? '■ STOP' : '▶ PLAY',
-      drPlayBg: this.drPlaying ? '#9a3f1f' : '#c2562e', drPlayShadow: this.drPlaying ? '#6e2c12' : '#9a3f1f',
+      drTempo: this.tempo, drSwing: this.drSwing, drSwingLabel: swingLabel,
+      drPlayLabel: transportOn ? '■ STOP' : '▶ PLAY',
+      drPlayBg: transportOn ? '#9a3f1f' : '#c2562e', drPlayShadow: transportOn ? '#6e2c12' : '#9a3f1f',
       // learn tabs + rhythm theory
       learnTabHarmony: this.learnTab === 'harmony', learnTabRhythm: this.learnTab === 'rhythm', learnTabBass: this.learnTab === 'bass',
       learnTabs: ([['harmony', 'Harmony & Jazz'], ['rhythm', 'Rhythm & Drums'], ['bass', 'Bass']] as Array<[LearnTab, string]>).map(([id, name]) => ({
