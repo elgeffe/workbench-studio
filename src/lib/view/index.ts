@@ -96,7 +96,7 @@ export function computeView(s: WorkbenchStore) {
     soundLabelShort: s.soundOn ? '♪ ON' : '✕ MUTE',
     soundBg: s.soundOn ? 'rgba(216,168,111,.16)' : 'transparent', soundFg: s.soundOn ? '#e9c79b' : '#9c8460',
     // mode flags
-    isCircle: s.mode === 'circle', isWorkshop: s.mode === 'workshop', isDrums: s.mode === 'drums', isEar: s.mode === 'ear', isReading: s.mode === 'reading', isPatterns: s.mode === 'patterns', isJazz: s.mode === 'jazz',
+    isCircle: s.mode === 'circle', isWorkshop: s.mode === 'workshop', isDrums: s.mode === 'drums', isMetronome: s.mode === 'metronome', isEar: s.mode === 'ear', isReading: s.mode === 'reading', isPatterns: s.mode === 'patterns', isJazz: s.mode === 'jazz',
     ringAnim: s.jzPlaying ? 'spin 8s linear infinite' : 'none',
     // circle
     wedges, circleLabel, circleHint, diatonic,
@@ -139,9 +139,9 @@ export function computeView(s: WorkbenchStore) {
     ...inst,
     fingerBg: s.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: s.fingerOn ? '#fff' : '#5c4a30',
     // mobile tab bar
-    mtabs: ([['circle', '⟳', 'CIRCLE'], ['workshop', '▦', 'BUILD'], ['drums', '◉', 'DRUMS'], ['ear', '♪', 'EAR'], ['reading', '𝄞', 'READ'], ['patterns', '▤', 'PATTERNS'], ['jazz', '♭', 'LEARN']] as Array<[Mode, string, string]>).map(([id, icon, label]) => ({ id, icon, label, fg: s.mode === id ? '#f1e7d3' : '#8a7350', bg: s.mode === id ? 'rgba(194,86,46,.32)' : 'transparent' })),
+    mtabs: ([['circle', '⟳', 'CIRCLE'], ['workshop', '▦', 'BUILD'], ['drums', '◉', 'DRUMS'], ['metronome', '◳', 'METRO'], ['ear', '♪', 'EAR'], ['reading', '𝄞', 'READ'], ['patterns', '▤', 'PATTERNS'], ['jazz', '♭', 'LEARN']] as Array<[Mode, string, string]>).map(([id, icon, label]) => ({ id, icon, label, fg: s.mode === id ? '#f1e7d3' : '#8a7350', bg: s.mode === id ? 'rgba(194,86,46,.32)' : 'transparent' })),
     // desktop top tabs
-    tabs: ([['circle', '⟳ Circle'], ['workshop', '▦ Workshop'], ['drums', '◉ Drums'], ['ear', '♪ Ear'], ['reading', '𝄞 Reading'], ['patterns', '▤ Patterns'], ['jazz', '♭ Learn']] as Array<[Mode, string]>).map(([id, label]) => ({ id, label, fg: s.mode === id ? '#c2562e' : '#8a7350', bd: s.mode === id ? '#c2562e' : 'transparent' })),
+    tabs: ([['circle', '⟳ Circle'], ['workshop', '▦ Workshop'], ['drums', '◉ Drums'], ['metronome', '◳ Metronome'], ['ear', '♪ Ear'], ['reading', '𝄞 Reading'], ['patterns', '▤ Patterns'], ['jazz', '♭ Learn']] as Array<[Mode, string]>).map(([id, label]) => ({ id, label, fg: s.mode === id ? '#c2562e' : '#8a7350', bd: s.mode === id ? '#c2562e' : 'transparent' })),
   };
 }
 
