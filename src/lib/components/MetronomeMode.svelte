@@ -134,6 +134,25 @@
       <button type="button" class="btn tap" onclick={() => met.tap()}>Tap</button>
     </div>
 
+    <!-- Bridge to the studio's shared Workshop/Drums transport tempo. The two
+         clocks stay independent (a ramp drill shouldn't drag the groovebox
+         along), but one tap copies the BPM either way. -->
+    <div class="sync">
+      <span class="eyebrow">Studio tempo {store.tempo}</span>
+      <button
+        type="button"
+        class="chip"
+        data-testid="metronome-sync-from"
+        onclick={() => met.setBpm(store.tempo)}
+      >↓ use in click</button>
+      <button
+        type="button"
+        class="chip"
+        data-testid="metronome-sync-to"
+        onclick={() => store.setTempo(met.bpm)}
+      >↑ set from click</button>
+    </div>
+
     <button
       type="button"
       class="play"
@@ -573,6 +592,8 @@
   }
   .btn:active { background: var(--parch2); }
   .btn.tap { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+  .sync { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: -4px; }
 
   .play {
     font-family: var(--mono); font-size: 15px; letter-spacing: 0.12em; font-weight: 700;

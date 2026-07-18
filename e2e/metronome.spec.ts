@@ -45,6 +45,21 @@ test.describe('metronome tab', () => {
     await expect(auto.getByLabel(/Mute chance/)).toBeVisible();
   });
 
+  test('tempo sync copies BPM between the studio transport and the click', async ({ page }) => {
+    // studio default is 104 — pull it into the click
+    await expect(page.getByText('Studio tempo 104')).toBeVisible();
+    await page.getByTestId('metronome-sync-from').click();
+    await expect(page.getByTestId('metronome-bpm')).toHaveText('104');
+
+    // push a new click tempo back to the studio
+    await page.locator('input[aria-label="Tempo in beats per minute"]').fill('132');
+    await page.getByTestId('metronome-sync-to').click();
+    await expect(page.getByText('Studio tempo 132')).toBeVisible();
+    // the drums groovebox shows the shared transport tempo
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' }).click();
+    await expect(page.getByText(/132 BPM/).first()).toBeVisible();
+  });
+
   test('goal by bars shows a target and progress readout', async ({ page }) => {
     const goal = page.getByTestId('metronome-goal');
     await goal.getByRole('tab', { name: 'By bars' }).click();
