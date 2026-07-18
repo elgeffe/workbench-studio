@@ -42,7 +42,7 @@ test.describe('mobile layout', () => {
     await expect(page.getByText('FORMULA')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'jazz' }).click();
-    await expect(page.getByText('Seven building blocks of jazz & groove harmony')).toBeVisible();
+    await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'circle' }).click();
     await expect(page.getByText('CIRCLE OF 5THS')).toBeVisible();

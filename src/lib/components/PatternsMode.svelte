@@ -1,13 +1,14 @@
 <script lang="ts">
   import { useStore } from '../context';
+  import FretDiagram from './FretDiagram.svelte';
   const store = useStore();
   const v = $derived(store.view);
 </script>
 
 <div>
   <div style="margin-bottom:13px">
-    <div class="eyebrow" style="margin-bottom:3px">{v.patShapesTab ? 'Chord shapes' : 'Pattern library'} · {v.keyName}</div>
-    <div class="caption" style="font-size:13px;max-width:460px">{v.patShapesTab ? 'Every chord quality draws one fixed shape on the circle of fifths. Tap one to hear it and see it light up on bass · guitar · piano.' : 'Memorise the shape against its chord — then you know exactly where it sits in the music. Lit on bass · guitar · piano.'}</div>
+    <div class="eyebrow" style="margin-bottom:3px">{v.patShapesTab ? 'Chord shapes' : v.patFretTab ? 'Fretboard patterns' : 'Pattern library'} · {v.keyName}</div>
+    <div class="caption" style="font-size:13px;max-width:460px">{v.patShapesTab ? 'Every chord quality draws one fixed shape on the circle of fifths. Tap one to hear it and see it light up on bass · guitar · piano.' : v.patFretTab ? 'Movable neck shapes, anchored to your key — orange is the root. Tap any diagram to hear it.' : 'Memorise the shape against its chord — then you know exactly where it sits in the music. Lit on bass · guitar · piano.'}</div>
   </div>
 
   <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px">
@@ -16,7 +17,33 @@
     {/each}
   </div>
 
-  {#if v.patShapesTab}
+  {#if v.patFretTab}
+    <div style="margin-top:6px">
+      <div class="caption" style="font-size:13px;color:#5c4a30;max-width:560px;margin-bottom:14px">{v.patFretIntro}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        {#each v.patFretCards as card (card.id)}
+          <div style="flex:1 1 300px;min-width:280px;max-width:430px;background:#fbf6ea;border:1px solid #e0cfae;border-radius:10px;padding:12px 13px">
+            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px">
+              <span style="font-size:16px;font-weight:700;color:#2c261d;line-height:1.1">{card.name}</span>
+              <span class="mono" style="font-size:7px;letter-spacing:.1em;color:#fff;background:#3f6b5f;padding:3px 7px;border-radius:9px;white-space:nowrap">{card.tag}</span>
+            </div>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;margin-bottom:8px">
+              {#each card.diagrams as d, di (di)}
+                <div class="click" style="flex:none" role="button" tabindex="0" aria-label={'play ' + card.name + ' ' + d.name} onclick={() => store.playFretDiagram(d)} onkeydown={(e) => e.key === 'Enter' && store.playFretDiagram(d)}>
+                  <div class="mono" style="font-size:7.5px;letter-spacing:.08em;color:#a08a64;margin-bottom:3px">{d.name.toUpperCase()} · ▶</div>
+                  <FretDiagram {d} />
+                </div>
+              {/each}
+              {#if !card.diagrams.length && card.phrase}
+                <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.06em;color:#fff;background:#3f6b5f;padding:11px 15px;border-radius:7px;box-shadow:0 3px 0 #2c4f45" role="button" tabindex="0" onclick={() => store.playPattern({ seq: card.phrase })} onkeydown={(e) => e.key === 'Enter' && store.playPattern({ seq: card.phrase })}>▶ HEAR THE PHRASE</div>
+              {/if}
+            </div>
+            <div class="caption" style="font-size:12.5px;color:#6b5a3e;line-height:1.45">{card.tip}</div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {:else if v.patShapesTab}
     <div style="margin-top:6px">
       <div class="caption" style="font-size:13px;color:#5c4a30;max-width:520px;margin-bottom:14px">Plot a chord’s notes on the circle of fifths and join them up: every quality draws one fixed shape. Change the root and the shape just rotates — here the wheel is turned so your tonic sits at 12 o’clock, so each shape is the quality’s fingerprint. Tap one to hear it.</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
@@ -66,9 +93,20 @@
     </div>
   {/if}
 
-  <div class="mono" style="display:flex;gap:14px;flex-wrap:wrap;font-size:9px;letter-spacing:.08em;color:#7a6b50;margin-top:18px">
-    <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#c2562e;display:inline-block"></span>ROOT</div>
-    <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#3f6b5f;display:inline-block"></span>CHORD TONE</div>
-    <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#97a59c;display:inline-block"></span>SCALE TONE</div>
-  </div>
+  {#if v.patFretTab}
+    <div class="mono" style="display:flex;gap:14px;flex-wrap:wrap;font-size:9px;letter-spacing:.08em;color:#7a6b50;margin-top:18px">
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#c2562e;display:inline-block"></span>ROOT</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#3f6b5f;display:inline-block"></span>3RD</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#97a59c;display:inline-block"></span>5TH</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#b07d23;display:inline-block"></span>7TH</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#7a5ea8;display:inline-block"></span>COLOUR (2·4·6)</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:5px;background:#4a3a28;display:inline-block"></span>BARRE</div>
+    </div>
+  {:else}
+    <div class="mono" style="display:flex;gap:14px;flex-wrap:wrap;font-size:9px;letter-spacing:.08em;color:#7a6b50;margin-top:18px">
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#c2562e;display:inline-block"></span>ROOT</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#3f6b5f;display:inline-block"></span>CHORD TONE</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:#97a59c;display:inline-block"></span>SCALE TONE</div>
+    </div>
+  {/if}
 </div>

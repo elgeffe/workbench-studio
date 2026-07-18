@@ -5,10 +5,10 @@
 </script>
 
 <div>
-  <div class="eyebrow" style="margin-bottom:4px">Learn · {v.learnTabRhythm ? 'rhythm & drum patterns' : v.learnTabBass ? 'bassline moves in ' + v.keyName : 'jazz & groove harmony in ' + v.keyName}</div>
+  <div class="eyebrow" style="margin-bottom:4px">Learn · {v.learnTabRhythm ? 'rhythm & drum patterns' : v.learnTabBass ? 'bassline moves in ' + v.keyName : v.learnTabForm ? 'song structures across the genres' : 'jazz & groove harmony in ' + v.keyName}</div>
 
   <!-- learn-area tabs: harmony curriculum vs rhythm theory -->
-  <div data-testid="learn-tabs" style="display:flex;gap:7px;margin-bottom:13px">
+  <div data-testid="learn-tabs" style="display:flex;gap:7px;margin-bottom:13px;overflow-x:auto;padding-bottom:3px">
     {#each v.learnTabs as tb (tb.id)}
       <div class="mono click" style="font-size:10px;letter-spacing:.08em;padding:9px 14px;border-radius:7px;border:1.5px solid {tb.border};background:{tb.bg};color:{tb.fg};white-space:nowrap" role="tab" tabindex="0" aria-selected={store.learnTab === tb.id} onclick={() => store.setLearnTab(tb.id)} onkeydown={(e) => e.key === 'Enter' && store.setLearnTab(tb.id)}>{tb.name}</div>
     {/each}
@@ -51,8 +51,35 @@
     {/each}
   </div>
 
+  {:else if v.learnTabForm}
+  <!-- Song structures: each genre's form as a proportional, colour-coded timeline -->
+  <div class="caption" style="font-size:13px;max-width:580px;margin-bottom:6px">How songs are built in time. Every genre answers the same question — <i>how do we keep a listener for the whole ride?</i> — with a different map. Read each bar left to right as the song from start to finish; block width is how long that section lasts. The arc below runs from tight 3-minute pop to its opposite extreme: the 20-minute fusion landscape.</div>
+  <div class="mono" style="display:flex;gap:12px;flex-wrap:wrap;font-size:8px;letter-spacing:.06em;color:#7a6b50;margin-bottom:14px">
+    {#each v.formKindLegend as l (l.name)}
+      <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:{l.color};display:inline-block"></span>{l.name}</span>
+    {/each}
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:680px">
+    {#each v.songForms as f (f.id)}
+      <div style="border:1px solid #e0cfae;background:#fbf6ea;border-radius:10px;padding:13px 15px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:9px">
+          <span style="font-size:17px;font-weight:700;color:#2c261d">{f.name}</span>
+          <span class="mono" style="font-size:7.5px;letter-spacing:.14em;color:#fff;background:{f.id === 'fusion' ? '#c2562e' : '#3f6b5f'};padding:3px 8px;border-radius:9px">{f.genre}</span>
+          <span class="mono" style="font-size:9px;color:#a08a64">{f.dur}</span>
+        </div>
+        <div style="display:flex;gap:2px;height:34px;margin-bottom:9px">
+          {#each f.sections as s, i (i)}
+            <div class="mono" title={s.label} style="flex:0 0 calc({s.pct}% - 2px);background:{s.bg};border-radius:4px;color:#fff;font-size:7px;letter-spacing:.02em;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;padding:0 2px;line-height:1.15">{s.label}</div>
+          {/each}
+        </div>
+        <div class="serif" style="font-size:14.5px;color:#4a3d29;line-height:1.55;margin-bottom:7px">{f.text}</div>
+        <div class="caption" style="font-size:12px;color:#8a7350"><b>Hear it:</b> {f.listen}</div>
+      </div>
+    {/each}
+  </div>
+
   {:else}
-  <div class="caption" style="font-size:13px;max-width:560px;margin-bottom:13px">Seven building blocks of jazz &amp; groove harmony — from extensions to funky basslines. Every chord and progression plays through the instruments — change the key up top to take it anywhere. Want to build your own changes? Head to the <b>Workshop → Jazz</b> mode.</div>
+  <div class="caption" style="font-size:13px;max-width:560px;margin-bottom:13px">Eight building blocks of jazz &amp; groove harmony — from extensions to funky basslines. Every chord and progression plays through the instruments — change the key up top to take it anywhere. Want to build your own changes? Head to the <b>Workshop → Jazz</b> mode.</div>
 
   <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;border-bottom:1px solid #ddccac">
     {#each v.jazzNav as c (c.i)}

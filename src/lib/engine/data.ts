@@ -2,6 +2,7 @@
 // jazz curriculum. Ported verbatim from the original Workbench.
 
 import { spell, cname } from './theory';
+import { FRET_TABS } from './fretpatterns';
 import type { Fn } from './constants';
 
 export interface ChordDef {
@@ -138,7 +139,9 @@ export const PAT_GROUPS = ['Scales', 'Pentatonic & Blues', 'Arpeggios', 'Genre L
 // qualities on the circle of fifths rather than listing scale/lick patterns, so
 // it lives alongside the pattern groups but is not one of them.
 export const PAT_SHAPES_TAB = 'Chord Shapes';
-export const PAT_TABS = [...PAT_GROUPS, PAT_SHAPES_TAB];
+// Fretboard-diagram tabs (scale boxes, CAGED, chord shapes on the neck) are
+// defined in engine/fretpatterns.ts and slot in between.
+export const PAT_TABS = [...PAT_GROUPS, ...FRET_TABS, PAT_SHAPES_TAB];
 
 // ---- Learn-mode jazz curriculum ----
 
@@ -261,6 +264,42 @@ export function jazzChapters(tonicPc: number): JazzChapter[] {
           { iv: 0, q: 'min7', fn: 'T', name: 'i7' }] },
         { kind: 'callout', text: 'Spotting ii–V–Is is reading jazz. A tune in C might tonicise other keys for a bar or two — each is its own little ii–V. Once your hands know the shape, the changes stop looking scary.' },
       ] },
+    { key: 'keychange', name: 'Key Changes', tag: 'MODULATION',
+      intro: 'A key change (modulation) moves the whole tonal centre — a new “home” chord, a new set of diatonic chords. Done well it re-lights a song: the final chorus lifts, the bridge breathes different air, a long piece gets a second act. The craft is in the join: how you travel decides whether it feels inevitable or bolted on.',
+      blocks: [
+        { kind: 'h', text: 'When is a key change appropriate?' },
+        { kind: 'p', text: 'Three classic moments: (1) the last chorus — jump up a half or whole step for pure energy; (2) the bridge — slip to a related key (the IV, the V, or the relative minor) for contrast, then come home; (3) a new section of a longer piece — modulate to the dominant key and let it become the temporary home. The common thread: change key at a structural seam, landing the new tonic on a strong downbeat.' },
+        { kind: 'h', text: 'The smooth way · pivot chord' },
+        { kind: 'p', text: 'Find a chord both keys share and let it change its meaning mid-air. Modulating up a fifth, the vi of the old key is the ii of the new one: the ear enters the chord in the old key and leaves it in the new. Then the new key’s V7 seals it.' },
+        { kind: 'seq', label: 'Pivot up a 5th · I → vi (=ii of V) → V7-of-new → new I', rows: [
+          { iv: 0, q: 'maj7', name: 'Imaj7', sub: 'old home' },
+          { iv: 9, q: 'min7', fn: 'S', name: 'vi7', sub: 'pivot — also ii of the new key' },
+          { iv: 2, q: 'dom7', fn: 'D', name: 'II7', sub: 'the NEW key’s V7' },
+          { iv: 7, q: 'maj7', name: 'Vmaj7', sub: 'new home, a 5th up' }] },
+        { kind: 'h', text: 'The jazz way · ii–V into anywhere' },
+        { kind: 'p', text: 'Any key is two chords away: play the new key’s ii–V and land. This is how standards drift through three keys in eight bars — each destination gets its own little ii–V escort. Here’s a lift up a minor third:' },
+        { kind: 'seq', label: 'ii–V into ♭III · new key a minor 3rd up', rows: [
+          { iv: 5, q: 'min7', fn: 'S', name: 'iv7', sub: 'ii of the new key' },
+          { iv: 10, q: 'dom7', fn: 'D', name: '♭VII7', sub: 'V of the new key' },
+          { iv: 3, q: 'maj7', name: '♭IIImaj7', sub: 'new home' }] },
+        { kind: 'h', text: 'The pop way · the truck-driver lift' },
+        { kind: 'p', text: 'For the final chorus, just go — up a semitone (or a whole tone), no pivot, maximum drama. If you want a hint of glue, hit the new key’s V7 for one beat first; the ear snaps to the new centre instantly.' },
+        { kind: 'seq', label: 'Semitone lift · I → V7-of-new → new I (♭II)', rows: [
+          { iv: 0, q: 'maj', name: 'I', sub: 'last time in the old key' },
+          { iv: 8, q: 'dom7', fn: 'D', name: 'V7/♭II', sub: 'one beat of glue' },
+          { iv: 1, q: 'maj', name: '♭II', sub: 'everything a fret higher' }] },
+        { kind: 'seq', label: 'Whole-tone lift · I → V7-of-new → new I (II)', rows: [
+          { iv: 0, q: 'maj', name: 'I' },
+          { iv: 9, q: 'dom7', fn: 'D', name: 'V7/II', sub: 'V of the new key' },
+          { iv: 2, q: 'maj', name: 'II', sub: 'new home, a tone up' }] },
+        { kind: 'h', text: 'The free moves · relative & parallel' },
+        { kind: 'p', text: 'Relative keys (C major ↔ A minor) share every note — no accidentals change, you just start treating vi as home. Parallel keys (C major ↔ C minor) keep the root and swap the colour; ending a minor song on the major I is the famous Picardy third. Hear major-home versus its parallel minor-home:' },
+        { kind: 'chords', rows: [
+          { iv: 0, q: 'maj', name: 'I', sub: 'major home' },
+          { iv: 0, q: 'min', name: 'i (parallel)', sub: 'same root, darker world' },
+          { iv: 9, q: 'min', name: 'vi (relative)', sub: 'same notes, new home' }] },
+        { kind: 'callout', text: 'Rules of thumb: neighbours on the circle of fifths share 6 of 7 notes, so those modulations feel smooth; distant keys feel dramatic. Prepare the arrival with the new key’s V7 (or a full ii–V), land the new I on a strong beat, then confirm it with a cadence. Try it live: in the Workshop’s Jazz palette, the SECONDARY DOMINANTS row is a rack of doorways into other keys — and the key strip up top retunes the whole app when you follow one.' },
+      ] },
     { key: 'groove', name: 'Groove Harmony', tag: '70s & 80s',
       intro: 'Funk, soul, neo-soul and disco flipped the rules: instead of travelling through changes, the band parks on one or two rich chords and lets rhythm do the storytelling. The harmony is a texture — extended, modal, hypnotic. This is the sound of the 70s and 80s.',
       blocks: [
@@ -351,4 +390,69 @@ export const jzBorrowDefs: ChordDef[] = [
 
 export const jzSecondaryDefs: Array<{ tgt: string; iv: number }> = [
   { tgt: 'ii', iv: 9 }, { tgt: 'iii', iv: 11 }, { tgt: 'IV', iv: 0 }, { tgt: 'V', iv: 2 }, { tgt: 'vi', iv: 4 },
+];
+
+// ---- Learn-mode song structures ----
+// Each form is a proportional timeline: `n` is the section's relative length
+// (any unit — bars or minutes — consistent within one form), `k` picks the
+// section colour. The peak of the arc is the long-form fusion epic.
+
+export type FormKind = 'intro' | 'verse' | 'pre' | 'chorus' | 'bridge' | 'solo' | 'vamp' | 'free' | 'outro';
+
+export interface SongForm {
+  id: string;
+  name: string;
+  genre: string;
+  dur: string; // human duration, e.g. '~3:30'
+  text: string;
+  listen: string; // "hear it in the wild" pointer
+  sections: Array<{ l: string; n: number; k: FormKind }>;
+}
+
+export const SONG_FORMS: SongForm[] = [
+  { id: 'pop', name: 'Verse–Chorus', genre: 'POP / ROCK', dur: '~3:30',
+    text: 'Radio economics: reach the hook fast, repeat it often, be gone before anyone tires. Verses tell the story on lower energy, the pre-chorus tightens the spring, the chorus is the payoff — same words, same melody, every time. The bridge exists to make the LAST chorus feel new again; that final chorus is often doubled or lifted a key (see Key Changes).',
+    listen: 'Almost any chart single since The Beatles. Count along: sections nearly always come in 4- and 8-bar blocks.',
+    sections: [
+      { l: 'Intro', n: 4, k: 'intro' }, { l: 'Verse 1', n: 16, k: 'verse' }, { l: 'Pre', n: 8, k: 'pre' }, { l: 'Chorus', n: 8, k: 'chorus' },
+      { l: 'Verse 2', n: 16, k: 'verse' }, { l: 'Pre', n: 8, k: 'pre' }, { l: 'Chorus', n: 8, k: 'chorus' },
+      { l: 'Bridge', n: 8, k: 'bridge' }, { l: 'Final chorus ×2', n: 16, k: 'chorus' }, { l: 'Out', n: 4, k: 'outro' },
+    ] },
+  { id: 'blues', name: 'The 12-Bar Loop', genre: 'BLUES', dur: 'loops forever',
+    text: 'Here the form IS the harmony: one 12-bar chorus of I–IV–V, repeated until the night ends. Nobody arranges sections — the band counts choruses. Verse, guitar solo, harp solo: all the SAME twelve bars, distinguished only by who is on top. That is why strangers can play blues together instantly: everyone already knows the map.',
+    listen: 'Load Workshop → Blues → 12-Bar Blues and let it cycle; every repeat is one “chorus”.',
+    sections: [
+      { l: 'Chorus 1 · sing', n: 12, k: 'verse' }, { l: 'Chorus 2 · sing', n: 12, k: 'verse' },
+      { l: 'Chorus 3 · guitar solo', n: 12, k: 'solo' }, { l: 'Chorus 4 · solo', n: 12, k: 'solo' },
+      { l: 'Chorus 5 · sing out', n: 12, k: 'verse' },
+    ] },
+  { id: 'aaba', name: 'AABA · the 32-bar standard', genre: 'JAZZ STANDARD', dur: '~5:00',
+    text: 'The Great American Songbook shape: an 8-bar A theme stated twice, an 8-bar B section (“the bridge” — new key area, fresh air), then A again. Jazz musicians play the 32-bar “head” once, then improvise full choruses OVER the invisible repeating form, and close with the head again. The listener’s skill is hearing the form under the solos — the soloist is always somewhere in AABA.',
+    listen: '“Autumn Leaves”, “I Got Rhythm” (whose changes became a form of their own), most Real Book tunes.',
+    sections: [
+      { l: 'Head A', n: 8, k: 'verse' }, { l: 'A', n: 8, k: 'verse' }, { l: 'B bridge', n: 8, k: 'bridge' }, { l: 'A', n: 8, k: 'verse' },
+      { l: 'Solos over the form ×N', n: 32, k: 'solo' }, { l: 'Head out · AABA', n: 32, k: 'verse' },
+    ] },
+  { id: 'funk', name: 'The Vamp & the Cue', genre: 'FUNK / SOUL', dur: '~5:00 (or all night)',
+    text: 'Funk replaces the songwriter’s map with the bandleader’s hand: the band parks on ONE groove and the “form” is a set of live cues — “take it to the bridge!”, a horn hit, four to the ONE. Sections are open-ended; the drop to the bridge lands wherever the leader feels the room peak. Structure becomes a social act, not a chart.',
+    listen: 'James Brown, “Sex Machine” — listen for the shouted cues steering the band between groove and bridge.',
+    sections: [
+      { l: 'Count-in hits', n: 2, k: 'intro' }, { l: 'The groove · vamp', n: 16, k: 'vamp' }, { l: 'Bridge!', n: 8, k: 'bridge' },
+      { l: 'Groove again', n: 12, k: 'vamp' }, { l: 'Breakdown · drums', n: 6, k: 'free' }, { l: 'Groove out', n: 10, k: 'vamp' },
+    ] },
+  { id: 'edm', name: 'Build & Drop', genre: 'ELECTRONIC / DANCE', dur: '~6:00',
+    text: 'Dance music is engineered in 8-, 16- and 32-bar phrase blocks for one reason: the DJ. Long percussion-only intros and outros are handles for beat-matching into the next record. Inside, tension is manufactured mechanically — filters open, drums thin out, a riser climbs — and released at the drop, where the kick and bass slam back. Energy over melody, phrase-math over storytelling.',
+    listen: 'Any club track: count 32 bars from the intro and the first new element arrives almost on schedule.',
+    sections: [
+      { l: 'DJ intro · drums only', n: 16, k: 'intro' }, { l: 'Groove +bass', n: 16, k: 'vamp' }, { l: 'Build', n: 8, k: 'pre' }, { l: 'DROP', n: 16, k: 'chorus' },
+      { l: 'Breakdown', n: 16, k: 'free' }, { l: 'Build', n: 8, k: 'pre' }, { l: 'DROP 2', n: 16, k: 'chorus' }, { l: 'DJ outro', n: 16, k: 'outro' },
+    ] },
+  { id: 'fusion', name: 'The Long Form · Bitches Brew', genre: 'JAZZ FUSION · THE PEAK', dur: '15–27 min',
+    text: 'Miles Davis’ Bitches Brew (1970) throws away the map entirely. No verses, no 32 bars — a piece is a LANDSCAPE: a rhythm section (two basses, multiple keyboards, two drummers) locks a modal one-chord vamp, and time is organised by texture and density instead of bar counts. Miles conducts in real time — a trumpet phrase or a raised hand cues the next zone: a soloist enters, the groove thickens, a composed theme surfaces for a moment and dissolves, a free section lets the pulse evaporate, then the vamp reassembles. And a second composer works after the fact: producer Teo Macero cut and spliced the tapes, looping and re-ordering sections — studio editing as musical form. How to listen: don’t count bars. Hold on to the bass vamp, notice each arrival and departure, and feel the 20 minutes as one long tide coming in and going out.',
+    listen: '“Bitches Brew” (27 min) and “Pharaoh’s Dance” (20 min). Then build your own: park the Workshop on the Dorian i9–IV9 vamp, drums rolling, and improvise entrances and exits.',
+    sections: [
+      { l: 'Open · textures gather', n: 2, k: 'intro' }, { l: 'Bass vamp locks in', n: 2, k: 'vamp' }, { l: 'Trumpet solo over the vamp', n: 3, k: 'solo' },
+      { l: 'Cued theme', n: 1, k: 'bridge' }, { l: 'Guitar & keys solos', n: 3, k: 'solo' }, { l: 'Free · time dissolves', n: 2, k: 'free' },
+      { l: 'Vamp returns', n: 1.5, k: 'vamp' }, { l: 'Theme cue · fade', n: 1.5, k: 'outro' },
+    ] },
 ];

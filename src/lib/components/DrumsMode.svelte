@@ -86,6 +86,6 @@
       <span class="mono" style="font-size:11px;color:#3f6b5f;flex:none">★</span>
       <span class="caption" style="font-size:14px;color:#4a3d29;line-height:1.5">{v.drLayerWhy}</span>
     </div>
-    <div class="caption" style="font-size:12.5px;color:#8a7350;margin-top:12px;max-width:560px">Want the theory behind these patterns — backbeat, clave, swing, ghost notes? It's all in <b>Learn → Rhythm &amp; Drums</b>. And the beat keeps playing when you switch tabs, so you can jam chords over it in the Workshop.</div>
+    <div class="caption" style="font-size:12.5px;color:#8a7350;margin-top:12px;max-width:560px">Want the theory behind these patterns — backbeat, clave, swing, ghost notes? It's all in <b>Learn → Rhythm &amp; Drums</b>. And ▶ PLAY here is the same transport as the Workshop's: if a progression is loaded, the chords lock to this beat — one band, one clock, one tempo.</div>
   </div>
 </div>
