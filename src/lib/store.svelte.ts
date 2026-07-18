@@ -21,6 +21,10 @@ import {
 import { FRET_TABS, fretTab, type Diagram } from './engine/fretpatterns';
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
 import {
+  genReadTarget, type ReadLevel, type ReadClefSetting, type ReadRange, type ReadKeyMode,
+  type ReadAnswerMode, type ReadTarget,
+} from './engine/reading';
+import {
   BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS, BASS_ROLE_META, BASS_TOK_LABEL,
   bassRole, bassRootMidi, resolveBassStep, type BassStep, type BassRole, type DegTok,
 } from './engine/bass';
@@ -31,7 +35,7 @@ import {
 } from './engine/drums';
 import { AudioEngine } from './audio';
 
-export type Mode = 'circle' | 'workshop' | 'drums' | 'ear' | 'patterns' | 'jazz';
+export type Mode = 'circle' | 'workshop' | 'drums' | 'ear' | 'reading' | 'patterns' | 'jazz';
 export type LearnTab = 'harmony' | 'rhythm' | 'bass' | 'form';
 export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
 
@@ -49,7 +53,7 @@ export interface Wedge {
   nameL: string; nameT: string; numL: string; numT: string;
   pc: number; ring: 'maj' | 'min';
 }
-export interface FretCell { showLit: boolean; dot: boolean; barreThru: boolean; litOpacity: string; finger: string; dotColor: string; note: string; bg: string; glow: string }
+export interface FretCell { pc: number; showLit: boolean; dot: boolean; barreThru: boolean; litOpacity: string; finger: string; dotColor: string; note: string; bg: string; glow: string }
 export interface FretRow { label: string; openDot: { color: string } | null; cells: FretCell[] }
 export interface PianoKey { left: string; width: string; note: string; bg: string; fg: string; dot: boolean; dotColor: string; finger: string; pc: number }
 
@@ -73,6 +77,23 @@ export class WorkbenchStore {
   earTotal = $state(0);
   earStreak = $state(0);
   earMsg = $state('');
+
+  // ---- sight reading ----
+  rdLevel = $state<ReadLevel>('note');
+  rdClef = $state<ReadClefSetting>('treble');
+  rdRange = $state<ReadRange>('staff');
+  rdKeyMode = $state<ReadKeyMode>('c');
+  rdAccOn = $state(false);
+  rdAnswerMode = $state<ReadAnswerMode>('name');
+  rdTarget = $state<ReadTarget | null>(null);
+  rdRevealed = $state(false);
+  rdPicked = $state<string | null>(null);
+  // Play-it answering: the distinct pitch classes found so far on the instruments.
+  rdHits = $state<number[]>([]);
+  rdScore = $state(0);
+  rdTotal = $state(0);
+  rdStreak = $state(0);
+  rdMsg = $state('');
 
   wsGenre = $state(0);
   bassGroup = $state(BASS_GROUPS[0]);
@@ -134,6 +155,7 @@ export class WorkbenchStore {
     // playing here would queue notes on the not-yet-resumed AudioContext and
     // fire them on the user's first gesture, doubling their first chord.
     this.genEar('interval', false);
+    this.genReading();
   }
 
   destroy(): void {
@@ -292,7 +314,12 @@ export class WorkbenchStore {
   }
   setPatId(id: string): void { this.patId = id; }
   setJazzCh(i: number): void { this.jazzCh = i; }
-  selectNote(pc: number): void { this.playMidis([60 + mod12(pc)], 0.9); }
+  // Instrument taps (piano keys, fret cells) always sound the note; in Reading
+  // mode with play-it answering they double as the answer input.
+  selectNote(pc: number): void {
+    this.playMidis([60 + mod12(pc)], 0.9);
+    this.readingTapPc(pc);
+  }
 
   // ---- build a chord relative to the current tonic ----
   private chFromDef(d: ChordDef): Chord {
@@ -720,6 +747,60 @@ export class WorkbenchStore {
     this.activeChord = ac;
   }
 
+  // ---- sight reading ----
+  genReading(): void {
+    this.rdTarget = genReadTarget({
+      level: this.rdLevel, clef: this.rdClef, range: this.rdRange,
+      keyMode: this.rdKeyMode, accidentals: this.rdAccOn, answer: this.rdAnswerMode,
+    });
+    this.rdRevealed = false;
+    this.rdPicked = null;
+    this.rdHits = [];
+    this.rdMsg = '';
+    // Clear the instrument lighting so nothing gives the answer away.
+    if (this.mode === 'reading') this.activeChord = null;
+  }
+  setRdLevel(l: ReadLevel): void { this.rdLevel = l; this.genReading(); }
+  setRdClef(c: ReadClefSetting): void { this.rdClef = c; this.genReading(); }
+  setRdRange(r: ReadRange): void { this.rdRange = r; this.genReading(); }
+  setRdKeyMode(k: ReadKeyMode): void { this.rdKeyMode = k; this.genReading(); }
+  toggleRdAcc(): void { this.rdAccOn = !this.rdAccOn; this.genReading(); }
+  setRdAnswerMode(m: ReadAnswerMode): void {
+    this.rdAnswerMode = m;
+    // On mobile the instruments live in the collapsed dock — open it so the
+    // play-it answer surface is actually on screen.
+    if (m === 'play' && !this.isDesktop) this.dockOpen = true;
+    this.genReading();
+  }
+  private revealReading(ok: boolean, tappedPc?: number): void {
+    const t = this.rdTarget;
+    if (!t) return;
+    this.rdRevealed = true;
+    this.rdScore += ok ? 1 : 0;
+    this.rdTotal += 1;
+    this.rdStreak = ok ? this.rdStreak + 1 : 0;
+    const tapped = tappedPc !== undefined ? 'You played ' + spell(tappedPc, this.tonicPc) + ' — it' : 'It';
+    this.rdMsg = ok ? '✓ Correct — ' + t.answer : '✗ ' + tapped + ' was ' + t.answer;
+    // Light the answer on all three instruments and sound it.
+    const root = t.midis[0];
+    this.activeChord = { rootPc: mod12(root), intervals: t.midis.map((m) => m - root), name: t.answer, fn: 'T', midis: t.midis };
+    this.playMidis(t.midis, 1.2, t.midis.length > 1 ? 0.03 : 0);
+  }
+  pickReading(label: string): void {
+    if (this.rdRevealed || !this.rdTarget) return;
+    this.rdPicked = label;
+    this.revealReading(label === this.rdTarget.answer);
+  }
+  private readingTapPc(pc: number): void {
+    const t = this.rdTarget;
+    if (this.mode !== 'reading' || this.rdAnswerMode !== 'play' || this.rdRevealed || !t) return;
+    pc = mod12(pc);
+    if (!t.pcs.includes(pc)) { this.revealReading(false, pc); return; }
+    if (this.rdHits.includes(pc)) return; // already found — no penalty
+    this.rdHits = [...this.rdHits, pc];
+    if (this.rdHits.length === t.pcs.length) this.revealReading(true);
+  }
+
   // ---------- derived view-model ----------
   view = $derived.by(() => this.computeView());
 
@@ -842,7 +923,7 @@ export class WorkbenchStore {
       if (pc === root) { bg = '#c2562e'; glow = '0 0 0 2px rgba(194,86,46,.3)'; }
       else if (isDrop) { bg = '#b3a68f'; }
       else if (!chordSet.has(pc)) { bg = '#97a59c'; }
-      return { showLit: isLit || isDrop, dot: false, barreThru: false, litOpacity: isDrop ? '0.4' : '1', finger: '', dotColor: '', note: spell(pc, this.tonicPc), bg, glow };
+      return { pc, showLit: isLit || isDrop, dot: false, barreThru: false, litOpacity: isDrop ? '0.4' : '1', finger: '', dotColor: '', note: spell(pc, this.tonicPc), bg, glow };
     };
     const buildFret = (opens: number[], labels: string[]): FretRow[] =>
       opens.map((o, si) => ({ label: labels[si], openDot: null, cells: Array.from({ length: frets }, (_, f) => cell(o, f)) }));
@@ -1186,6 +1267,38 @@ export class WorkbenchStore {
       ? { accidentals: this.earTarget.accidentals }
       : null;
 
+    // sight reading
+    const chip = (on: boolean) => ({ border: on ? '#3f6b5f' : '#cbb792', bg: on ? '#3f6b5f' : '#f6efe0', fg: on ? '#fff' : '#5c4a30' });
+    const rdLevels = ([['note', 'Notes'], ['interval', 'Intervals'], ['chord', 'Chords']] as Array<[ReadLevel, string]>)
+      .map(([id, name]) => ({ id, name, ...chip(this.rdLevel === id) }));
+    const rdClefChips = ([['treble', 'Treble 𝄞'], ['bass', 'Bass 𝄢'], ['both', 'Both']] as Array<[ReadClefSetting, string]>)
+      .map(([id, name]) => ({ id, name, ...chip(this.rdClef === id) }));
+    const rdRangeChips = ([['staff', 'On the staff'], ['ledger', '+ Ledger lines']] as Array<[ReadRange, string]>)
+      .map(([id, name]) => ({ id, name, ...chip(this.rdRange === id) }));
+    const rdKeyChips = ([['c', 'C major'], ['easy', 'Keys ≤ 3♯/♭'], ['all', 'All keys']] as Array<[ReadKeyMode, string]>)
+      .map(([id, name]) => ({ id, name, ...chip(this.rdKeyMode === id) }));
+    const rdAnswerChips = ([['name', 'Name it'], ['play', 'Play it']] as Array<[ReadAnswerMode, string]>)
+      .map(([id, name]) => ({ id, name, ...chip(this.rdAnswerMode === id) }));
+    const rdShowAcc = this.rdLevel === 'note' && this.rdKeyMode === 'c';
+    const rdt = this.rdTarget;
+    let rdOptions: Array<{ label: string; border: string; bg: string; fg: string }> = [];
+    if (rdt && this.rdAnswerMode === 'name') {
+      rdOptions = rdt.options.map((label) => {
+        let border = '#cbb792', bg = '#f6efe0', fg = '#2c261d';
+        if (this.rdRevealed) {
+          if (label === rdt.answer) { border = '#3f6b5f'; bg = '#e4efe9'; fg = '#2d5046'; }
+          else if (label === this.rdPicked) { border = '#c2562e'; bg = '#f8e3da'; fg = '#9a3f1f'; }
+        }
+        return { label, border, bg, fg };
+      });
+    }
+    const rdPromptMap: Record<ReadLevel, [string, string]> = {
+      note: ['Name the note on the staff', 'Play the note on the piano or a fretboard'],
+      interval: ['Two stacked notes — name the interval', 'Play both notes on the piano or a fretboard'],
+      chord: ['A stacked chord — name it', 'Play every chord tone on the piano or a fretboard'],
+    };
+    const rdNeed = rdt ? rdt.pcs.length : 0;
+
     // instruments
     const inst = this.buildInstruments(root, litSet, chordSet, dropSet);
 
@@ -1209,7 +1322,7 @@ export class WorkbenchStore {
       soundLabelShort: this.soundOn ? '♪ ON' : '✕ MUTE',
       soundBg: this.soundOn ? 'rgba(216,168,111,.16)' : 'transparent', soundFg: this.soundOn ? '#e9c79b' : '#9c8460',
       // mode flags
-      isCircle: this.mode === 'circle', isWorkshop: this.mode === 'workshop', isDrums: this.mode === 'drums', isEar: this.mode === 'ear', isPatterns: this.mode === 'patterns', isJazz: this.mode === 'jazz',
+      isCircle: this.mode === 'circle', isWorkshop: this.mode === 'workshop', isDrums: this.mode === 'drums', isEar: this.mode === 'ear', isReading: this.mode === 'reading', isPatterns: this.mode === 'patterns', isJazz: this.mode === 'jazz',
       ringAnim: this.jzPlaying ? 'spin 8s linear infinite' : 'none',
       // circle
       wedges, circleLabel, circleHint, diatonic,
@@ -1280,6 +1393,16 @@ export class WorkbenchStore {
       earLevels, earOptions, earPrompt: earPromptMap[this.earLevel], earStaff,
       earScore: this.earScore + '/' + this.earTotal, earStreak: this.earStreak,
       earMsg: this.earMsg, earMsgColor: this.earMsg.indexOf('✓') >= 0 ? '#3f6b5f' : '#c2562e',
+      // sight reading
+      rdLevels, rdClefChips, rdRangeChips, rdKeyChips, rdAnswerChips, rdShowAcc, rdOptions,
+      rdAccBg: this.rdAccOn ? '#3f6b5f' : '#f6efe0', rdAccFg: this.rdAccOn ? '#fff' : '#5c4a30',
+      rdStaff: rdt ? rdt.staff : null, rdKeyLabel: rdt ? rdt.keyLabel : '',
+      rdPlayMode: this.rdAnswerMode === 'play',
+      rdPrompt: rdPromptMap[this.rdLevel][this.rdAnswerMode === 'play' ? 1 : 0],
+      rdProgress: this.rdAnswerMode === 'play' && rdNeed > 1 && !this.rdRevealed
+        ? this.rdHits.length + ' of ' + rdNeed + ' notes found' : '',
+      rdScore: this.rdScore + '/' + this.rdTotal, rdStreak: this.rdStreak,
+      rdMsg: this.rdMsg, rdMsgColor: this.rdMsg.indexOf('✓') >= 0 ? '#3f6b5f' : '#c2562e',
       // dock / instruments
       dockExpanded: this.dockOpen, dockChevron: this.dockOpen ? '▼ HIDE' : '▲ SHOW',
       dockName: this.mode === 'patterns' && patLibTab ? spell(t, t) + ' ' + activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
@@ -1287,9 +1410,9 @@ export class WorkbenchStore {
       ...inst,
       fingerBg: this.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: this.fingerOn ? '#fff' : '#5c4a30',
       // mobile tab bar
-      mtabs: ([['circle', '⟳', 'CIRCLE'], ['workshop', '▦', 'BUILD'], ['drums', '◉', 'DRUMS'], ['ear', '♪', 'EAR'], ['patterns', '▤', 'PATTERNS'], ['jazz', '♭', 'LEARN']] as Array<[Mode, string, string]>).map(([id, icon, label]) => ({ id, icon, label, fg: this.mode === id ? '#f1e7d3' : '#8a7350', bg: this.mode === id ? 'rgba(194,86,46,.32)' : 'transparent' })),
+      mtabs: ([['circle', '⟳', 'CIRCLE'], ['workshop', '▦', 'BUILD'], ['drums', '◉', 'DRUMS'], ['ear', '♪', 'EAR'], ['reading', '𝄞', 'READ'], ['patterns', '▤', 'PATTERNS'], ['jazz', '♭', 'LEARN']] as Array<[Mode, string, string]>).map(([id, icon, label]) => ({ id, icon, label, fg: this.mode === id ? '#f1e7d3' : '#8a7350', bg: this.mode === id ? 'rgba(194,86,46,.32)' : 'transparent' })),
       // desktop top tabs
-      tabs: ([['circle', '⟳ Circle'], ['workshop', '▦ Workshop'], ['drums', '◉ Drums'], ['ear', '♪ Ear'], ['patterns', '▤ Patterns'], ['jazz', '♭ Learn']] as Array<[Mode, string]>).map(([id, label]) => ({ id, label, fg: this.mode === id ? '#c2562e' : '#8a7350', bd: this.mode === id ? '#c2562e' : 'transparent' })),
+      tabs: ([['circle', '⟳ Circle'], ['workshop', '▦ Workshop'], ['drums', '◉ Drums'], ['ear', '♪ Ear'], ['reading', '𝄞 Reading'], ['patterns', '▤ Patterns'], ['jazz', '♭ Learn']] as Array<[Mode, string]>).map(([id, label]) => ({ id, label, fg: this.mode === id ? '#c2562e' : '#8a7350', bd: this.mode === id ? '#c2562e' : 'transparent' })),
     };
   }
 }
