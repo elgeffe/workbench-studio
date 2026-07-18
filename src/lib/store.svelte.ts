@@ -16,7 +16,7 @@ import {
 } from './engine/theory';
 import {
   genreDefs, patternDefs, jazzChapters, PAT_GROUPS, PAT_SHAPES_TAB, PAT_TABS, quickProgDefs, cadenceDefs,
-  classicalProgDefs, jzBorrowDefs, jzSecondaryDefs, type ChordDef, type JazzChapter,
+  classicalProgDefs, jzBorrowDefs, jzSecondaryDefs, SONG_FORMS, type ChordDef, type JazzChapter, type FormKind,
 } from './engine/data';
 import { FRET_TABS, fretTab, type Diagram } from './engine/fretpatterns';
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
@@ -32,7 +32,7 @@ import {
 import { AudioEngine } from './audio';
 
 export type Mode = 'circle' | 'workshop' | 'drums' | 'ear' | 'patterns' | 'jazz';
-export type LearnTab = 'harmony' | 'rhythm' | 'bass';
+export type LearnTab = 'harmony' | 'rhythm' | 'bass' | 'form';
 export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
 
 // ---------- view-model shapes ----------
@@ -1251,11 +1251,28 @@ export class WorkbenchStore {
       drPlayLabel: transportOn ? '■ STOP' : '▶ PLAY',
       drPlayBg: transportOn ? '#9a3f1f' : '#c2562e', drPlayShadow: transportOn ? '#6e2c12' : '#9a3f1f',
       // learn tabs + rhythm theory
-      learnTabHarmony: this.learnTab === 'harmony', learnTabRhythm: this.learnTab === 'rhythm', learnTabBass: this.learnTab === 'bass',
-      learnTabs: ([['harmony', 'Harmony & Jazz'], ['rhythm', 'Rhythm & Drums'], ['bass', 'Bass']] as Array<[LearnTab, string]>).map(([id, name]) => ({
+      learnTabHarmony: this.learnTab === 'harmony', learnTabRhythm: this.learnTab === 'rhythm', learnTabBass: this.learnTab === 'bass', learnTabForm: this.learnTab === 'form',
+      learnTabs: ([['harmony', 'Harmony & Jazz'], ['rhythm', 'Rhythm & Drums'], ['bass', 'Bass'], ['form', 'Song Structures']] as Array<[LearnTab, string]>).map(([id, name]) => ({
         id, name, border: this.learnTab === id ? '#c2562e' : '#cbb792', bg: this.learnTab === id ? '#c2562e' : '#f6efe0', fg: this.learnTab === id ? '#fff' : '#5c4a30',
       })),
       rhythmConcepts: RHYTHM_CONCEPTS.map((c) => ({ id: c.id, name: c.name, tag: c.tag, text: c.text, bpm: c.bpm })),
+      // song structures: proportional timeline blocks, colour-coded by section kind
+      songForms: SONG_FORMS.map((f) => {
+        const total = f.sections.reduce((s, x) => s + x.n, 0);
+        const kindColor: Record<FormKind, string> = {
+          intro: '#b3a68f', verse: '#3f6b5f', pre: '#97a59c', chorus: '#c2562e',
+          bridge: '#b07d23', solo: '#7a5ea8', vamp: '#46617c', free: '#8b6f8e', outro: '#b3a68f',
+        };
+        return {
+          id: f.id, name: f.name, genre: f.genre, dur: f.dur, text: f.text, listen: f.listen,
+          sections: f.sections.map((s) => ({ label: s.l, pct: ((s.n / total) * 100).toFixed(2), bg: kindColor[s.k] })),
+        };
+      }),
+      formKindLegend: [
+        { name: 'VERSE / HEAD', color: '#3f6b5f' }, { name: 'PRE / BUILD', color: '#97a59c' }, { name: 'CHORUS / DROP', color: '#c2562e' },
+        { name: 'BRIDGE / CUE', color: '#b07d23' }, { name: 'SOLO', color: '#7a5ea8' }, { name: 'VAMP / GROOVE', color: '#46617c' },
+        { name: 'FREE', color: '#8b6f8e' }, { name: 'INTRO / OUTRO', color: '#b3a68f' },
+      ],
       quickProgs, jzDia, jzBorrow, jzSecondary,
       exploreOpen, selName, selRoman, extChips, buildSubs,
       tempo: this.tempo, suggestText,

@@ -67,6 +67,10 @@ test.describe('learn: rhythm & drums tab', () => {
     await page.getByTestId('learn-tabs').getByText('Bass', { exact: true }).click();
     await expect(page.getByText('Tricks of the trade')).toBeVisible();
     await expect(page.getByText('BASSLINE MOVES', { exact: true })).toBeVisible();
+    // song structures tab peaks in the long-form fusion card
+    await page.getByTestId('learn-tabs').getByText('Song Structures').click();
+    await expect(page.getByText('The Long Form · Bitches Brew')).toBeVisible();
+    await expect(page.getByText('Verse–Chorus', { exact: true })).toBeVisible();
     // and back
     await page.getByTestId('learn-tabs').getByText('Harmony & Jazz').click();
     await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();

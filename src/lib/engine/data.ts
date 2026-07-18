@@ -391,3 +391,68 @@ export const jzBorrowDefs: ChordDef[] = [
 export const jzSecondaryDefs: Array<{ tgt: string; iv: number }> = [
   { tgt: 'ii', iv: 9 }, { tgt: 'iii', iv: 11 }, { tgt: 'IV', iv: 0 }, { tgt: 'V', iv: 2 }, { tgt: 'vi', iv: 4 },
 ];
+
+// ---- Learn-mode song structures ----
+// Each form is a proportional timeline: `n` is the section's relative length
+// (any unit — bars or minutes — consistent within one form), `k` picks the
+// section colour. The peak of the arc is the long-form fusion epic.
+
+export type FormKind = 'intro' | 'verse' | 'pre' | 'chorus' | 'bridge' | 'solo' | 'vamp' | 'free' | 'outro';
+
+export interface SongForm {
+  id: string;
+  name: string;
+  genre: string;
+  dur: string; // human duration, e.g. '~3:30'
+  text: string;
+  listen: string; // "hear it in the wild" pointer
+  sections: Array<{ l: string; n: number; k: FormKind }>;
+}
+
+export const SONG_FORMS: SongForm[] = [
+  { id: 'pop', name: 'Verse–Chorus', genre: 'POP / ROCK', dur: '~3:30',
+    text: 'Radio economics: reach the hook fast, repeat it often, be gone before anyone tires. Verses tell the story on lower energy, the pre-chorus tightens the spring, the chorus is the payoff — same words, same melody, every time. The bridge exists to make the LAST chorus feel new again; that final chorus is often doubled or lifted a key (see Key Changes).',
+    listen: 'Almost any chart single since The Beatles. Count along: sections nearly always come in 4- and 8-bar blocks.',
+    sections: [
+      { l: 'Intro', n: 4, k: 'intro' }, { l: 'Verse 1', n: 16, k: 'verse' }, { l: 'Pre', n: 8, k: 'pre' }, { l: 'Chorus', n: 8, k: 'chorus' },
+      { l: 'Verse 2', n: 16, k: 'verse' }, { l: 'Pre', n: 8, k: 'pre' }, { l: 'Chorus', n: 8, k: 'chorus' },
+      { l: 'Bridge', n: 8, k: 'bridge' }, { l: 'Final chorus ×2', n: 16, k: 'chorus' }, { l: 'Out', n: 4, k: 'outro' },
+    ] },
+  { id: 'blues', name: 'The 12-Bar Loop', genre: 'BLUES', dur: 'loops forever',
+    text: 'Here the form IS the harmony: one 12-bar chorus of I–IV–V, repeated until the night ends. Nobody arranges sections — the band counts choruses. Verse, guitar solo, harp solo: all the SAME twelve bars, distinguished only by who is on top. That is why strangers can play blues together instantly: everyone already knows the map.',
+    listen: 'Load Workshop → Blues → 12-Bar Blues and let it cycle; every repeat is one “chorus”.',
+    sections: [
+      { l: 'Chorus 1 · sing', n: 12, k: 'verse' }, { l: 'Chorus 2 · sing', n: 12, k: 'verse' },
+      { l: 'Chorus 3 · guitar solo', n: 12, k: 'solo' }, { l: 'Chorus 4 · solo', n: 12, k: 'solo' },
+      { l: 'Chorus 5 · sing out', n: 12, k: 'verse' },
+    ] },
+  { id: 'aaba', name: 'AABA · the 32-bar standard', genre: 'JAZZ STANDARD', dur: '~5:00',
+    text: 'The Great American Songbook shape: an 8-bar A theme stated twice, an 8-bar B section (“the bridge” — new key area, fresh air), then A again. Jazz musicians play the 32-bar “head” once, then improvise full choruses OVER the invisible repeating form, and close with the head again. The listener’s skill is hearing the form under the solos — the soloist is always somewhere in AABA.',
+    listen: '“Autumn Leaves”, “I Got Rhythm” (whose changes became a form of their own), most Real Book tunes.',
+    sections: [
+      { l: 'Head A', n: 8, k: 'verse' }, { l: 'A', n: 8, k: 'verse' }, { l: 'B bridge', n: 8, k: 'bridge' }, { l: 'A', n: 8, k: 'verse' },
+      { l: 'Solos over the form ×N', n: 32, k: 'solo' }, { l: 'Head out · AABA', n: 32, k: 'verse' },
+    ] },
+  { id: 'funk', name: 'The Vamp & the Cue', genre: 'FUNK / SOUL', dur: '~5:00 (or all night)',
+    text: 'Funk replaces the songwriter’s map with the bandleader’s hand: the band parks on ONE groove and the “form” is a set of live cues — “take it to the bridge!”, a horn hit, four to the ONE. Sections are open-ended; the drop to the bridge lands wherever the leader feels the room peak. Structure becomes a social act, not a chart.',
+    listen: 'James Brown, “Sex Machine” — listen for the shouted cues steering the band between groove and bridge.',
+    sections: [
+      { l: 'Count-in hits', n: 2, k: 'intro' }, { l: 'The groove · vamp', n: 16, k: 'vamp' }, { l: 'Bridge!', n: 8, k: 'bridge' },
+      { l: 'Groove again', n: 12, k: 'vamp' }, { l: 'Breakdown · drums', n: 6, k: 'free' }, { l: 'Groove out', n: 10, k: 'vamp' },
+    ] },
+  { id: 'edm', name: 'Build & Drop', genre: 'ELECTRONIC / DANCE', dur: '~6:00',
+    text: 'Dance music is engineered in 8-, 16- and 32-bar phrase blocks for one reason: the DJ. Long percussion-only intros and outros are handles for beat-matching into the next record. Inside, tension is manufactured mechanically — filters open, drums thin out, a riser climbs — and released at the drop, where the kick and bass slam back. Energy over melody, phrase-math over storytelling.',
+    listen: 'Any club track: count 32 bars from the intro and the first new element arrives almost on schedule.',
+    sections: [
+      { l: 'DJ intro · drums only', n: 16, k: 'intro' }, { l: 'Groove +bass', n: 16, k: 'vamp' }, { l: 'Build', n: 8, k: 'pre' }, { l: 'DROP', n: 16, k: 'chorus' },
+      { l: 'Breakdown', n: 16, k: 'free' }, { l: 'Build', n: 8, k: 'pre' }, { l: 'DROP 2', n: 16, k: 'chorus' }, { l: 'DJ outro', n: 16, k: 'outro' },
+    ] },
+  { id: 'fusion', name: 'The Long Form · Bitches Brew', genre: 'JAZZ FUSION · THE PEAK', dur: '15–27 min',
+    text: 'Miles Davis’ Bitches Brew (1970) throws away the map entirely. No verses, no 32 bars — a piece is a LANDSCAPE: a rhythm section (two basses, multiple keyboards, two drummers) locks a modal one-chord vamp, and time is organised by texture and density instead of bar counts. Miles conducts in real time — a trumpet phrase or a raised hand cues the next zone: a soloist enters, the groove thickens, a composed theme surfaces for a moment and dissolves, a free section lets the pulse evaporate, then the vamp reassembles. And a second composer works after the fact: producer Teo Macero cut and spliced the tapes, looping and re-ordering sections — studio editing as musical form. How to listen: don’t count bars. Hold on to the bass vamp, notice each arrival and departure, and feel the 20 minutes as one long tide coming in and going out.',
+    listen: '“Bitches Brew” (27 min) and “Pharaoh’s Dance” (20 min). Then build your own: park the Workshop on the Dorian i9–IV9 vamp, drums rolling, and improvise entrances and exits.',
+    sections: [
+      { l: 'Open · textures gather', n: 2, k: 'intro' }, { l: 'Bass vamp locks in', n: 2, k: 'vamp' }, { l: 'Trumpet solo over the vamp', n: 3, k: 'solo' },
+      { l: 'Cued theme', n: 1, k: 'bridge' }, { l: 'Guitar & keys solos', n: 3, k: 'solo' }, { l: 'Free · time dissolves', n: 2, k: 'free' },
+      { l: 'Vamp returns', n: 1.5, k: 'vamp' }, { l: 'Theme cue · fade', n: 1.5, k: 'outro' },
+    ] },
+];
