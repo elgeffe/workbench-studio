@@ -5,12 +5,16 @@
     rows, frets13, label,
     cellH = 22, noteSz = 18, dotSz = 18,
     openLeft = -10, openSz = 16, openBorder = 3,
+    onPick,
   }: {
     rows: FretRow[];
     frets13: { m: string }[];
     label: string;
     cellH?: number; noteSz?: number; dotSz?: number;
     openLeft?: number; openSz?: number; openBorder?: number;
+    // Tap-to-sound: called with the cell's pitch class. Also the play-it
+    // answer input in Reading mode, so the fretboards work like the piano keys.
+    onPick?: (pc: number) => void;
   } = $props();
 </script>
 
@@ -25,7 +29,7 @@
         {/if}
         {#each s.cells as c, i (i)}
           {@const onNut = i === 0 ? 'position:absolute;left:0;top:50%;transform:translate(-50%,-50%);z-index:4;' : ''}
-          <div class="fret-cell" style="height:{cellH}px">
+          <div class="fret-cell" class:click={!!onPick} style="height:{cellH}px" role={onPick ? 'button' : undefined} tabindex="-1" onclick={() => onPick?.(c.pc)}>
             {#if c.barreThru}
               <div style="position:absolute;top:-3px;bottom:-3px;width:8px;border-radius:4px;background:rgba(48,32,18,.5);z-index:1"></div>
             {/if}

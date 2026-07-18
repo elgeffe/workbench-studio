@@ -7,6 +7,7 @@
   import WorkshopMode from './lib/components/WorkshopMode.svelte';
   import DrumsMode from './lib/components/DrumsMode.svelte';
   import EarMode from './lib/components/EarMode.svelte';
+  import ReadingMode from './lib/components/ReadingMode.svelte';
   import PatternsMode from './lib/components/PatternsMode.svelte';
   import LearnMode from './lib/components/LearnMode.svelte';
 
@@ -82,6 +83,8 @@
           <DrumsMode />
         {:else if v.isEar}
           <EarMode />
+        {:else if v.isReading}
+          <ReadingMode />
         {:else if v.isPatterns}
           <PatternsMode />
         {:else if v.isJazz}
