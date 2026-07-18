@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useStore } from '../context';
-  import type { PianoKey } from '../store.svelte';
+  import type { PianoKey } from '../view/types';
 
   let { white, black, height = 96 }: { white: PianoKey[]; black: PianoKey[]; height?: number } = $props();
   const store = useStore();

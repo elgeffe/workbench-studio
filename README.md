@@ -26,22 +26,36 @@ src/
       constants.ts     Note names, scales, chord tables, functional-harmony colours
       theory.ts        Spelling, diatonic generation, substitutions, voicings, inversions
       data.ts          Genres, pattern library, the Learn-mode jazz curriculum
+      fretpatterns.ts  Fretboard diagram library (scale boxes, chord grips)
+      bass.ts          Bassline grooves, degree resolution, walking tricks
+      drums.ts         Drum templates, grid composition, swing, rhythm concepts
       ear.ts           Ear-training question generator
       reading.ts       Sight-reading drills: staff geometry, key signatures, targets
+    view/              Pure view-model builders (state in → render props out)
+      index.ts         computeView(store): assembles the full view-model
+      types.ts         View-model shapes (chips, wedges, fret rows, piano keys)
+      circle.ts        Circle-of-fifths wheel geometry and colouring
+      instruments.ts   Fretboard + piano lighting and the jazz finger overlay
+      workshop.ts      Palettes, progression strip, explore panel, bass workbench
+      patterns.ts      Pattern library, chord shapes, fret-diagram tabs
+      drums.ts         Groovebox grid, template chips, layer stepper
+      learn.ts         Jazz curriculum, rhythm concepts, song-structure timelines
+      practice.ts      Ear-training and sight-reading views
     audio.ts           Web Audio synth engine (isolated from state)
-    store.svelte.ts    Svelte 5 runes store: $state + actions + one $derived view-model
+    store.svelte.ts    Svelte 5 runes store: $state + actions + view = $derived(computeView)
     context.ts         provideStore()/useStore() context helpers
     components/        Reusable UI: Header, ScaleStrip, CircleMode, WorkshopMode,
-                       EarMode, ReadingMode, Staff, PatternsMode, LearnMode,
-                       Instruments, Fretboard, Piano
+                       DrumsMode, EarMode, ReadingMode, Staff, PatternsMode, LearnMode,
+                       Instruments, Fretboard, FretDiagram, Piano
   App.svelte           Adaptive shell (desktop tabs + side panel / mobile dock + tab bar)
   main.ts              Mount entry
 ```
 
 The **engine** is pure functions with no Svelte or DOM dependency, so the harmony logic is
-independently testable. The **store** holds all reactive state and exposes a single
-`$derived` view-model (`store.view`) that mirrors the original design's render step;
-components read `store.view.*` and call `store.<action>()`.
+independently testable. The **store** holds all reactive state and the actions; the
+**view** layer is a set of pure functions that turn that state into a single `$derived`
+view-model (`store.view`) — components read `store.view.*` and call `store.<action>()`.
+See `docs/IMPROVEMENTS.md` for the prioritized roadmap of proposed enhancements.
 
 ## Development
 
