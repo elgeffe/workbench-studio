@@ -6,6 +6,7 @@
   import CircleMode from './lib/components/CircleMode.svelte';
   import WorkshopMode from './lib/components/WorkshopMode.svelte';
   import DrumsMode from './lib/components/DrumsMode.svelte';
+  import MetronomeMode from './lib/components/MetronomeMode.svelte';
   import EarMode from './lib/components/EarMode.svelte';
   import ReadingMode from './lib/components/ReadingMode.svelte';
   import PatternsMode from './lib/components/PatternsMode.svelte';
@@ -27,7 +28,14 @@
     return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
   }
   function onKeyDown(e: KeyboardEvent) {
-    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || store.mode !== 'workshop' || isTyping(e.target)) return;
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
+    // Space starts/stops the practice metronome while its tab is open.
+    if (e.code === 'Space' && store.mode === 'metronome') {
+      e.preventDefault();
+      store.met.toggle();
+      return;
+    }
+    if (store.mode !== 'workshop') return;
     const deg = CHORD_KEYS[e.key.toLowerCase()];
     if (deg !== undefined) store.kbHold(deg);
   }
@@ -81,6 +89,8 @@
           <WorkshopMode />
         {:else if v.isDrums}
           <DrumsMode />
+        {:else if v.isMetronome}
+          <MetronomeMode />
         {:else if v.isEar}
           <EarMode />
         {:else if v.isReading}

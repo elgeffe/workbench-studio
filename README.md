@@ -41,6 +41,9 @@ src/
       drums.ts         Groovebox grid, template chips, layer stepper
       learn.ts         Jazz curriculum, rhythm concepts, song-structure timelines
       practice.ts      Ear-training and sight-reading views
+    metronome/         Practice metronome (ported from Metrognome): look-ahead
+                       click engine, tempo/mute automation, mic tempo detection,
+                       practice-session history, and its own runes sub-store
     audio.ts           Web Audio synth engine (isolated from state)
     store.svelte.ts    Svelte 5 runes store: $state + actions + view = $derived(computeView)
     context.ts         provideStore()/useStore() context helpers
@@ -86,6 +89,12 @@ automatically; the live URL appears in the workflow's `deploy` job summary.
 - **Workshop** — build progressions in Classic, Jazz, or Classical palettes; explore any
   placed chord (extensions, inversions, secondary dominants, ii–V insertion, tritone
   subs); play them back with tempo/voicing control.
+- **Metronome** — a full practice metronome (ported from the standalone Metrognome app):
+  sample-accurate Web Audio click with tap tempo, time signatures, subdivisions and accents;
+  tempo automation for rhythm drills (step trainer, smooth ramps by time or bars, gap-click
+  mute trainer); practice goals by bars or minutes with auto-stop; an on-device practice log;
+  and experimental microphone tempo-following. The click keeps running while you browse
+  other tabs, so you can practice against it anywhere in the studio.
 - **Ear** — interval, chord-quality, and progression recognition drills with scoring.
 - **Patterns** — scale, pentatonic, arpeggio, and genre-lick library lit on the instruments.
 - **Learn** — a five-chapter jazz-harmony walkthrough (extensions, shells, inversions,

@@ -22,10 +22,11 @@ import {
   type DrumVoiceId, type DrumGrid, type DrumLayerPart,
 } from './engine/drums';
 import { AudioEngine } from './audio';
+import { MetronomeStore } from './metronome/store.svelte';
 import { computeView } from './view';
 import type { Wedge } from './view/types';
 
-export type Mode = 'circle' | 'workshop' | 'drums' | 'ear' | 'reading' | 'patterns' | 'jazz';
+export type Mode = 'circle' | 'workshop' | 'drums' | 'metronome' | 'ear' | 'reading' | 'patterns' | 'jazz';
 export type LearnTab = 'harmony' | 'rhythm' | 'bass' | 'form';
 export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
 
@@ -115,6 +116,11 @@ export class WorkbenchStore {
 
   isDesktop = $state(false);
 
+  // ---- practice metronome (its own engine + runes sub-store) ----
+  // The click runs on its own AudioContext and keeps ticking when you browse
+  // other tabs — practice against it anywhere in the studio.
+  met = new MetronomeStore();
+
   // ---- derived view-model (pure render step, lives in lib/view) ----
   view = $derived.by(() => computeView(this));
 
@@ -140,6 +146,7 @@ export class WorkbenchStore {
   }
 
   destroy(): void {
+    this.met.destroy();
     if (this.trLoop) clearInterval(this.trLoop);
     this.seqTimers.forEach((id) => clearTimeout(id));
     this.singleTimers.forEach((id) => clearTimeout(id));
