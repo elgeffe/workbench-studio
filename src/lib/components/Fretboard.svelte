@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FretRow } from '../store.svelte';
+  import type { FretRow } from '../view/types';
 
   let {
     rows, frets13, label,

@@ -1,61 +1,39 @@
 // Central application store. Svelte 5 runes class: `$state` fields hold the
-// app state, methods are the actions, and a single `$derived` view-model
-// (`view`) mirrors the original renderVals. Components read `store.view.*`
-// and call `store.<action>()` — no handler closures leak out of the store.
+// app state, methods are the actions. The render step lives in `lib/view/`:
+// a single `$derived` view-model (`view = computeView(this)`) that components
+// read as `store.view.*` — no handler closures leak out of the store.
 
-import {
-  INT, SUF, MAJOR, CIRCLE, SCALES, DIA_TRI, DIA_SEV, ROMAN, ROMAN7, FN,
-  FNCOLOR, FNTINT, FNNAME, FNWHY, KEYSIG, QLABEL,
-  type Chord, type Fn, type ScaleId,
-} from './engine/constants';
-import {
-  mod12, spell, cname, gI, gPcs, gMidis, chordMidis, keyNameStr, scaleNotesStr,
-  playedPcs, droppedPcs,
-  diatonicList, subsFor, colorChordDefs, jChVoiced, jzNotes, jFamily, invChord,
-  jazzVoicing, type DiatonicChord,
-} from './engine/theory';
-import {
-  genreDefs, patternDefs, jazzChapters, PAT_GROUPS, PAT_SHAPES_TAB, PAT_TABS, quickProgDefs, cadenceDefs,
-  classicalProgDefs, jzBorrowDefs, jzSecondaryDefs, SONG_FORMS, type ChordDef, type JazzChapter, type FormKind,
-} from './engine/data';
-import { FRET_TABS, fretTab, type Diagram } from './engine/fretpatterns';
+import { INT, SUF, MAJOR, CIRCLE, SCALES, type Chord, type ScaleId } from './engine/constants';
+import { mod12, spell, cname, gI, gMidis, chordMidis, diatonicList, jChVoiced } from './engine/theory';
+import { patternDefs, type ChordDef } from './engine/data';
+import { type Diagram } from './engine/fretpatterns';
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
 import {
   genReadTarget, type ReadLevel, type ReadClefSetting, type ReadRange, type ReadKeyMode,
   type ReadAnswerMode, type ReadTarget,
 } from './engine/reading';
 import {
-  BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS, BASS_ROLE_META, BASS_TOK_LABEL,
-  bassRole, bassRootMidi, resolveBassStep, type BassStep, type BassRole, type DegTok,
+  BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS,
+  bassRootMidi, resolveBassStep, type BassStep, type DegTok,
 } from './engine/bass';
 import {
-  DRUM_VOICES, DRUM_COUNT, DRUM_GROUPS, RHYTHM_CONCEPTS,
+  DRUM_VOICES, RHYTHM_CONCEPTS,
   drumTemplates, composeGrid, swingDelaySteps,
   type DrumVoiceId, type DrumGrid, type DrumLayerPart,
 } from './engine/drums';
 import { AudioEngine } from './audio';
+import { computeView } from './view';
+import type { Wedge } from './view/types';
 
 export type Mode = 'circle' | 'workshop' | 'drums' | 'ear' | 'reading' | 'patterns' | 'jazz';
 export type LearnTab = 'harmony' | 'rhythm' | 'bass' | 'form';
 export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
 
-// ---------- view-model shapes ----------
-export interface Chip { name: string; bg: string; fg: string; border: string }
-export interface DiatonicView extends DiatonicChord {
-  fnColor: string; fnName: string; fnTint: string;
-  bg: string; border: string; wsBg: string; wsBorder: string; wsShadow: string; shadow: string;
-}
-export interface ChordChip { name: string; roman: string; notes: string; fnColor: string; border: string; bg: string; shadow: string; ch: Chord }
-export interface PaletteChip { name: string; roman: string; fnColor?: string; tint?: string; border?: string; ch: Chord }
-export interface Wedge {
-  d: string; fill: string; stroke: string; strokeW: string;
-  name: string; numeral: string; nameColor: string; numColor: string; nameSize: string;
-  nameL: string; nameT: string; numL: string; numT: string;
-  pc: number; ring: 'maj' | 'min';
-}
-export interface FretCell { pc: number; showLit: boolean; dot: boolean; barreThru: boolean; litOpacity: string; finger: string; dotColor: string; note: string; bg: string; glow: string }
-export interface FretRow { label: string; openDot: { color: string } | null; cells: FretCell[] }
-export interface PianoKey { left: string; width: string; note: string; bg: string; fg: string; dot: boolean; dotColor: string; finger: string; pc: number }
+// Re-exported so components can keep importing view-model types from here.
+export type {
+  Chip, DiatonicView, ChordChip, PaletteChip, Wedge, FretCell, FretRow, PianoKey,
+} from './view/types';
+export type { WorkbenchView } from './view';
 
 export class WorkbenchStore {
   // ---- reactive state ----
@@ -137,6 +115,9 @@ export class WorkbenchStore {
 
   isDesktop = $state(false);
 
+  // ---- derived view-model (pure render step, lives in lib/view) ----
+  view = $derived.by(() => computeView(this));
+
   // ---- non-reactive ----
   private audio = new AudioEngine();
   // The global transport: ONE interval, ticking every half bar (2 beats),
@@ -207,6 +188,18 @@ export class WorkbenchStore {
     else if (!SCALES[this.scale].int.includes(3)) this.scale = 'aeolian';
   }
   setCircleDir(d: 'fifths' | 'fourths'): void { this.circleDir = d; }
+  wedgeClick(w: Wedge): void {
+    const minorFamily: ScaleId[] = ['aeolian', 'dorian', 'phrygian', 'locrian', 'harmonic', 'melodic'];
+    const majorFamily: ScaleId[] = ['ionian', 'lydian', 'mixolydian'];
+    this.tonicPc = w.pc;
+    if (w.ring === 'min') {
+      this.scale = minorFamily.includes(this.scale) ? this.scale : 'aeolian';
+      this.circleView = 'min';
+    } else {
+      this.scale = majorFamily.includes(this.scale) ? this.scale : 'ionian';
+      this.circleView = 'maj';
+    }
+  }
   setWsGenre(i: number): void { this.wsGenre = i; }
   setWsStyle(s: WsStyle): void {
     this.wsStyle = s;
@@ -331,14 +324,6 @@ export class WorkbenchStore {
       roman: d.roman || '',
       fn: d.fn || 'T',
     };
-  }
-  private jc(iv: number, q: string, opts: Partial<ChordDef> = {}): Chord {
-    const r = mod12(this.tonicPc + iv);
-    const intervals = opts.intervals || INT[q];
-    const name = opts.name || spell(r, this.tonicPc) + (SUF[q] !== undefined ? SUF[q] : '');
-    const ch: Chord = { rootPc: r, intervals, name, fn: opts.fn || 'T' };
-    if (opts.midis) ch.midis = opts.midis.map((m) => m + this.tonicPc);
-    return ch;
   }
 
   // ---- workshop / jazz sandbox ----
@@ -800,621 +785,4 @@ export class WorkbenchStore {
     this.rdHits = [...this.rdHits, pc];
     if (this.rdHits.length === t.pcs.length) this.revealReading(true);
   }
-
-  // ---------- derived view-model ----------
-  view = $derived.by(() => this.computeView());
-
-  private litInfo() {
-    const t = this.tonicPc;
-    const activePat = patternDefs().find((p) => p.id === this.patId) || patternDefs()[0];
-    // Only the pattern-library groups drive scale lighting; the Chord Shapes
-    // and fret-diagram tabs are chord/diagram-driven, so they fall through to
-    // the active-chord lighting below.
-    if (this.mode === 'patterns' && PAT_GROUPS.includes(this.patCat)) {
-      const ints = activePat.int || activePat.scaleInt || [];
-      const lit = ints.map((i) => (t + i) % 12);
-      const litSet = new Set(lit);
-      const chordSet = new Set(INT[activePat.chord].map((i) => (t + i) % 12));
-      return { root: t, litSet, chordSet, dropSet: new Set<number>(), activePat };
-    }
-    const ac = this.activeChord;
-    // Lit = the notes we actually voice (after best-practice dropping); the
-    // dropped chord tones still belong to the chord, so we surface them greyed
-    // out rather than hiding them. chordSet keeps the full stack for colouring.
-    const litSet = new Set(ac ? playedPcs(ac) : []);
-    const dropSet = new Set(ac ? droppedPcs(ac) : []);
-    const chordSet = new Set(ac ? gPcs(ac) : []);
-    const root = ac ? ac.rootPc : -1;
-    return { root, litSet, chordSet, dropSet, activePat };
-  }
-
-  private buildCircle(): { wedges: Wedge[]; circleLabel: string; circleHint: string } {
-    const t = this.tonicPc;
-    const isMinView = this.circleView === 'min';
-    const isFourths = this.circleDir === 'fourths';
-    let order = CIRCLE.slice();
-    if (isFourths) order = [order[0], ...order.slice(1).reverse()];
-    // Two fixed concentric rings, reference-wheel style: major keys outside,
-    // each key's relative minor directly inside it. The whole wheel rotates so
-    // the active key sits at 12 o'clock, and the 7 diatonic chords of that key
-    // light up as one contiguous tinted block with roman numerals:
-    // red = major chords, green = minor chords, blue = the diminished one.
-    const cx = 180, cy = 180, rO = 158, rB = 110, rC = 68;
-    const rMajName = 131, rMajNum = 149, rMinName = 88, rMinNum = 103;
-    const pol = (r: number, deg: number): [number, number] => { const a = (deg - 90) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
-    const band = (r1: number, r0: number, a0: number, a1: number): string => {
-      const p1 = pol(r1, a0), p2 = pol(r1, a1), p3 = pol(r0, a1), p4 = pol(r0, a0);
-      return `M${p1[0].toFixed(1)} ${p1[1].toFixed(1)} A${r1} ${r1} 0 0 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} L${p3[0].toFixed(1)} ${p3[1].toFixed(1)} A${r0} ${r0} 0 0 0 ${p4[0].toFixed(1)} ${p4[1].toFixed(1)} Z`;
-    };
-    const pct = (p: [number, number]): [string, string] => [(p[0] / 360 * 100).toFixed(2), (p[1] / 360 * 100).toFixed(2)];
-    const activeMajPc = isMinView ? (t + 3) % 12 : t;
-    const tonicIdx = order.indexOf(activeMajPc);
-    const M = activeMajPc;
-    // Where each roman numeral lands: outer ring keyed by major root pc,
-    // inner ring keyed by minor root pc. Same 7 wedges in both views —
-    // only the numerals (and which wedge is "home") change.
-    const majNum: Record<number, string> = isMinView
-      ? { [M]: 'III', [(t + 8) % 12]: 'VI', [(t + 10) % 12]: 'VII' }
-      : { [M]: 'I', [(M + 5) % 12]: 'IV', [(M + 7) % 12]: 'V' };
-    const minNum: Record<number, string> = isMinView
-      ? { [t]: 'i', [(t + 5) % 12]: 'iv', [(t + 7) % 12]: 'v', [(t + 2) % 12]: 'ii°' }
-      : { [(M + 9) % 12]: 'vi', [(M + 2) % 12]: 'ii', [(M + 4) % 12]: 'iii', [(M + 11) % 12]: 'vii°' };
-    const wedges: Wedge[] = [];
-    order.forEach((pc, i) => {
-      const c = (i - tonicIdx) * 30, a0 = c - 15, a1 = c + 15;
-      const mnPc = (pc + 9) % 12; // relative minor sharing this spoke
-      // outer wedge — the major key
-      const oNum = majNum[pc] || '';
-      let oFill = '#f3e8ce', oStroke = '#f1e7d3', oSw = '2', oName = '#8a7a5c', oNumC = '#8f3c1c';
-      if (oNum === 'I') { oFill = '#c2562e'; oStroke = '#8f3c1c'; oSw = '3'; oName = '#fff'; oNumC = '#ffd9c6'; }
-      else if (oNum) { oFill = '#eec49f'; oName = '#8f3c1c'; }
-      const onp = pct(pol(rMajName, c)), oup = pct(pol(rMajNum, c));
-      wedges.push({
-        d: band(rO, rB, a0, a1), fill: oFill, stroke: oStroke, strokeW: oSw,
-        name: spell(pc, t), numeral: oNum, nameColor: oName, numColor: oNumC, nameSize: '18px',
-        nameL: onp[0], nameT: onp[1], numL: oup[0], numT: oup[1], pc, ring: 'maj',
-      });
-      // inner wedge — its relative minor
-      const iNum = minNum[mnPc] || '';
-      let iFill = '#ebdfc1', iStroke = '#f1e7d3', iSw = '2', iName = '#95835f', iNumC = '#2d5c48';
-      if (iNum === 'i') { iFill = '#3f6b5f'; iStroke = '#2d5045'; iSw = '3'; iName = '#fff'; iNumC = '#cdeeda'; }
-      else if (iNum.includes('°')) { iFill = '#ccdbe9'; iName = '#46617c'; iNumC = '#46617c'; }
-      else if (iNum) { iFill = '#c8dfd0'; iName = '#2d5c48'; }
-      const inp = pct(pol(rMinName, c)), iup = pct(pol(rMinNum, c));
-      wedges.push({
-        d: band(rB, rC, a0, a1), fill: iFill, stroke: iStroke, strokeW: iSw,
-        name: spell(mnPc, t).toLowerCase() + 'm', numeral: iNum, nameColor: iName, numColor: iNumC, nameSize: '12.5px',
-        nameL: inp[0], nameT: inp[1], numL: iup[0], numT: iup[1], pc: mnPc, ring: 'min',
-      });
-    });
-    const circleLabel = isFourths ? 'CIRCLE OF 4THS' : 'CIRCLE OF 5THS';
-    const dirHint = isFourths
-      ? 'Clockwise now moves up a fourth (down a fifth) — the direction progressions resolve: V→I→IV…'
-      : 'Clockwise moves up a fifth and adds one sharp; neighbours share 6 of 7 notes.';
-    const famHint = isMinView
-      ? `The tinted block is every chord in ${spell(t, t)} minor: i·iv·v minor (green), III·VI·VII major (red), ii° diminished (blue).`
-      : `The tinted block is every chord in ${spell(t, t)} major: I·IV·V major (red), ii·iii·vi minor (green), vii° diminished (blue).`;
-    return { wedges, circleLabel, circleHint: dirHint + ' ' + famHint };
-  }
-
-  wedgeClick(w: Wedge): void {
-    const minorFamily: ScaleId[] = ['aeolian', 'dorian', 'phrygian', 'locrian', 'harmonic', 'melodic'];
-    const majorFamily: ScaleId[] = ['ionian', 'lydian', 'mixolydian'];
-    this.tonicPc = w.pc;
-    if (w.ring === 'min') {
-      this.scale = minorFamily.includes(this.scale) ? this.scale : 'aeolian';
-      this.circleView = 'min';
-    } else {
-      this.scale = majorFamily.includes(this.scale) ? this.scale : 'ionian';
-      this.circleView = 'maj';
-    }
-  }
-
-  private buildInstruments(root: number, litSet: Set<number>, chordSet: Set<number>, dropSet: Set<number>) {
-    const ac = this.activeChord;
-    const frets = 13;
-    const cell = (open: number, f: number): FretCell => {
-      const pc = (open + f) % 12;
-      const isLit = litSet.has(pc);
-      // A chord tone omitted by best-practice voicing: still shown, but greyed
-      // and faded so it reads as "belongs to the chord, but not played".
-      const isDrop = !isLit && dropSet.has(pc);
-      let bg = '#3f6b5f', glow = 'none';
-      if (pc === root) { bg = '#c2562e'; glow = '0 0 0 2px rgba(194,86,46,.3)'; }
-      else if (isDrop) { bg = '#b3a68f'; }
-      else if (!chordSet.has(pc)) { bg = '#97a59c'; }
-      return { pc, showLit: isLit || isDrop, dot: false, barreThru: false, litOpacity: isDrop ? '0.4' : '1', finger: '', dotColor: '', note: spell(pc, this.tonicPc), bg, glow };
-    };
-    const buildFret = (opens: number[], labels: string[]): FretRow[] =>
-      opens.map((o, si) => ({ label: labels[si], openDot: null, cells: Array.from({ length: frets }, (_, f) => cell(o, f)) }));
-    const bass = buildFret([43, 38, 33, 28], ['G', 'D', 'A', 'E']);
-    const guitar = buildFret([64, 59, 55, 50, 45, 40], ['e', 'B', 'G', 'D', 'A', 'E']);
-    const frets13 = Array.from({ length: frets }, (_, f) => ({ m: [3, 5, 7, 9].includes(f) ? String(f) : f === 12 ? '12' : '' }));
-
-    const roleColor = (r: string) => (({ R: '#c2562e', '3': '#3f6b5f', b3: '#3f6b5f', '7': '#b07d23', '5': '#97a59c', b5: '#97a59c', '9': '#7a5ea8', '11': '#7a5ea8', '13': '#7a5ea8' } as Record<string, string>)[r] || '#c2562e');
-    const showFingerToggle = this.mode === 'workshop' && this.wsStyle === 'jazz';
-    const overlayOn = showFingerToggle && this.fingerOn && !!ac;
-    const pianoMark: Record<number, { color: string; finger: string }> = {};
-    if (overlayOn && ac) {
-      const fingerChord = this.jzSel >= 0 && this.jzChanges[this.jzSel] ? this.jzChanges[this.jzSel] : ac;
-      const v = jazzVoicing(fingerChord, this.jzInv);
-      v.guitar.forEach((n) => {
-        const row = guitar[n.idx]; if (!row) return;
-        if (n.fret === 0) { row.openDot = { color: roleColor(n.role) }; if (row.cells[0]) row.cells[0].showLit = false; }
-        else { const c = row.cells[n.fret]; if (c) { c.dot = true; c.showLit = false; c.dotColor = roleColor(n.role); c.finger = String(n.finger); } }
-      });
-      if (v.gbarre) {
-        for (let idx = v.gbarre.loIdx; idx <= v.gbarre.hiIdx; idx++) {
-          const c = guitar[idx] && guitar[idx].cells[v.gbarre.fret];
-          if (c && !c.dot) { c.barreThru = true; c.showLit = false; }
-        }
-      }
-      v.bass.forEach((n) => {
-        const row = bass[n.idx]; if (!row) return;
-        if (n.fret === 0) { row.openDot = { color: roleColor(n.role) }; if (row.cells[0]) row.cells[0].showLit = false; }
-        else { const c = row.cells[n.fret]; if (c) { c.dot = true; c.showLit = false; c.dotColor = roleColor(n.role); c.finger = String(n.finger); } }
-      });
-      v.piano.forEach((p) => { pianoMark[p.m] = { color: roleColor(p.role), finger: p.finger }; });
-      [bass, guitar].forEach((inst) => inst.forEach((row) => row.cells.forEach((c) => { if (c.showLit) c.litOpacity = '0.22'; })));
-    }
-
-    // inversion selector
-    const relA = ac ? gI(ac) : [];
-    const invCount = relA.includes(10) || relA.includes(11) ? 4 : 3;
-    const curInv = (((this.jzInv || 0) % invCount) + invCount) % invCount;
-    const invOpts = ['Root', '1st', '2nd', '3rd'].slice(0, invCount).map((nm, i) => ({
-      name: nm, i, bg: i === curInv ? '#3f6b5f' : '#fff', fg: i === curInv ? '#fff' : '#5c4a30', bd: i === curInv ? '#3f6b5f' : '#cbb792',
-    }));
-
-    // piano C3(48)..C5(72)
-    const whiteSet = [0, 2, 4, 5, 7, 9, 11];
-    const keys: Array<{ m: number; pc: number; white: boolean }> = [];
-    for (let m = 48; m <= 72; m++) keys.push({ m, pc: m % 12, white: whiteSet.includes(m % 12) });
-    const whiteCount = keys.filter((k) => k.white).length;
-    const wp = 100 / whiteCount;
-    let wIdx = 0;
-    const pianoWhite: PianoKey[] = [], pianoBlack: PianoKey[] = [];
-    keys.forEach((k) => {
-      const isLit = litSet.has(k.pc), isRoot = k.pc === root, mk = pianoMark[k.m];
-      // Dropped chord tone: labelled but greyed, so it reads as "belongs, not played".
-      const isDrop = !isLit && dropSet.has(k.pc);
-      const dim = overlayOn && isLit && !mk;
-      if (k.white) {
-        pianoWhite.push({
-          left: (wIdx * wp).toFixed(3), width: wp.toFixed(3), pc: k.pc,
-          note: isLit || isDrop ? spell(k.pc, this.tonicPc) : '',
-          bg: dim ? '#e7d9bf' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#e0d4bc' : '#f4ecdb',
-          fg: dim ? '#c4b290' : isLit ? '#fff' : isDrop ? '#a2957a' : '#b9a988', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
-        });
-        wIdx++;
-      } else {
-        pianoBlack.push({
-          left: (wIdx * wp - wp * 0.31).toFixed(3), width: (wp * 0.62).toFixed(3), pc: k.pc,
-          note: isLit || isDrop ? spell(k.pc, this.tonicPc) : '',
-          bg: dim ? '#4a3a28' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#5a4c39' : '#241a10',
-          fg: dim ? '#8c7a5e' : isLit ? '#fff' : isDrop ? '#9a8a6d' : '#7a6a4e', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
-        });
-      }
-    });
-    return { bass, guitar, frets13, pianoWhite, pianoBlack, showFingerToggle, overlayOn, invOpts };
-  }
-
-  private computeView() {
-    const t = this.tonicPc;
-    const { root, litSet, chordSet, dropSet, activePat } = this.litInfo();
-    const dia = diatonicList(t, this.scale, this.ext);
-    const ac = this.activeChord;
-    // The play buttons in Drums and Workshop show the state of the ONE shared
-    // transport — pressing either starts/stops the whole band.
-    const transportOn = this.jzPlaying || this.drPlaying;
-
-    // circle
-    const { wedges, circleLabel, circleHint } = this.buildCircle();
-
-    // diatonic chips
-    const diatonic: DiatonicView[] = dia.map((c) => {
-      const isAct = !!ac && ac.name === c.name && ac.rootPc === c.rootPc;
-      return {
-        ...c, fnColor: FNCOLOR[c.fn], fnName: FNNAME[c.fn], fnTint: FNTINT[c.fn],
-        bg: isAct ? '#fbeede' : '#f6efe0', border: isAct ? FNCOLOR[c.fn] : '#e0cfae',
-        wsBg: isAct ? '#fbeede' : FNTINT[c.fn], wsBorder: FNCOLOR[c.fn],
-        wsShadow: isAct ? '0 0 0 2px ' + FNCOLOR[c.fn] : 'none',
-        shadow: isAct ? '0 0 0 2px ' + FNCOLOR[c.fn] : 'none',
-      };
-    });
-
-    // active readout
-    let acNotes: Array<{ name: string; deg: string; bd: string }> = [];
-    if (ac) {
-      const ps = gPcs(ac);
-      const labels = ac.degLabels || ['R', '3', '5', '7', '9', '11', '13'];
-      acNotes = ps.map((p, i) => ({ name: spell(p, t), deg: labels[i] || '', bd: i === 0 ? '#c2562e' : '#3f6b5f' }));
-    }
-
-    // color chords
-    const colorChords: PaletteChip[] = colorChordDefs(t).map((c) => {
-      const nm = cname(c.rootPc, c.quality, t);
-      const ch: Chord = { rootPc: c.rootPc, intervals: INT[c.quality], name: nm, roman: c.roman, fn: 'S' };
-      return { name: nm, roman: c.roman, ch };
-    });
-
-    // workshop genres
-    const GEN = genreDefs();
-    const gi = Math.min(this.wsGenre || 0, GEN.length - 1);
-    const wsGenres = GEN.map((g, i) => ({ name: g.name, i, border: i === gi ? '#c2562e' : '#cbb792', bg: i === gi ? '#c2562e' : '#f6efe0', fg: i === gi ? '#fff' : '#5c4a30' }));
-    const wsGenreName = GEN[gi].name;
-    const wsPatterns = GEN[gi].items.map((p) => ({ name: p.name, defs: p.chords }));
-
-    // substitutions for active chord
-    const subs = ac ? subsFor(ac, t).map((s) => {
-      const ch = { rootPc: s.rootPc, intervals: s.intervals, name: s.name, roman: s.roman, fn: s.fn } as Chord;
-      return { name: s.name, tag: s.tag, why: s.why, fnColor: FNCOLOR[s.fn || 'T'], notes: gPcs(ch).map((p) => spell(p, t)), ch };
-    }) : [];
-
-    // patterns tab
-    const patCat = PAT_TABS.includes(this.patCat) ? this.patCat : 'Scales';
-    const patShapesTab = patCat === PAT_SHAPES_TAB;
-    const patFretTab = FRET_TABS.includes(patCat);
-    const patLibTab = PAT_GROUPS.includes(patCat);
-    const patFret = patFretTab ? fretTab(patCat, t) : { intro: '', cards: [] };
-    const patCatChips = PAT_TABS.map((g) => ({ name: g, border: g === patCat ? '#3f6b5f' : '#cbb792', bg: g === patCat ? '#3f6b5f' : '#f6efe0', fg: g === patCat ? '#fff' : '#5c4a30' }));
-    const patChips = patternDefs().filter((p) => p.group === patCat).map((p) => ({ id: p.id, name: p.name, weight: p.id === activePat.id ? '700' : '500', border: p.id === activePat.id ? '#c2562e' : '#cbb792', bg: p.id === activePat.id ? '#fbeede' : '#f6efe0' }));
-    const patInt = activePat.int || activePat.scaleInt || [];
-    const patChordName = spell(t, t) + SUF[activePat.chord];
-    const patDegrees = (activePat.deg || []).map((d, i) => ({ d, color: i === 0 ? '#fff' : '#2c261d', bg: i === 0 ? '#c2562e' : '#efe2c8', bd: i === 0 ? '#c2562e' : '#cbb792' }));
-    const patNotes = patInt.map((i) => spell((t + i) % 12, t)).join('  ·  ');
-    const patSeqNotes = activePat.seq ? activePat.seq.map((o) => spell(t + o, t)).join(' ') : '';
-
-    // chord shapes on the circle of fifths: each quality draws one fixed
-    // polygon; changing the root only rotates it. The wheel is rotated so the
-    // current tonic sits at 12 o'clock, so a quality's shape never moves.
-    const shapeTonicIdx = CIRCLE.indexOf(t);
-    const shapePos = (pc: number): [number, number] => {
-      const a = ((CIRCLE.indexOf(pc) - shapeTonicIdx) * 30 - 90) * Math.PI / 180;
-      return [40 + 30 * Math.cos(a), 40 + 30 * Math.sin(a)];
-    };
-    const shapeLabels: Record<string, string> = { ...QLABEL, sus4: 'Sus 4', dom7: 'Dominant 7', m7b5: 'Half-dim', dim7: 'Diminished 7' };
-    const patShapes = ['maj', 'min', 'dim', 'aug', 'sus4', 'maj7', 'min7', 'dom7', 'm7b5', 'dim7'].map((q) => {
-      const pcs = INT[q].map((i) => mod12(t + i));
-      const pset = new Set(pcs);
-      const dots = CIRCLE.map((pc) => {
-        const [x, y] = shapePos(pc);
-        return { x: +x.toFixed(1), y: +y.toFixed(1), on: pset.has(pc), root: pc === t };
-      });
-      const poly = pcs.map((pc) => shapePos(pc).map((n) => n.toFixed(1)).join(',')).join(' ');
-      const nm = spell(t, t) + SUF[q];
-      const ch: Chord = { rootPc: t, intervals: INT[q], name: nm, fn: 'T' };
-      return { q, name: nm, label: shapeLabels[q] || q, poly, dots, ch };
-    });
-
-    // drums groovebox
-    const DR_TPLS = drumTemplates();
-    const drTpl = DR_TPLS.find((x) => x.id === this.drTplId) || DR_TPLS[0];
-    const drGroups = DRUM_GROUPS.map((g) => ({
-      name: g,
-      chips: DR_TPLS.filter((x) => x.group === g).map((x) => ({
-        id: x.id, name: x.name, bpm: x.bpm,
-        border: x.id === drTpl.id ? '#c2562e' : '#cbb792',
-        bg: x.id === drTpl.id ? '#fbeede' : '#f6efe0',
-        fg: x.id === drTpl.id ? '#c2562e' : '#5c4a30',
-        weight: x.id === drTpl.id ? '700' : '500',
-      })),
-    }));
-    const drLayers = drTpl.layers.map((l, i) => ({
-      name: l.name, i,
-      on: i < this.drLayerN,
-      border: i < this.drLayerN ? '#3f6b5f' : '#cbb792',
-      bg: i < this.drLayerN ? '#3f6b5f' : '#f6efe0',
-      fg: i < this.drLayerN ? '#fff' : '#5c4a30',
-    }));
-    const drLayerWhy = drTpl.layers[Math.min(this.drLayerN, drTpl.layers.length) - 1]?.why || '';
-    const drRows = DRUM_VOICES.map((vc) => {
-      const muted = this.drMuted.includes(vc.id);
-      return {
-        id: vc.id, name: vc.name, short: vc.short, color: vc.color, muted,
-        cells: this.drGrid[vc.id].map((val, s) => ({
-          s, val,
-          bg: val === 2 ? vc.color : val === 1 ? vc.color + '99' : s % 4 === 0 ? '#e7d9ba' : '#f0e6cf',
-          ring: this.drPlaying && this.drStep === s,
-          op: muted ? '0.35' : '1',
-        })),
-      };
-    });
-    const drCount = DRUM_COUNT.map((c, s) => ({
-      c, s,
-      strong: s % 4 === 0,
-      hot: this.drPlaying && this.drStep === s,
-    }));
-    const drEmpty = DRUM_VOICES.every((vc) => this.drGrid[vc.id].every((c) => c === 0));
-    const swingLabel = this.drSwing <= 52 ? 'straight' : this.drSwing < 62 ? 'loose' : this.drSwing < 71 ? 'shuffle' : 'hard shuffle';
-
-    // learn (jazz curriculum)
-    const JZ = jazzChapters(t);
-    const jzi = Math.min(this.jazzCh || 0, JZ.length - 1);
-    const jazzNav = JZ.map((c, i) => ({ name: c.name, tag: c.tag, i, border: i === jzi ? '#c2562e' : '#cbb792', bg: i === jzi ? '#fbeede' : '#f6efe0', fg: i === jzi ? '#c2562e' : '#5c4a30' }));
-    const jzc: JazzChapter = JZ[jzi];
-    const jazzBlocks = jzc.blocks.map((b) => {
-      if (b.kind === 'chords') {
-        const items = (b.rows || []).map((r) => { const ch = this.jc(r.iv, r.q || 'maj', r); return { name: ch.name!, sub: r.sub || gPcs(ch).map((p) => spell(p, t)).join(' '), fnColor: FNCOLOR[ch.fn || 'T'], tint: FNTINT[ch.fn || 'T'], ch }; });
-        return { kind: 'chords' as const, items };
-      }
-      if (b.kind === 'seq') {
-        const chs = (b.rows || []).map((r) => this.jc(r.iv, r.q || 'maj', r));
-        const items = chs.map((ch, i) => ({ name: (b.rows || [])[i].name || ch.name!, sub: gPcs(ch).map((p) => spell(p, t)).join(' '), fnColor: FNCOLOR[ch.fn || 'T'], tint: FNTINT[ch.fn || 'T'], ch }));
-        return { kind: 'seq' as const, label: b.label || '', items, seqChords: chs };
-      }
-      return { kind: b.kind, text: b.text || '' };
-    });
-
-    // jazz build sandbox
-    const jzChangesView: ChordChip[] = this.jzChanges.map((c, i) => {
-      const playing = this.jzStep === i, selected = !this.jzPlaying && this.jzSel === i, hl = playing || selected;
-      const fc = FNCOLOR[c.fn || 'T'];
-      return { name: c.name || '', roman: c.roman || '', notes: jzNotes(c, this.jzVoicing, t), fnColor: fc, border: fc, bg: hl ? '#fbeede' : FNTINT[c.fn || 'T'], shadow: hl ? '0 0 0 2px ' + fc : '0 1px 2px rgba(60,40,16,.12)', ch: c };
-    });
-    const jzDia: PaletteChip[] = [0, 1, 2, 3, 4, 5, 6].map((d) => {
-      const r = (t + MAJOR[d]) % 12, q = DIA_SEV[d], fn = FN[d], nm = cname(r, q, t);
-      const ch: Chord = { rootPc: r, intervals: INT[q], name: nm, roman: ROMAN7[d], fn };
-      return { name: nm, roman: ROMAN7[d], fnColor: FNCOLOR[fn], tint: FNTINT[fn], border: FNCOLOR[fn], ch };
-    });
-    const jzBorrow: PaletteChip[] = jzBorrowDefs.map((d) => {
-      const r = (t + d.iv) % 12, nm = cname(r, d.q!, t);
-      const ch: Chord = { rootPc: r, intervals: INT[d.q!], name: nm, roman: d.roman, fn: 'S' };
-      return { name: nm, roman: d.roman || '', ch };
-    });
-    const jzSecondary: PaletteChip[] = jzSecondaryDefs.map((d) => {
-      const r = (t + d.iv) % 12, nm = cname(r, 'dom7', t);
-      const ch: Chord = { rootPc: r, intervals: INT.dom7, name: nm, roman: 'V7/' + d.tgt, fn: 'D' };
-      return { name: nm, roman: 'V7/' + d.tgt, ch };
-    });
-    const quickProgs = quickProgDefs(t).map((p) => ({ name: p.name, defs: p.defs }));
-
-    // classical palette
-    const clDia: PaletteChip[] = [0, 1, 2, 3, 4, 5, 6].map((d) => {
-      const r = (t + MAJOR[d]) % 12, q = DIA_TRI[d], fn = FN[d], nm = cname(r, q, t);
-      const ch: Chord = { rootPc: r, intervals: INT[q], name: nm, roman: ROMAN[d], fn };
-      return { name: nm, roman: ROMAN[d], fnColor: FNCOLOR[fn], tint: FNTINT[fn], border: FNCOLOR[fn], ch };
-    });
-    const cadences = cadenceDefs.map((c) => ({ name: c.name, defs: c.defs }));
-    const clProgs = classicalProgDefs.map((p) => ({ name: p.name, defs: p.defs }));
-
-    // bass workbench palette
-    const bassGroupChips = BASS_GROUPS.map((g) => ({ name: g, border: g === this.bassGroup ? '#3f6b5f' : '#cbb792', bg: g === this.bassGroup ? '#3f6b5f' : '#f6efe0', fg: g === this.bassGroup ? '#fff' : '#5c4a30' }));
-    const bassPats = BASS_PATTERNS.filter((p) => p.group === this.bassGroup).map((p) => {
-      const sel = p.id === this.bassPatId;
-      // 16 cells, one per 16th: coloured by the note's role in the line, a
-      // grey × for ghosts, faint for rests (downbeats slightly darker).
-      const cells = Array.from({ length: 16 }, (_, s) => {
-        const st = p.steps.find((x) => x.s === s);
-        if (!st) return { label: '', bg: s % 4 === 0 ? '#e7d9ba' : '#f0e6cf', fg: 'transparent' };
-        const color = BASS_ROLE_META[bassRole(st)].color;
-        return { label: st.g ? '×' : BASS_TOK_LABEL[st.d!], bg: color, fg: '#fff' };
-      });
-      return { id: p.id, name: p.name, tag: p.tag, tip: p.tip, cells, border: sel ? '#c2562e' : '#e0cfae', bg: sel ? '#fbeede' : '#fbf6ea', shadow: sel ? '0 0 0 2px #c2562e' : 'none' };
-    });
-    const bassLegend = (Object.keys(BASS_ROLE_META) as BassRole[]).map((r) => ({ name: BASS_ROLE_META[r].name, color: BASS_ROLE_META[r].color }));
-    const bassTricks = BASS_TRICKS.map((tk) => ({ id: tk.id, name: tk.name, why: tk.why }));
-    const bassActive = BASS_PATTERNS.find((p) => p.id === this.bassPatId);
-    // Build-your-own line: the 16 editable cells, coloured like the pattern
-    // previews, plus seed chips (the current group's grooves) to start from.
-    const bassCustomSelected = this.bassPatId === 'custom';
-    const bassCustomCells = this.bassCustom.map((cell, s) => {
-      if (!cell) return { label: '', bg: s % 4 === 0 ? '#e7d9ba' : '#f0e6cf', fg: '#c9ba98' };
-      const color = BASS_ROLE_META[bassRole(cell as BassStep)].color;
-      return { label: cell.g ? '×' : BASS_TOK_LABEL[cell.d!], bg: color, fg: '#fff' };
-    });
-    const bassCustomEmpty = this.bassCustom.every((c) => !c);
-    const bassSeedChips = BASS_PATTERNS.filter((p) => p.group === this.bassGroup).map((p) => ({ id: p.id, name: p.name }));
-
-    // explore selected
-    let exploreOpen = false, selName = '', selRoman = '', showIIV = false, showV = false;
-    let extChips: Array<{ label: string; ch: Chord }> = [];
-    let invChips: Array<{ label: string; ch: Chord }> = [];
-    let buildSubs: Array<{ name: string; tag: string; why: string; fnColor: string; ch: Chord }> = [];
-    if (this.jzSel >= 0 && this.jzChanges[this.jzSel]) {
-      const sc = this.jzChanges[this.jzSel];
-      exploreOpen = true; selName = sc.name || ''; selRoman = sc.roman || '';
-      const R = sc.rootPc, fam = jFamily(gI(sc)), sp = spell(R, t);
-      const mkExt = (suf: string, ints: number[]) => ({ label: sp + suf, ch: { rootPc: R, intervals: ints, name: sp + suf, fn: sc.fn, roman: sc.roman } as Chord });
-      if (this.wsStyle === 'classical') {
-        extChips = [mkExt('', INT.maj), mkExt('m', INT.min), mkExt('7', INT.dom7), mkExt('maj7', INT.maj7), mkExt('°', INT.dim)];
-        invChips = [{ label: 'Root', w: 0 }, { label: '1st · 6', w: 1 }, { label: '2nd · 6/4', w: 2 }].map((o) => ({ label: o.label, ch: invChord(sc, o.w, t) }));
-        showV = true;
-      } else if (fam === 'maj') extChips = [mkExt('maj7', INT.maj7), mkExt('maj9', INT.maj9), mkExt('maj13', INT.maj13)];
-      else if (fam === 'min') extChips = [mkExt('m7', INT.min7), mkExt('m9', INT.min9), mkExt('m13', INT.min13)];
-      else if (fam === 'dom') extChips = [mkExt('7', INT.dom7), mkExt('9', INT.dom9), mkExt('13', INT.dom13), mkExt('7♭9', [0, 4, 7, 10, 13]), mkExt('7♯9', [0, 4, 7, 10, 15])];
-      else extChips = [mkExt('ø7', INT.m7b5), mkExt('ø9', INT.m9b5)];
-      if (this.wsStyle === 'jazz') showIIV = true;
-      buildSubs = subsFor(sc, t).map((s) => ({ name: s.name!, tag: s.tag, why: s.why, fnColor: FNCOLOR[s.fn || 'T'], ch: { rootPc: s.rootPc, intervals: s.intervals, name: s.name, roman: s.roman, fn: s.fn } as Chord }));
-    }
-
-    // suggestion
-    const filled = this.jzChanges;
-    let suggestText = 'Tap a chord to pre-hear it; tap its + to place it. Functional flow: Tonic → Subdominant → Dominant → back to Tonic.';
-    if (filled.length) {
-      const last = filled[filled.length - 1].fn || 'T';
-      const nextMap: Record<Fn, string> = {
-        T: 'a Subdominant (ii, IV) to set off, or jump to the Dominant for drama',
-        S: 'the Dominant (V, vii°) — the tension chord that wants to resolve',
-        D: 'the Tonic (I, vi) for resolution, or deceptively to vi',
-      };
-      suggestText = 'Last chord is a ' + FNNAME[last] + '. A natural next move: ' + nextMap[last] + '.';
-    }
-
-    // ear
-    const earLevels = ([['interval', 'Intervals'], ['chord', 'Chord quality'], ['prog', 'Progressions'], ['keysig', 'Key signatures']] as Array<[EarLevel, string]>).map(([id, name]) => {
-      const on = this.earLevel === id;
-      return { id, name, border: on ? '#3f6b5f' : '#cbb792', bg: on ? '#3f6b5f' : '#f6efe0', fg: on ? '#fff' : '#5c4a30' };
-    });
-    let earOptions: Array<{ label: string; border: string; bg: string; fg: string }> = [];
-    if (this.earTarget) {
-      earOptions = this.earTarget.options.map((label) => {
-        let border = '#cbb792', bg = '#f6efe0', fg = '#2c261d';
-        if (this.earRevealed) {
-          if (label === this.earTarget!.answer) { border = '#3f6b5f'; bg = '#e4efe9'; fg = '#2d5046'; }
-          else if (label === this.earPicked) { border = '#c2562e'; bg = '#f8e3da'; fg = '#9a3f1f'; }
-        }
-        return { label, border, bg, fg };
-      });
-    }
-    const earPromptMap: Record<EarLevel, string> = {
-      interval: 'Two notes — name the distance between them',
-      chord: 'One chord — name its quality',
-      prog: 'A short progression — name the roman numerals',
-      keysig: 'Read the key signature — name the major key',
-    };
-    const earStaff = this.earTarget && this.earTarget.type === 'keysig'
-      ? { accidentals: this.earTarget.accidentals }
-      : null;
-
-    // sight reading
-    const chip = (on: boolean) => ({ border: on ? '#3f6b5f' : '#cbb792', bg: on ? '#3f6b5f' : '#f6efe0', fg: on ? '#fff' : '#5c4a30' });
-    const rdLevels = ([['note', 'Notes'], ['interval', 'Intervals'], ['chord', 'Chords']] as Array<[ReadLevel, string]>)
-      .map(([id, name]) => ({ id, name, ...chip(this.rdLevel === id) }));
-    const rdClefChips = ([['treble', 'Treble 𝄞'], ['bass', 'Bass 𝄢'], ['both', 'Both']] as Array<[ReadClefSetting, string]>)
-      .map(([id, name]) => ({ id, name, ...chip(this.rdClef === id) }));
-    const rdRangeChips = ([['staff', 'On the staff'], ['ledger', '+ Ledger lines']] as Array<[ReadRange, string]>)
-      .map(([id, name]) => ({ id, name, ...chip(this.rdRange === id) }));
-    const rdKeyChips = ([['c', 'C major'], ['easy', 'Keys ≤ 3♯/♭'], ['all', 'All keys']] as Array<[ReadKeyMode, string]>)
-      .map(([id, name]) => ({ id, name, ...chip(this.rdKeyMode === id) }));
-    const rdAnswerChips = ([['name', 'Name it'], ['play', 'Play it']] as Array<[ReadAnswerMode, string]>)
-      .map(([id, name]) => ({ id, name, ...chip(this.rdAnswerMode === id) }));
-    const rdShowAcc = this.rdLevel === 'note' && this.rdKeyMode === 'c';
-    const rdt = this.rdTarget;
-    let rdOptions: Array<{ label: string; border: string; bg: string; fg: string }> = [];
-    if (rdt && this.rdAnswerMode === 'name') {
-      rdOptions = rdt.options.map((label) => {
-        let border = '#cbb792', bg = '#f6efe0', fg = '#2c261d';
-        if (this.rdRevealed) {
-          if (label === rdt.answer) { border = '#3f6b5f'; bg = '#e4efe9'; fg = '#2d5046'; }
-          else if (label === this.rdPicked) { border = '#c2562e'; bg = '#f8e3da'; fg = '#9a3f1f'; }
-        }
-        return { label, border, bg, fg };
-      });
-    }
-    const rdPromptMap: Record<ReadLevel, [string, string]> = {
-      note: ['Name the note on the staff', 'Play the note on the piano or a fretboard'],
-      interval: ['Two stacked notes — name the interval', 'Play both notes on the piano or a fretboard'],
-      chord: ['A stacked chord — name it', 'Play every chord tone on the piano or a fretboard'],
-    };
-    const rdNeed = rdt ? rdt.pcs.length : 0;
-
-    // instruments
-    const inst = this.buildInstruments(root, litSet, chordSet, dropSet);
-
-    const sigPc = this.circleView === 'min' ? (t + 3) % 12 : t;
-
-    return {
-      // header / scale
-      keyName: keyNameStr(t, this.scale), keySig: KEYSIG[sigPc] || '',
-      centerKey: this.circleView === 'min' ? spell(t, t) + 'm' : spell(t, t),
-      scaleNotes: scaleNotesStr(t, this.scale), scaleCaption: SCALES[this.scale].char,
-      modeList: (Object.keys(SCALES) as ScaleId[]).map((id) => ({ id, name: SCALES[id].short, bg: this.scale === id ? '#3f6b5f' : '#f1e6cf', fg: this.scale === id ? '#fff' : '#5c4a30', border: this.scale === id ? '#3f6b5f' : '#d8c7a8' })),
-      // direct key picker — chromatic, labelled with each key's usual spelling
-      keyChips: ([[0, 'C'], [1, 'D♭'], [2, 'D'], [3, 'E♭'], [4, 'E'], [5, 'F'], [6, 'F♯'], [7, 'G'], [8, 'A♭'], [9, 'A'], [10, 'B♭'], [11, 'B']] as Array<[number, string]>).map(([pc, label]) => ({ pc, label, active: t === pc, bg: t === pc ? '#c2562e' : '#f1e6cf', fg: t === pc ? '#fff' : '#5c4a30', border: t === pc ? '#c2562e' : '#d8c7a8' })),
-      // scale-type picker split into the four everyday scales + the modes
-      scalePrimary: (['ionian', 'aeolian', 'harmonic', 'melodic'] as ScaleId[]).map((id) => ({ id, name: SCALES[id].short, bg: this.scale === id ? '#3f6b5f' : '#f1e6cf', fg: this.scale === id ? '#fff' : '#5c4a30', border: this.scale === id ? '#3f6b5f' : '#d8c7a8' })),
-      scaleModes: (['dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian'] as ScaleId[]).map((id) => ({ id, name: SCALES[id].short, bg: this.scale === id ? '#3f6b5f' : '#f1e6cf', fg: this.scale === id ? '#fff' : '#5c4a30', border: this.scale === id ? '#3f6b5f' : '#d8c7a8' })),
-      extLevels: ([['triad', '3'], ['7', '7'], ['9', '9'], ['11', '11'], ['13', '13']] as Array<[string, string]>).map(([id, label]) => ({ id, label, bg: this.ext === id ? '#c2562e' : 'transparent', fg: this.ext === id ? '#fff' : '#d8a86f' })),
-      extLevelsLight: ([['triad', '3'], ['7', '7'], ['9', '9'], ['11', '11'], ['13', '13']] as Array<[string, string]>).map(([id, label]) => ({ id, label, bg: this.ext === id ? '#c2562e' : 'transparent', fg: this.ext === id ? '#fff' : '#8a7350' })),
-      extCaption: ({ triad: 'Triads — root, 3rd, 5th. The skeleton of every chord.', '7': 'Add the 7th — color and forward motion. Where jazz harmony begins.', '9': 'Add the 9th (the 2nd, an octave up) — lush tension stacked over the 7th.', '11': 'Add the 11th (the 4th, an octave up). Natural 11 clashes with a major 3rd, so players raise it (♯11) or drop the 3rd — it sits naturally on minor chords.', '13': 'Add the 13th (the 6th, an octave up) — the tallest tertian stack. Notes get omitted (often the 5th, sometimes the 11) and voiced by feel.' } as Record<string, string>)[this.ext],
-      soundLabel: this.soundOn ? '♪ SOUND' : '✕ MUTED',
-      soundLabelShort: this.soundOn ? '♪ ON' : '✕ MUTE',
-      soundBg: this.soundOn ? 'rgba(216,168,111,.16)' : 'transparent', soundFg: this.soundOn ? '#e9c79b' : '#9c8460',
-      // mode flags
-      isCircle: this.mode === 'circle', isWorkshop: this.mode === 'workshop', isDrums: this.mode === 'drums', isEar: this.mode === 'ear', isReading: this.mode === 'reading', isPatterns: this.mode === 'patterns', isJazz: this.mode === 'jazz',
-      ringAnim: this.jzPlaying ? 'spin 8s linear infinite' : 'none',
-      // circle
-      wedges, circleLabel, circleHint, diatonic,
-      dirFifthsBg: this.circleDir === 'fourths' ? 'transparent' : '#c2562e', dirFifthsFg: this.circleDir === 'fourths' ? '#5c4a30' : '#fff',
-      dirFourthsBg: this.circleDir === 'fourths' ? '#c2562e' : 'transparent', dirFourthsFg: this.circleDir === 'fourths' ? '#fff' : '#5c4a30',
-      viewMajBg: this.circleView === 'min' ? 'transparent' : '#3f6b5f', viewMajFg: this.circleView === 'min' ? '#5c4a30' : '#fff',
-      viewMinBg: this.circleView === 'min' ? '#3f6b5f' : 'transparent', viewMinFg: this.circleView === 'min' ? '#fff' : '#5c4a30',
-      hasActive: !!ac, noActive: !ac,
-      acName: ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '', acRoman: ac ? ac.roman || '' : '',
-      acFnName: ac ? FNNAME[ac.fn || 'T'] : '', acFnColor: ac ? FNCOLOR[ac.fn || 'T'] : '#3f6b5f',
-      acNotes, acWhy: ac ? FNWHY[ac.fn || 'T'] : '',
-      // workshop
-      wsGenres, wsPatterns, wsGenreName, colorChords,
-      wsStyleClassic: this.wsStyle === 'classic', wsStyleJazz: this.wsStyle === 'jazz', wsStyleClassical: this.wsStyle === 'classical', wsStyleBass: this.wsStyle === 'bass',
-      styClassicBg: this.wsStyle === 'classic' ? '#c2562e' : 'transparent', styClassicFg: this.wsStyle === 'classic' ? '#fff' : '#5c4a30',
-      styJazzBg: this.wsStyle === 'jazz' ? '#c2562e' : 'transparent', styJazzFg: this.wsStyle === 'jazz' ? '#fff' : '#5c4a30',
-      styClassicalBg: this.wsStyle === 'classical' ? '#c2562e' : 'transparent', styClassicalFg: this.wsStyle === 'classical' ? '#fff' : '#5c4a30',
-      styBassBg: this.wsStyle === 'bass' ? '#c2562e' : 'transparent', styBassFg: this.wsStyle === 'bass' ? '#fff' : '#5c4a30',
-      clDia, cadences, clProgs, invChips, showIIV, showV,
-      bassGroupChips, bassPats, bassLegend, bassTricks,
-      bassCustomCells, bassCustomSelected, bassCustomEmpty, bassSeedChips,
-      bassActiveName: bassActive ? bassActive.name : bassCustomSelected ? 'Custom line' : 'none',
-      mixChordsBg: this.bassChordsOn ? '#3f6b5f' : '#f6efe0', mixChordsFg: this.bassChordsOn ? '#fff' : '#5c4a30',
-      mixBassBg: this.bassOn ? '#3f6b5f' : '#f6efe0', mixBassFg: this.bassOn ? '#fff' : '#5c4a30',
-      subs,
-      // patterns
-      patCatChips, patChips, patName: activePat.name, patTip: activePat.tip, patChordName, activePat,
-      patDegrees, patSeqNotes, patHasSeq: !!activePat.seq, patShapes, patShapesTab,
-      patFretTab, patFretIntro: patFret.intro, patFretCards: patFret.cards,
-      // learn
-      jazzNav, jazzBlocks, jazzTitle: jzc.name, jazzIntro: jzc.intro, jazzTag: jzc.tag,
-      jzChangesView, jzEmpty: this.jzChanges.length === 0,
-      jzPlayLabel: transportOn ? '■ STOP' : '▶ PLAY', jzPlayBg: transportOn ? '#9a3f1f' : '#c2562e', jzPlayShadow: transportOn ? '#6e2c12' : '#9a3f1f',
-      vFullBg: this.jzVoicing === 'full' ? '#3f6b5f' : '#f6efe0', vFullFg: this.jzVoicing === 'full' ? '#fff' : '#5c4a30',
-      vShellBg: this.jzVoicing === 'shell' ? '#3f6b5f' : '#f6efe0', vShellFg: this.jzVoicing === 'shell' ? '#fff' : '#5c4a30',
-      // drums
-      drGroups, drTplName: drTpl.name, drTip: drTpl.tip, drRows, drCount, drLayers, drLayerWhy, drEmpty,
-      drTempo: this.tempo, drSwing: this.drSwing, drSwingLabel: swingLabel,
-      drPlayLabel: transportOn ? '■ STOP' : '▶ PLAY',
-      drPlayBg: transportOn ? '#9a3f1f' : '#c2562e', drPlayShadow: transportOn ? '#6e2c12' : '#9a3f1f',
-      // learn tabs + rhythm theory
-      learnTabHarmony: this.learnTab === 'harmony', learnTabRhythm: this.learnTab === 'rhythm', learnTabBass: this.learnTab === 'bass', learnTabForm: this.learnTab === 'form',
-      learnTabs: ([['harmony', 'Harmony & Jazz'], ['rhythm', 'Rhythm & Drums'], ['bass', 'Bass'], ['form', 'Song Structures']] as Array<[LearnTab, string]>).map(([id, name]) => ({
-        id, name, border: this.learnTab === id ? '#c2562e' : '#cbb792', bg: this.learnTab === id ? '#c2562e' : '#f6efe0', fg: this.learnTab === id ? '#fff' : '#5c4a30',
-      })),
-      rhythmConcepts: RHYTHM_CONCEPTS.map((c) => ({ id: c.id, name: c.name, tag: c.tag, text: c.text, bpm: c.bpm })),
-      // song structures: proportional timeline blocks, colour-coded by section kind
-      songForms: SONG_FORMS.map((f) => {
-        const total = f.sections.reduce((s, x) => s + x.n, 0);
-        const kindColor: Record<FormKind, string> = {
-          intro: '#b3a68f', verse: '#3f6b5f', pre: '#97a59c', chorus: '#c2562e',
-          bridge: '#b07d23', solo: '#7a5ea8', vamp: '#46617c', free: '#8b6f8e', outro: '#b3a68f',
-        };
-        return {
-          id: f.id, name: f.name, genre: f.genre, dur: f.dur, text: f.text, listen: f.listen,
-          sections: f.sections.map((s) => ({ label: s.l, pct: ((s.n / total) * 100).toFixed(2), bg: kindColor[s.k] })),
-        };
-      }),
-      formKindLegend: [
-        { name: 'VERSE / HEAD', color: '#3f6b5f' }, { name: 'PRE / BUILD', color: '#97a59c' }, { name: 'CHORUS / DROP', color: '#c2562e' },
-        { name: 'BRIDGE / CUE', color: '#b07d23' }, { name: 'SOLO', color: '#7a5ea8' }, { name: 'VAMP / GROOVE', color: '#46617c' },
-        { name: 'FREE', color: '#8b6f8e' }, { name: 'INTRO / OUTRO', color: '#b3a68f' },
-      ],
-      quickProgs, jzDia, jzBorrow, jzSecondary,
-      exploreOpen, selName, selRoman, extChips, buildSubs,
-      tempo: this.tempo, suggestText,
-      // ear
-      earLevels, earOptions, earPrompt: earPromptMap[this.earLevel], earStaff,
-      earScore: this.earScore + '/' + this.earTotal, earStreak: this.earStreak,
-      earMsg: this.earMsg, earMsgColor: this.earMsg.indexOf('✓') >= 0 ? '#3f6b5f' : '#c2562e',
-      // sight reading
-      rdLevels, rdClefChips, rdRangeChips, rdKeyChips, rdAnswerChips, rdShowAcc, rdOptions,
-      rdAccBg: this.rdAccOn ? '#3f6b5f' : '#f6efe0', rdAccFg: this.rdAccOn ? '#fff' : '#5c4a30',
-      rdStaff: rdt ? rdt.staff : null, rdKeyLabel: rdt ? rdt.keyLabel : '',
-      rdPlayMode: this.rdAnswerMode === 'play',
-      rdPrompt: rdPromptMap[this.rdLevel][this.rdAnswerMode === 'play' ? 1 : 0],
-      rdProgress: this.rdAnswerMode === 'play' && rdNeed > 1 && !this.rdRevealed
-        ? this.rdHits.length + ' of ' + rdNeed + ' notes found' : '',
-      rdScore: this.rdScore + '/' + this.rdTotal, rdStreak: this.rdStreak,
-      rdMsg: this.rdMsg, rdMsgColor: this.rdMsg.indexOf('✓') >= 0 ? '#3f6b5f' : '#c2562e',
-      // dock / instruments
-      dockExpanded: this.dockOpen, dockChevron: this.dockOpen ? '▼ HIDE' : '▲ SHOW',
-      dockName: this.mode === 'patterns' && patLibTab ? spell(t, t) + ' ' + activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
-      dockNotes: this.mode === 'patterns' && patLibTab ? patNotes + '   ·   over ' + patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
-      ...inst,
-      fingerBg: this.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: this.fingerOn ? '#fff' : '#5c4a30',
-      // mobile tab bar
-      mtabs: ([['circle', '⟳', 'CIRCLE'], ['workshop', '▦', 'BUILD'], ['drums', '◉', 'DRUMS'], ['ear', '♪', 'EAR'], ['reading', '𝄞', 'READ'], ['patterns', '▤', 'PATTERNS'], ['jazz', '♭', 'LEARN']] as Array<[Mode, string, string]>).map(([id, icon, label]) => ({ id, icon, label, fg: this.mode === id ? '#f1e7d3' : '#8a7350', bg: this.mode === id ? 'rgba(194,86,46,.32)' : 'transparent' })),
-      // desktop top tabs
-      tabs: ([['circle', '⟳ Circle'], ['workshop', '▦ Workshop'], ['drums', '◉ Drums'], ['ear', '♪ Ear'], ['reading', '𝄞 Reading'], ['patterns', '▤ Patterns'], ['jazz', '♭ Learn']] as Array<[Mode, string]>).map(([id, label]) => ({ id, label, fg: this.mode === id ? '#c2562e' : '#8a7350', bd: this.mode === id ? '#c2562e' : 'transparent' })),
-    };
-  }
 }
-
-export type WorkbenchView = WorkbenchStore['view'];
