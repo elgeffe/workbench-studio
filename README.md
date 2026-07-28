@@ -29,7 +29,7 @@ src/
       fretpatterns.ts  Fretboard diagram library (scale boxes, chord grips)
       bass.ts          Bassline grooves, degree resolution, walking tricks
       drums.ts         Drum genres, grid composition, swing, rhythm concepts
-      patterns/        The groove library: 117 layered patterns across 29 genres
+      patterns/        The groove library: 123 layered patterns across 29 genres
                        (rockpop, funksoul, hiphop, house, techno, breaks, hard,
                        jazz, world)
       ear.ts           Ear-training question generator
@@ -92,7 +92,7 @@ automatically; the live URL appears in the workflow's `deploy` job summary.
 - **Workshop** — build progressions in Classic, Jazz, or Classical palettes; explore any
   placed chord (extensions, inversions, secondary dominants, ii–V insertion, tritone
   subs); play them back with tempo/voicing control.
-- **Drums** — a 16-step groovebox with a dependent **genre → pattern** picker: 117 grooves
+- **Drums** — a 16-step groovebox with a dependent **genre → pattern** picker: 123 grooves
   across 29 genres (rock, metal, pop, disco, funk, soul, neo-soul, gospel, boom-bap, trap,
   electro, house, tech-house, techno, trance, D&B, jungle, garage, dubstep, breaks,
   hardstyle, hardcore, jazz, fusion, blues, Latin, Afrobeat, reggae, reggaeton). Every

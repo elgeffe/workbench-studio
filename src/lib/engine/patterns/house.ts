@@ -69,6 +69,30 @@ export const HOUSE_PATTERNS: DrumTemplate[] = [
     ],
   },
 
+  {
+    id: 'house-lofi', name: 'Lo-fi house', genre: 'house', bpm: 122, swing: 58,
+    tip: 'House made on a laptop out of dusty samples: the four-floor skeleton is intact but everything is saturated, swung and slightly out of tune. The pattern is deliberately ordinary — the character comes from the processing.',
+    layers: [
+      { name: 'Dusty four-floor', why: 'A sampled, soft-clipped kick rather than a clean 909 — mixed lower than in club house so the tape hiss sits alongside it.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 8] }] },
+      { name: 'Washed clap', why: 'Clap on 2 & 4 drowned in reverb. Blurring the backbeat is the genre’s whole attitude to the club original.', add: [{ v: 'clap', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Off-beat open hats', why: 'The house see-saw survives every mutation of the style, including this one.', add: [{ v: 'ohat', on: [2, 6, 10, 14] }] },
+      { name: 'Swung shaker 16ths', why: 'Heavily swung closed hats on the off-16ths give the loop its lopsided, hand-made wobble.', add: [{ v: 'chat', on: [1, 3, 5, 7, 9, 11, 13, 15] }] },
+      { name: 'Sampled ghost snare', why: 'Two quiet snares lifted from an old break — the “found sound” detail that stops the loop being a template.', add: [{ v: 'snare', on: [7, 15] }] },
+    ],
+  },
+  {
+    id: 'house-rawswing', name: 'Raw swung house', genre: 'house', bpm: 128, swing: 58,
+    tip: 'The raw Dutch/UK club sound: a stripped four-floor kick with garage-level swing, broken electro percussion instead of a clap-heavy backbeat, and a sub stab answering the kick. Deep and minimal, but bouncing rather than hypnotic.',
+    layers: [
+      { name: 'Raw four-floor', why: 'A short, unprocessed kick with a 16th ghost before the downbeat — punchy, never boomy, so the bass has room.', add: [{ v: 'kick', on: [0, 4, 8, 12, 15], acc: [0, 8] }] },
+      { name: 'Garage-swung hats', why: 'Closed hats on the off-16ths at 58% swing. This single layer is what makes it swing like garage instead of ticking like tech-house.', add: [{ v: 'chat', on: [1, 3, 5, 7, 9, 11, 13, 15], acc: [3, 11] }] },
+      { name: 'Dry clap on 2 & 4', why: 'One short, unreverbed clap per backbeat — present, but never the loudest thing in the bar.', add: [{ v: 'clap', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Broken perc', why: 'Rim/electro fragments on the “a of 1”, “a of 2” and “and of 3” — the bouncy, chopped percussion that separates this from plain minimal.', add: [{ v: 'rim', on: [3, 7, 10] }] },
+      { name: 'Off-beat open hats', why: 'Open hats only on the “and” of 2 and 4, not all four — keeping two of them closed leaves the groove hungry.', add: [{ v: 'ohat', on: [6, 14] }] },
+      { name: 'Sub stab', why: 'A low tom standing in for the sub-bass stab on the “e of 4” — in a real track this is the funk bassline poking through.', add: [{ v: 'ltom', on: [13] }] },
+    ],
+  },
+
   // ------------------------------------------------- tech-house & minimal ----
   {
     id: 'techhouse-rolling', name: 'Rolling tech-house', genre: 'techhouse', bpm: 126, swing: 54,

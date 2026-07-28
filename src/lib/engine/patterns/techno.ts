@@ -58,6 +58,29 @@ export const TECHNO_PATTERNS: DrumTemplate[] = [
     ],
   },
 
+  {
+    id: 'techno-raw', name: 'Raw / hard-groove', genre: 'techno', bpm: 138, swing: 54,
+    tip: 'The tribal, swung end of techno: a rolling tom pattern doing the work a hat would, a slightly swung grid, and metallic percussion instead of a clap. Built to be looped for eight minutes and mixed with another record.',
+    layers: [
+      { name: 'Driving kick', why: 'Four on the floor at 138, distorted but short — the swing setting is what keeps it grooving rather than pounding.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 4, 8, 12] }] },
+      { name: 'Rolling toms', why: 'Toms on the “e/and/a” around beats 1 and 3 create the tribal roll — this layer, not the kick, is the hook.', add: [{ v: 'ltom', on: [2, 3, 6, 10, 11, 14], acc: [3, 11] }] },
+      { name: 'Metallic perc', why: 'A rim or cowbell on 2 & 4 replaces the clap. Hard-groove techno rarely has a real backbeat sound.', add: [{ v: 'rim', on: [4, 12], acc: [4, 12] }] },
+      { name: '16th hats', why: 'Swung closed hats on the off-16ths thicken the roll without adding another accent.', add: [{ v: 'chat', on: [1, 5, 7, 9, 13, 15] }] },
+      { name: 'Open-hat push', why: 'Open hats only on the “and” of 2 and 4 — two per bar, so they still register as events.', add: [{ v: 'ohat', on: [6, 14] }] },
+    ],
+  },
+  {
+    id: 'techno-deep', name: 'Deep techno', genre: 'techno', bpm: 127, swing: 52,
+    tip: 'Slower, softer and sub-led: a long-decay kick, a shaker carpet instead of hats, one clap on beat 3 and a sub tom pulse. Closer to deep house in feel, closer to techno in intent.',
+    layers: [
+      { name: 'Sub kick', why: 'A rounded kick on all four beats, tuned low and left to ring — the low end is the melody in deep techno.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 8] }] },
+      { name: 'Shaker carpet', why: 'Quiet 16th shakers on the off-beats give continuous motion without the aggression of a hat pattern.', add: [{ v: 'chat', on: [1, 3, 5, 7, 9, 11, 13, 15] }] },
+      { name: 'Off-beat open hats', why: 'Short open hats on the “and”s keep the pulse breathing between kicks.', add: [{ v: 'ohat', on: [2, 6, 10, 14] }] },
+      { name: 'Clap on 3', why: 'A single filtered clap halfway through the bar. Halving the backbeat is what keeps the loop hypnotic.', add: [{ v: 'clap', on: [8], acc: [8] }] },
+      { name: 'Sub tom pulse', why: 'Low toms on the “a of 3” and the last 16th add a slower, second pulse under the kick.', add: [{ v: 'ltom', on: [11, 15] }] },
+    ],
+  },
+
   // -------------------------------------------------------------- trance ----
   {
     id: 'trance-classic', name: 'Classic trance', genre: 'trance', bpm: 138, swing: 50,
@@ -90,6 +113,17 @@ export const TECHNO_PATTERNS: DrumTemplate[] = [
       { name: 'Snare roll: 16ths', why: 'The second half doubles to 16ths. Same notes, twice the density: the whole trick of a build.', add: [{ v: 'snare', on: [8, 9, 10, 11, 12, 13, 14, 15], acc: [8, 12] }] },
       { name: 'Crash on 1', why: 'A cymbal on the downbeat marks where the last build ended and this one starts.', add: [{ v: 'ride', on: [0], acc: [0] }] },
       { name: 'Open-hat lift', why: 'Off-beat open hats in the first half only, thinning out as the roll takes over.', add: [{ v: 'ohat', on: [3, 7] }] },
+    ],
+  },
+  {
+    id: 'trance-fullon', name: 'Full-on psy', genre: 'trance', bpm: 142, swing: 50,
+    tip: 'Psytrance’s melodic branch: the same rolling kick-bass engine, but with a snare on the off-beats and open hats sitting high in the mix. Busier and brighter than night-time psy.',
+    layers: [
+      { name: 'Rolling kick', why: 'Four on the floor at 142 — short, tuned, and always leaving the three following 16ths free for the bass.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 4, 8, 12] }] },
+      { name: 'Rolling bass', why: 'The bass (low tom here) answers on every off-beat 8th. Kick-bass-kick-bass at this speed becomes one continuous engine.', add: [{ v: 'ltom', on: [2, 6, 10, 14], acc: [2, 6, 10, 14] }] },
+      { name: 'Off-beat snare', why: 'Snares on the “and” of 2 and 4 — full-on borrows the doubled backbeat from rave rather than from rock.', add: [{ v: 'snare', on: [6, 14], acc: [6, 14] }] },
+      { name: 'Open hats', why: 'Open hats on the remaining off-beats sit loud and bright, which is what makes full-on sound like daylight.', add: [{ v: 'ohat', on: [2, 10] }] },
+      { name: '16th hat roll', why: 'Closed hats on the “e” and “a” complete the roll and carry the tempo.', add: [{ v: 'chat', on: [1, 3, 5, 7, 9, 11, 13, 15], acc: [1, 9] }] },
     ],
   },
   {

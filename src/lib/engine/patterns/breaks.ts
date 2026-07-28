@@ -134,6 +134,17 @@ export const BREAKS_PATTERNS: DrumTemplate[] = [
     ],
   },
   {
+    id: 'dubstep-deep', name: 'Deep dubstep', genre: 'dubstep', bpm: 140, swing: 54,
+    tip: 'The original Croydon sound: half-time, swung, and almost empty. A side-stick rimshot does most of the percussion work, the snare is soft, and everything exists to leave the sub-bass alone in the room.',
+    layers: [
+      { name: 'Single kick', why: 'One kick on beat 1, long and sub-heavy. Adding a second one is usually a mistake in this style.', add: [{ v: 'kick', on: [0], acc: [0] }] },
+      { name: 'Soft snare on 3', why: 'The half-time backbeat, played quietly and drenched in reverb rather than cracked.', add: [{ v: 'snare', on: [8], acc: [8] }] },
+      { name: 'Swung rim ticks', why: 'Side-stick clicks on the swung off-16ths carry the groove — with swing at 54 they land late and the loop starts to lope.', add: [{ v: 'rim', on: [3, 7, 11, 15] }] },
+      { name: 'Sparse hats', why: 'Two closed hats per bar, no more. The space between them is where the bassline lives.', add: [{ v: 'chat', on: [6, 14] }] },
+      { name: 'Sub drop', why: 'A low tom on the “and of 3” marks the point where the sub-bass note usually changes.', add: [{ v: 'ltom', on: [10] }] },
+    ],
+  },
+  {
     id: 'dubstep-grime', name: 'Grime / eskibeat', genre: 'dubstep', bpm: 140, swing: 50,
     tip: 'Grime keeps 140 but plays it busier and colder: syncopated kicks, snares on 2 & 4 plus stabs on the “a”s, and square-wave percussion instead of a kit.',
     layers: [
