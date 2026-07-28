@@ -1,20 +1,118 @@
 import { describe, it, expect } from 'vitest';
 import {
-  DRUM_VOICES, DRUM_STEPS, DRUM_GROUPS, DRUM_COUNT,
-  drumTemplates, composeGrid, emptyGrid, swingDelaySteps,
-  RHYTHM_CONCEPTS,
+  DRUM_VOICES, DRUM_STEPS, DRUM_FAMILIES, DRUM_GENRES, DRUM_COUNT,
+  drumTemplates, drumGenres, drumVoice, inKitOrder, composeGrid, emptyGrid,
+  swingDelaySteps, templateVoices, voicesInGrid, RHYTHM_CONCEPTS,
 } from './drums';
 
 const voiceIds = new Set(DRUM_VOICES.map((v) => v.id));
 
-describe('drum templates', () => {
+describe('the kit', () => {
+  it('is a table of instruments with unique ids and complete metadata', () => {
+    expect(DRUM_VOICES.length).toBeGreaterThanOrEqual(14);
+    expect(new Set(DRUM_VOICES.map((v) => v.id)).size).toBe(DRUM_VOICES.length);
+    DRUM_VOICES.forEach((v) => {
+      expect(v.name).toBeTruthy();
+      expect(v.short).toBeTruthy();
+      expect(v.color).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(v.hint.length).toBeGreaterThan(10);
+      expect(drumVoice(v.id)).toBe(v);
+    });
+  });
+
+  it('every instrument declares a playable synth recipe', () => {
+    DRUM_VOICES.forEach((v) => {
+      expect(v.synth.length, v.id).toBeGreaterThan(0);
+      v.synth.forEach((l) => {
+        expect(l.dur).toBeGreaterThan(0);
+        expect(l.amp).toBeGreaterThan(0);
+        expect(l.amp).toBeLessThanOrEqual(1);
+        expect(l.at === undefined || l.at >= 0).toBe(true);
+        if (l.kind === 'noise') {
+          expect(['lowpass', 'highpass', 'bandpass']).toContain(l.filter);
+          expect(l.freq).toBeGreaterThan(20);
+        } else {
+          expect(l.f0).toBeGreaterThan(20);
+          expect(l.f1).toBeGreaterThan(20);
+        }
+      });
+    });
+  });
+
+  it('inKitOrder sorts any set of ids top-to-bottom, ignoring duplicates', () => {
+    const order = DRUM_VOICES.map((v) => v.id);
+    const picked = inKitOrder(['kick', 'chat', 'crash', 'kick']);
+    expect(picked).toEqual(['crash', 'chat', 'kick']);
+    expect(picked.map((id) => order.indexOf(id))).toEqual([...picked.map((id) => order.indexOf(id))].sort((a, b) => a - b));
+  });
+});
+
+describe('rows for a pattern', () => {
+  const rock = drumTemplates().find((t) => t.id === 'rock')!;
+
+  it('templateVoices covers every instrument any layer touches, in kit order', () => {
+    expect(templateVoices(rock)).toEqual(['chat', 'snare', 'kick']);
+    drumTemplates().forEach((t) => {
+      const rows = templateVoices(t);
+      expect(rows.length, t.id).toBeGreaterThanOrEqual(2);
+      // a row exists for every voice used by every layer, including the last
+      t.layers.forEach((l) => l.add.forEach((p) => expect(rows, t.id).toContain(p.v)));
+    });
+  });
+
+  it('voicesInGrid reports only what actually sounds', () => {
+    expect(voicesInGrid(emptyGrid())).toEqual([]);
+    expect(voicesInGrid(composeGrid(rock, 1))).toEqual(['kick']);
+    expect(voicesInGrid(composeGrid(rock, 2))).toEqual(['snare', 'kick']);
+    expect(voicesInGrid(composeGrid(rock, rock.layers.length))).toEqual(templateVoices(rock));
+  });
+
+  it('keeps every pattern to a readable number of rows', () => {
+    drumTemplates().forEach((t) => expect(templateVoices(t).length, t.id).toBeLessThanOrEqual(7));
+  });
+});
+
+describe('drum genres', () => {
   const tpls = drumTemplates();
 
-  it('exist, with unique ids, and every group is represented', () => {
-    expect(tpls.length).toBeGreaterThanOrEqual(10);
+  it('have unique ids and sit in a known family', () => {
+    expect(DRUM_GENRES.length).toBeGreaterThanOrEqual(20);
+    expect(new Set(DRUM_GENRES.map((g) => g.id)).size).toBe(DRUM_GENRES.length);
+    DRUM_GENRES.forEach((g) => {
+      expect(DRUM_FAMILIES).toContain(g.family);
+      expect(g.blurb.length).toBeGreaterThan(40);
+      expect(g.maschine.length).toBeGreaterThan(40);
+    });
+    expect(drumGenres()).toBe(DRUM_GENRES);
+  });
+
+  it('every family and every genre carries at least two variations', () => {
+    DRUM_FAMILIES.forEach((f) => expect(DRUM_GENRES.some((g) => g.family === f)).toBe(true));
+    DRUM_GENRES.forEach((g) => {
+      expect(tpls.filter((t) => t.genre === g.id).length, g.id).toBeGreaterThanOrEqual(2);
+    });
+  });
+});
+
+describe('drum templates', () => {
+  const tpls = drumTemplates();
+  const genreIds = new Set(DRUM_GENRES.map((g) => g.id));
+
+  it('exist in quantity, with unique ids, all pointing at a real genre', () => {
+    expect(tpls.length).toBeGreaterThanOrEqual(60);
     expect(new Set(tpls.map((t) => t.id)).size).toBe(tpls.length);
-    DRUM_GROUPS.forEach((g) => expect(tpls.some((t) => t.group === g)).toBe(true));
-    tpls.forEach((t) => expect(DRUM_GROUPS).toContain(t.group));
+    tpls.forEach((t) => {
+      expect(genreIds.has(t.genre), `${t.id} → ${t.genre}`).toBe(true);
+      expect(t.name).toBeTruthy();
+      expect(t.tip.length).toBeGreaterThan(60);
+    });
+  });
+
+  it('names are unique inside each genre, so the variation picker is unambiguous', () => {
+    DRUM_GENRES.forEach((g) => {
+      const names = tpls.filter((t) => t.genre === g.id).map((t) => t.name);
+      expect(new Set(names).size, g.id).toBe(names.length);
+    });
   });
 
   it('use sane tempos and swing values', () => {
@@ -49,6 +147,15 @@ describe('drum templates', () => {
       for (let s = 0; s < DRUM_STEPS; s++) {
         expect(g.chat[s] > 0 && g.ohat[s] > 0, `${t.id} step ${s}`).toBe(false);
       }
+    });
+  });
+
+  it('every pattern actually plays something on the downbeat side of the bar', () => {
+    tpls.forEach((t) => {
+      const g = composeGrid(t, t.layers.length);
+      const hits = DRUM_VOICES.reduce((n, v) => n + g[v.id].filter((c) => c > 0).length, 0);
+      expect(hits, t.id).toBeGreaterThanOrEqual(6);
+      expect(DRUM_VOICES.some((v) => g[v.id].slice(0, 8).some((c) => c > 0)), t.id).toBe(true);
     });
   });
 });

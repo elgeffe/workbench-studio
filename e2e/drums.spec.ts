@@ -9,21 +9,39 @@ test.describe('drums groovebox', () => {
     await expect(page.getByTestId('drum-grid')).toBeVisible();
   });
 
-  test('loads a genre template with its tempo, swing and layer chips', async ({ page }) => {
-    // default template is Rock at its authentic tempo
+  test('genre → pattern is a dependent selection', async ({ page }) => {
+    // default is Rock / Straight 8ths at its authentic tempo
     await expect(page.getByText('TEMPO · 104 BPM')).toBeVisible();
-    // pick Jazz Swing — tempo and swing follow the template
-    await page.getByText('Jazz Swing', { exact: false }).first().click();
+    const variations = page.getByTestId('drum-variations');
+    await expect(variations.getByText('Straight 8ths')).toBeVisible();
+    await expect(variations.getByText('Motorik / driving')).toBeVisible();
+    // rock variations are not jazz variations
+    await expect(variations.getByText('Medium swing')).toBeHidden();
+
+    // switching genre swaps the whole variation row and loads the first pattern
+    await page.getByTestId('drum-genres').getByRole('button', { name: /^Jazz\s+\d+$/ }).click();
+    await expect(variations.getByText('Medium swing')).toBeVisible();
+    await expect(variations.getByText('Brushes ballad')).toBeVisible();
+    await expect(variations.getByText('Straight 8ths')).toBeHidden();
     await expect(page.getByText('TEMPO · 138 BPM')).toBeVisible();
     await expect(page.getByText(/SWING · 66%/)).toBeVisible();
-    // its build-up layers appear
+
+    // and picking another variation inside the genre re-tempos the transport
+    await variations.getByText('Up-tempo bebop').click();
+    await expect(page.getByText('TEMPO · 190 BPM')).toBeVisible();
     const layers = page.getByTestId('drum-layers');
-    await expect(layers.getByText(/Ride pattern/)).toBeVisible();
-    await expect(layers.getByText(/Feathered kick/)).toBeVisible();
+    await expect(layers.getByText(/Bomb drops/)).toBeVisible();
+  });
+
+  test('every genre carries its own programming note', async ({ page }) => {
+    await expect(page.getByTestId('drum-maschine')).toContainText(/velocity|swing|pads?/i);
+    await page.getByTestId('drum-genres').getByText('Trap & Drill').click();
+    await expect(page.getByTestId('drum-maschine')).toContainText('808');
+    await expect(page.getByTestId('drum-variations').getByText('Drill')).toBeVisible();
   });
 
   test('layer chips rebuild the groove up to that point', async ({ page }) => {
-    // Rock layer 1 explanation vs layer 2's
+    // Rock / Straight 8ths: layer 1 explanation vs layer 2's
     await page.getByTestId('drum-layers').getByText(/Kick on 1 & 3/).click();
     await expect(page.getByText(/lays the foundation on the strong beats/)).toBeVisible();
     await page.getByTestId('drum-layers').getByText(/Backbeat snare/).click();
@@ -36,6 +54,35 @@ test.describe('drums groovebox', () => {
     await expect(play).toHaveText('■ STOP');
     await play.click();
     await expect(play).toHaveText('▶ PLAY');
+  });
+
+  test('the grid shows only the pattern\'s instruments, and you can add your own', async ({ page }) => {
+    const grid = page.getByTestId('drum-grid');
+    // Rock / Straight 8ths plays hats, snare and kick — nothing else takes a row
+    await expect(grid.getByRole('button', { name: 'preview Kick' })).toBeVisible();
+    await expect(grid.getByRole('button', { name: 'preview Closed Hat' })).toBeVisible();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeHidden();
+
+    // add a row from the rest of the kit
+    await page.getByTestId('drum-add-row').getByRole('button', { name: 'add Cowbell / Block' }).click();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeVisible();
+    await expect(page.getByTestId('drum-add-row').getByRole('button', { name: 'add Cowbell / Block' })).toBeHidden();
+
+    // and take it away again
+    await grid.getByRole('button', { name: 'remove Cowbell / Block row' }).click();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeHidden();
+    await expect(page.getByTestId('drum-add-row').getByRole('button', { name: 'add Cowbell / Block' })).toBeVisible();
+  });
+
+  test('rows follow the pattern: Latin brings percussion, techno brings a sub', async ({ page }) => {
+    const grid = page.getByTestId('drum-grid');
+    await page.getByTestId('drum-genres').getByRole('button', { name: /^Afro-Cuban & Brazilian\s+\d+$/ }).click();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeVisible();
+    await expect(grid.getByRole('button', { name: 'preview High Tom / Conga' })).toBeVisible();
+
+    await page.getByTestId('drum-genres').getByRole('button', { name: /^Hardstyle\s+\d+$/ }).click();
+    await expect(grid.getByRole('button', { name: 'preview Sub / 808' })).toBeVisible();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeHidden();
   });
 
   test('cells cycle rest → hit → accent on tap', async ({ page }) => {

@@ -2,7 +2,8 @@
 // a detuned triangle+sine pair through a shared low-pass filter and master
 // gain. Isolated from state so it can be reasoned about (and stubbed in tests).
 
-import type { DrumVoiceId } from './engine/drums';
+import { drumVoice as drumVoiceDef } from './engine/drums';
+import type { DrumVoiceId, DrumFilter, DrumWave, DrumSynthLayer } from './engine/drums';
 
 export class AudioEngine {
   private actx: AudioContext | null = null;
@@ -209,7 +210,7 @@ export class AudioEngine {
   }
 
   /** A noise burst through a filter with an exponential decay envelope. */
-  private noiseHit(t: number, dur: number, amp: number, type: BiquadFilterType, freq: number, q = 1): void {
+  private noiseHit(t: number, dur: number, amp: number, type: DrumFilter, freq: number, q = 1): void {
     const ctx = this.actx!;
     const src = ctx.createBufferSource(); src.buffer = this.noise(); src.loop = true;
     const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
@@ -223,7 +224,7 @@ export class AudioEngine {
   }
 
   /** A pitched drum body: an oscillator swept down in frequency while decaying. */
-  private tonalHit(t: number, dur: number, amp: number, f0: number, f1: number, type: OscillatorType = 'sine'): void {
+  private tonalHit(t: number, dur: number, amp: number, f0: number, f1: number, type: DrumWave = 'sine'): void {
     const ctx = this.actx!;
     const o = ctx.createOscillator(); o.type = type;
     o.frequency.setValueAtTime(f0, t);
@@ -237,49 +238,18 @@ export class AudioEngine {
     o.start(t); o.stop(t + dur + 0.05);
   }
 
-  /** Synthesize one drum voice at absolute context time `t`, velocity 0..1. */
+  /**
+   * Synthesize one drum voice at absolute context time `t`, velocity 0..1, by
+   * playing the layers its kit entry declares. Every instrument — including any
+   * you add to DRUM_VOICES — is rendered by this one loop.
+   */
   private drumVoice(v: DrumVoiceId, t: number, vel: number): void {
-    switch (v) {
-      case 'kick':
-        // 808-style: sine swept from a punchy attack down to sub, plus a
-        // tiny filtered-noise tick so it cuts through on small speakers.
-        this.tonalHit(t, 0.4, 0.85 * vel, 150, 48);
-        this.noiseHit(t, 0.02, 0.25 * vel, 'lowpass', 3500);
-        break;
-      case 'snare':
-        // Tonal shell + bright noise "snares".
-        this.tonalHit(t, 0.12, 0.3 * vel, 220, 165, 'triangle');
-        this.noiseHit(t, 0.19, 0.45 * vel, 'bandpass', 1900, 0.7);
-        break;
-      case 'rim':
-        // Side-stick: a short woody blip, almost no noise tail.
-        this.tonalHit(t, 0.05, 0.4 * vel, 830, 780, 'triangle');
-        this.noiseHit(t, 0.02, 0.15 * vel, 'highpass', 3200);
-        break;
-      case 'clap': {
-        // Three fast retriggered noise bursts then a longer tail — the 909
-        // clap's "spread" that distinguishes it from a snare.
-        [0, 0.011, 0.022].forEach((dt) => this.noiseHit(t + dt, 0.03, 0.4 * vel, 'bandpass', 1400, 1.4));
-        this.noiseHit(t + 0.033, 0.16, 0.35 * vel, 'bandpass', 1300, 1.2);
-        break;
-      }
-      case 'chat':
-        this.noiseHit(t, 0.045, 0.32 * vel, 'highpass', 7500);
-        break;
-      case 'ohat':
-        this.noiseHit(t, 0.32, 0.26 * vel, 'highpass', 6500);
-        break;
-      case 'ltom':
-        this.tonalHit(t, 0.28, 0.65 * vel, 160, 92);
-        break;
-      case 'ride':
-        // Metallic ping: two inharmonic squares through a highpass plus a
-        // noise shimmer — a cheap but convincing cymbal.
-        this.tonalHit(t, 0.4, 0.055 * vel, 3150, 3100, 'square');
-        this.tonalHit(t, 0.32, 0.045 * vel, 4680, 4600, 'square');
-        this.noiseHit(t, 0.45, 0.08 * vel, 'highpass', 8000);
-        break;
-    }
+    const layers: readonly DrumSynthLayer[] = drumVoiceDef(v).synth;
+    layers.forEach((l) => {
+      const at = t + (l.at || 0);
+      if (l.kind === 'noise') this.noiseHit(at, l.dur, l.amp * vel, l.filter, l.freq, l.q);
+      else this.tonalHit(at, l.dur, l.amp * vel, l.f0, l.f1, l.wave || 'sine');
+    });
   }
 
   /**
