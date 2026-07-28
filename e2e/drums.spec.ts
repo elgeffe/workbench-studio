@@ -56,6 +56,35 @@ test.describe('drums groovebox', () => {
     await expect(play).toHaveText('▶ PLAY');
   });
 
+  test('the grid shows only the pattern\'s instruments, and you can add your own', async ({ page }) => {
+    const grid = page.getByTestId('drum-grid');
+    // Rock / Straight 8ths plays hats, snare and kick — nothing else takes a row
+    await expect(grid.getByRole('button', { name: 'preview Kick' })).toBeVisible();
+    await expect(grid.getByRole('button', { name: 'preview Closed Hat' })).toBeVisible();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeHidden();
+
+    // add a row from the rest of the kit
+    await page.getByTestId('drum-add-row').getByRole('button', { name: 'add Cowbell / Block' }).click();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeVisible();
+    await expect(page.getByTestId('drum-add-row').getByRole('button', { name: 'add Cowbell / Block' })).toBeHidden();
+
+    // and take it away again
+    await grid.getByRole('button', { name: 'remove Cowbell / Block row' }).click();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeHidden();
+    await expect(page.getByTestId('drum-add-row').getByRole('button', { name: 'add Cowbell / Block' })).toBeVisible();
+  });
+
+  test('rows follow the pattern: Latin brings percussion, techno brings a sub', async ({ page }) => {
+    const grid = page.getByTestId('drum-grid');
+    await page.getByTestId('drum-genres').getByRole('button', { name: /^Afro-Cuban & Brazilian\s+\d+$/ }).click();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeVisible();
+    await expect(grid.getByRole('button', { name: 'preview High Tom / Conga' })).toBeVisible();
+
+    await page.getByTestId('drum-genres').getByRole('button', { name: /^Hardstyle\s+\d+$/ }).click();
+    await expect(grid.getByRole('button', { name: 'preview Sub / 808' })).toBeVisible();
+    await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeHidden();
+  });
+
   test('cells cycle rest → hit → accent on tap', async ({ page }) => {
     const cell = page.getByRole('button', { name: 'kick step 2', exact: true });
     const bg = () => cell.evaluate((el) => getComputedStyle(el).backgroundColor);

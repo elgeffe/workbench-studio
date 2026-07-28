@@ -50,7 +50,7 @@
   <!-- the step grid -->
   <div data-testid="drum-grid" style="overflow-x:auto;padding-bottom:4px">
     <div style="min-width:560px">
-      <div style="display:flex;gap:3px;margin-bottom:4px;padding-left:112px">
+      <div style="display:flex;gap:3px;margin-bottom:4px;padding-left:123px">
         {#each v.drCount as c (c.s)}
           <div class="mono" style="flex:1;min-width:24px;text-align:center;font-size:9px;font-weight:{c.strong ? '700' : '400'};color:{c.hot ? '#c2562e' : c.strong ? '#5c4a30' : '#a08a64'}">{c.c}</div>
         {/each}
@@ -61,7 +61,8 @@
             <span style="width:9px;height:9px;border-radius:50%;background:{row.color};flex:none"></span>
             <span class="mono" style="font-size:9px;letter-spacing:.04em;color:#5c4a30;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{row.name}</span>
           </div>
-          <div class="mono click" style="flex:none;width:24px;text-align:center;font-size:8px;padding:4px 0;border-radius:4px;border:1px solid {row.muted ? '#c2562e' : '#cbb792'};color:{row.muted ? '#c2562e' : '#8a7350'};background:{row.muted ? '#f8e3da' : 'transparent'}" role="button" tabindex="0" aria-label={'mute ' + row.name} onclick={() => store.toggleDrMute(row.id)} onkeydown={(e) => e.key === 'Enter' && store.toggleDrMute(row.id)}>M</div>
+          <div class="mono click" style="flex:none;width:16px;text-align:center;font-size:8px;padding:4px 0;border-radius:4px;border:1px solid {row.muted ? '#c2562e' : '#cbb792'};color:{row.muted ? '#c2562e' : '#8a7350'};background:{row.muted ? '#f8e3da' : 'transparent'}" role="button" tabindex="0" aria-label={'mute ' + row.name} onclick={() => store.toggleDrMute(row.id)} onkeydown={(e) => e.key === 'Enter' && store.toggleDrMute(row.id)}>M</div>
+          <div class="mono click" style="flex:none;width:16px;text-align:center;font-size:9px;padding:4px 0;border-radius:4px;border:1px solid #cbb792;color:#a08a64" role="button" tabindex="0" aria-label={'remove ' + row.name + ' row'} onclick={() => store.removeDrumRow(row.id)} onkeydown={(e) => e.key === 'Enter' && store.removeDrumRow(row.id)}>×</div>
           {#each row.cells as cell (cell.s)}
             <div
               class="click"
@@ -75,11 +76,22 @@
       {/each}
     </div>
   </div>
+  <!-- add an instrument row from the rest of the kit -->
+  {#if v.drAddable.length}
+    <div data-testid="drum-add-row" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:9px 0 4px">
+      <span class="mono" style="flex:none;font-size:8px;letter-spacing:.12em;color:#8a7350">+ ADD INSTRUMENT</span>
+      {#each v.drAddable as a (a.id)}
+        <div class="mono click" title={a.hint} style="font-size:9.5px;letter-spacing:.04em;display:flex;align-items:center;gap:5px;padding:5px 9px;border-radius:13px;border:1px dashed #cbb792;color:#5c4a30;background:#f6efe0" role="button" tabindex="0" aria-label={'add ' + a.name} onclick={() => store.addDrumRow(a.id)} onkeydown={(e) => e.key === 'Enter' && store.addDrumRow(a.id)}>
+          <span style="width:8px;height:8px;border-radius:50%;background:{a.color};flex:none"></span>{a.name}
+        </div>
+      {/each}
+    </div>
+  {/if}
   <div class="mono" style="display:flex;gap:14px;flex-wrap:wrap;font-size:9px;letter-spacing:.08em;color:#7a6b50;margin:8px 0 16px">
     <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#3f6b5f99;display:inline-block"></span>HIT</div>
     <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#3f6b5f;display:inline-block"></span>ACCENT</div>
     <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#e7d9ba;border:1px solid #cbb792;display:inline-block"></span>BEAT</div>
-    <span>TAP A ROW NAME TO PREVIEW ITS SOUND · M = MUTE</span>
+    <span>ROWS ARE THE INSTRUMENTS THIS PATTERN PLAYS · TAP A NAME TO PREVIEW · M = MUTE · × = REMOVE ROW</span>
   </div>
 
   <!-- how the pattern is built -->

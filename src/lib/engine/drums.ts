@@ -5,6 +5,8 @@
 // anchor the kick, answer with the backbeat, fill the subdivision, then add
 // the syncopation and ghosts that make the style.
 
+import { DRUM_VOICES, inKitOrder } from './kit';
+import type { DrumVoiceId } from './kit';
 import { ROCK_POP_PATTERNS } from './patterns/rockpop';
 import { FUNK_SOUL_PATTERNS } from './patterns/funksoul';
 import { HIPHOP_PATTERNS } from './patterns/hiphop';
@@ -15,27 +17,14 @@ import { HARD_PATTERNS } from './patterns/hard';
 import { JAZZ_PATTERNS } from './patterns/jazz';
 import { WORLD_PATTERNS } from './patterns/world';
 
-export type DrumVoiceId = 'ride' | 'ohat' | 'chat' | 'clap' | 'rim' | 'snare' | 'ltom' | 'kick';
-
-export interface DrumVoice {
-  id: DrumVoiceId;
-  name: string;   // full row label
-  short: string;  // compact label for tight layouts
-  color: string;  // cell colour when the step is on
-}
-
-// Top-to-bottom order of the groovebox rows: cymbals up top, kick on the
-// floor — the way a kit is read on paper.
-export const DRUM_VOICES: DrumVoice[] = [
-  { id: 'ride', name: 'Ride / Bell', short: 'RD', color: '#b07d23' },
-  { id: 'ohat', name: 'Open Hat', short: 'OH', color: '#8a6d3b' },
-  { id: 'chat', name: 'Closed Hat', short: 'HH', color: '#7a5ea8' },
-  { id: 'clap', name: 'Clap', short: 'CP', color: '#a84a6e' },
-  { id: 'rim', name: 'Rim / Stick', short: 'RM', color: '#97a59c' },
-  { id: 'snare', name: 'Snare', short: 'SD', color: '#3f6b5f' },
-  { id: 'ltom', name: 'Low Tom', short: 'LT', color: '#5b7a9e' },
-  { id: 'kick', name: 'Kick', short: 'BD', color: '#c2562e' },
-];
+// The instrument table lives in kit.ts — one entry per instrument, carrying its
+// row metadata and its synthesis recipe. Re-exported here so callers keep a
+// single import for "the drum engine".
+export { DRUM_VOICES, drumVoice, inKitOrder } from './kit';
+export type {
+  DrumVoice, DrumVoiceId, DrumVoiceDef, DrumVoiceKind,
+  DrumSynthLayer, DrumNoiseLayer, DrumToneLayer, DrumFilter, DrumWave,
+} from './kit';
 
 export const DRUM_STEPS = 16;
 
@@ -279,6 +268,22 @@ export function composeGrid(tpl: DrumTemplate, nLayers: number): DrumGrid {
     });
   });
   return g;
+}
+
+/** Which instruments actually sound in a grid, in kit (top-to-bottom) order. */
+export function voicesInGrid(g: DrumGrid): DrumVoiceId[] {
+  return inKitOrder(DRUM_VOICES.filter((v) => g[v.id].some((c) => c !== 0)).map((v) => v.id));
+}
+
+/**
+ * The rows a template needs: every instrument any of its layers touches, even
+ * the ones only introduced by the last layer. Rows stay put while you step the
+ * layer stepper, so the grid never reshuffles under your finger.
+ */
+export function templateVoices(tpl: DrumTemplate): DrumVoiceId[] {
+  const used = new Set<DrumVoiceId>();
+  tpl.layers.forEach((l) => l.add.forEach((p) => used.add(p.v)));
+  return inKitOrder([...used]);
 }
 
 /**

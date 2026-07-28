@@ -28,6 +28,10 @@ src/
       data.ts          Genres, pattern library, the Learn-mode jazz curriculum
       fretpatterns.ts  Fretboard diagram library (scale boxes, chord grips)
       bass.ts          Bassline grooves, degree resolution, walking tricks
+      kit.ts           The instrument table: one entry per drum voice, carrying
+                       its row metadata AND its synthesis recipe (noise/tone
+                       layers). Add an instrument by adding an entry — the id
+                       union, the grid shape and the audio engine follow.
       drums.ts         Drum genres, grid composition, swing, rhythm concepts
       patterns/        The groove library: 123 layered patterns across 29 genres
                        (rockpop, funksoul, hiphop, house, techno, breaks, hard,
@@ -98,8 +102,9 @@ automatically; the live URL appears in the workflow's `deploy` job summary.
   hardstyle, hardcore, jazz, fusion, blues, Latin, Afrobeat, reggae, reggaeton). Every
   pattern is authored as ordered *layers*, so the LAYERS chips rebuild the groove one part
   at a time and explain what each adds; each genre also carries a note on programming it in
-  a groovebox (swing, velocity, kit choices). Cells are editable (rest → hit → accent) and
-  the transport is shared with the Workshop.
+  a groovebox (swing, velocity, kit choices). The grid shows only the instruments the
+  pattern plays — add any of the 14 kit voices as a new row, or remove one. Cells are
+  editable (rest → hit → accent) and the transport is shared with the Workshop.
 - **Metronome** — a full practice metronome (ported from the standalone Metrognome app):
   sample-accurate Web Audio click with tap tempo, time signatures, subdivisions and accents;
   tempo automation for rhythm drills (step trainer, smooth ramps by time or bars, gap-click

@@ -53,7 +53,7 @@ export const ROCK_POP_PATTERNS: DrumTemplate[] = [
       { name: 'Stomp, stomp', why: 'Two kicks in a row on beat 1 and the “and of 1” — feet, not a drum kit.', add: [{ v: 'kick', on: [0, 2, 8, 10], acc: [0, 8] }] },
       { name: 'Clap', why: 'A single clap on beats 2 & 4 answers the stomps. Stomp-stomp-clap, repeat forever.', add: [{ v: 'clap', on: [4, 12], acc: [4, 12] }] },
       { name: 'Snare reinforcement', why: 'Adding a snare under the clap turns a chant into a drum part when the band comes in.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
-      { name: 'Crash accents', why: 'A ride/crash on each downbeat frames the pattern for the arena.', add: [{ v: 'ride', on: [0, 8], acc: [0] }] },
+      { name: 'Crash accents', why: 'A ride/crash on each downbeat frames the pattern for the arena.', add: [{ v: 'crash', on: [0, 8], acc: [0] }] },
     ],
   },
   {
@@ -74,7 +74,7 @@ export const ROCK_POP_PATTERNS: DrumTemplate[] = [
     layers: [
       { name: 'Backbeat snare', why: 'Build from the backbeat, not the kick — it is the only thing keeping the pattern legible once the feet start.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
       { name: '16th double kick', why: 'Alternating feet fill every 16th. Accent the quarters or the whole thing becomes one undifferentiated rumble.', add: [{ v: 'kick', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 4, 8, 12] }] },
-      { name: 'Ride/China quarters', why: 'A cymbal on the quarters is the anchor the ear grabs when everything else is a blur.', add: [{ v: 'ride', on: [0, 4, 8, 12], acc: [0, 8] }] },
+      { name: 'Ride/China quarters', why: 'A cymbal on the quarters is the anchor the ear grabs when everything else is a blur.', add: [{ v: 'crash', on: [0, 4, 8, 12], acc: [0, 8] }] },
       { name: 'Crash accent', why: 'An open hat/crash on the “and of 4” signals the bar turning over.', add: [{ v: 'ohat', on: [14] }] },
     ],
   },
@@ -94,7 +94,7 @@ export const ROCK_POP_PATTERNS: DrumTemplate[] = [
     layers: [
       { name: 'Snare on 3', why: 'One backbeat in the bar. Everything after this is designed to make that one hit feel enormous.', add: [{ v: 'snare', on: [8], acc: [8] }] },
       { name: 'Chug kicks', why: 'Kicks on 1, the “a of 1”, the “and of 2” and the “a of 3” lock to the guitar riff instead of to the beat grid.', add: [{ v: 'kick', on: [0, 3, 6, 11], acc: [0] }] },
-      { name: 'China on the downbeats', why: 'A trashy cymbal on 1 and 3 frames the half-time feel without adding motion.', add: [{ v: 'ride', on: [0, 8], acc: [0, 8] }] },
+      { name: 'China on the downbeats', why: 'A trashy cymbal on 1 and 3 frames the half-time feel without adding motion.', add: [{ v: 'crash', on: [0, 8], acc: [0, 8] }] },
       { name: 'Final kick push', why: 'Two 16ths at the end of the bar reload the riff for the next repetition.', add: [{ v: 'kick', on: [14, 15] }] },
     ],
   },
@@ -146,7 +146,7 @@ export const ROCK_POP_PATTERNS: DrumTemplate[] = [
     layers: [
       { name: 'Side-stick on 2 & 4', why: 'A cross-stick is the backbeat at whisper volume — the standard verse solution.', add: [{ v: 'rim', on: [4, 12], acc: [4, 12] }] },
       { name: 'Soft kick', why: 'Kick on 1 and the “and of 3” only; in a verse the bass guitar carries the low end.', add: [{ v: 'kick', on: [0, 10] }] },
-      { name: 'Shaker 8ths', why: 'The shaker (closed hat here) plays gently swung 8ths so the verse breathes rather than ticks.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14] }] },
+      { name: 'Shaker 8ths', why: 'The shaker (closed hat here) plays gently swung 8ths so the verse breathes rather than ticks.', add: [{ v: 'shaker', on: [0, 2, 4, 6, 8, 10, 12, 14] }] },
       { name: 'Lift into the chorus', why: 'One open hat on the very last 16th is the signal that something bigger is coming.', add: [{ v: 'ohat', on: [15] }] },
     ],
   },

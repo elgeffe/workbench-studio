@@ -1,6 +1,6 @@
 // Drums-mode view: the dependent genre → variation picker, the layer stepper,
 // the 16-step grid rows and the count ruler.
-import { DRUM_VOICES, DRUM_COUNT, DRUM_FAMILIES, DRUM_GENRES, drumTemplates } from '../engine/drums';
+import { DRUM_VOICES, DRUM_COUNT, DRUM_FAMILIES, DRUM_GENRES, drumTemplates, drumVoice } from '../engine/drums';
 import type { WorkbenchStore } from '../store.svelte';
 
 export function buildDrums(s: WorkbenchStore) {
@@ -45,7 +45,8 @@ export function buildDrums(s: WorkbenchStore) {
     fg: i < s.drLayerN ? '#fff' : '#5c4a30',
   }));
   const drLayerWhy = drTpl.layers[Math.min(s.drLayerN, drTpl.layers.length) - 1]?.why || '';
-  const drRows = DRUM_VOICES.map((vc) => {
+  // Only the rows this pattern uses (plus any the user added), in kit order.
+  const drRows = s.drRowIds.map(drumVoice).map((vc) => {
     const muted = s.drMuted.includes(vc.id);
     return {
       id: vc.id, name: vc.name, short: vc.short, color: vc.color, muted,
@@ -62,6 +63,10 @@ export function buildDrums(s: WorkbenchStore) {
     strong: st % 4 === 0,
     hot: s.drPlaying && s.drStep === st,
   }));
+  // Everything in the kit that isn't on screen yet — the add-a-row palette.
+  const drAddable = DRUM_VOICES
+    .filter((vc) => !s.drRowIds.includes(vc.id))
+    .map((vc) => ({ id: vc.id, name: vc.name, short: vc.short, color: vc.color, hint: vc.hint }));
   const drEmpty = DRUM_VOICES.every((vc) => s.drGrid[vc.id].every((c) => c === 0));
   const swingLabel = s.drSwing <= 52 ? 'straight' : s.drSwing < 62 ? 'loose' : s.drSwing < 71 ? 'shuffle' : 'hard shuffle';
 
@@ -73,7 +78,7 @@ export function buildDrums(s: WorkbenchStore) {
     drGenreName: drGenre.name, drGenreBlurb: drGenre.blurb, drGenreMaschine: drGenre.maschine,
     drTplName: drTpl.name, drTip: drTpl.tip,
     drPatternCount: DR_TPLS.length, drGenreCount: DRUM_GENRES.length,
-    drRows, drCount, drLayers, drLayerWhy, drEmpty,
+    drRows, drAddable, drCount, drLayers, drLayerWhy, drEmpty,
     drTempo: s.tempo, drSwing: s.drSwing, drSwingLabel: swingLabel,
   };
 }

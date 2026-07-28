@@ -18,7 +18,7 @@ import {
 } from './engine/bass';
 import {
   DRUM_VOICES, RHYTHM_CONCEPTS,
-  drumTemplates, composeGrid, swingDelaySteps,
+  drumTemplates, composeGrid, swingDelaySteps, templateVoices, inKitOrder,
   type DrumVoiceId, type DrumGrid, type DrumLayerPart,
 } from './engine/drums';
 import { AudioEngine } from './audio';
@@ -103,6 +103,9 @@ export class WorkbenchStore {
   drTplId = $state('rock');
   drLayerN = $state(drumTemplates()[0].layers.length);
   drGrid = $state<DrumGrid>(composeGrid(drumTemplates()[0], drumTemplates()[0].layers.length));
+  // Visible rows: only the instruments this pattern plays, so a 14-piece kit
+  // never becomes a wall of empty lanes. You add and remove rows yourself.
+  drRowIds = $state<DrumVoiceId[]>(templateVoices(drumTemplates()[0]));
   drMuted = $state<DrumVoiceId[]>([]);
   drPlaying = $state(false);
   drStep = $state(-1);
@@ -612,6 +615,10 @@ export class WorkbenchStore {
     this.drTplId = id;
     this.drLayerN = tpl.layers.length;
     this.drGrid = composeGrid(tpl, tpl.layers.length);
+    // Rows come from the whole template, not the current layer count, so the
+    // grid doesn't reshuffle while you step through the layers.
+    this.drRowIds = templateVoices(tpl);
+    this.drMuted = this.drMuted.filter((v) => this.drRowIds.includes(v));
     this.tempo = tpl.bpm;
     this.drSwing = tpl.swing;
     // A live transport keeps rolling but at the new tempo and pattern.
@@ -634,6 +641,18 @@ export class WorkbenchStore {
   }
   previewDrumVoice(v: DrumVoiceId): void {
     if (this.soundOn) this.audio.playDrumNow(v);
+  }
+  /** Add an instrument row from the kit, in kit order, and preview it. */
+  addDrumRow(v: DrumVoiceId): void {
+    if (this.drRowIds.includes(v)) return;
+    this.drRowIds = inKitOrder([...this.drRowIds, v]);
+    if (this.soundOn) this.audio.playDrumNow(v);
+  }
+  /** Remove a row: it disappears from the grid and its steps are cleared. */
+  removeDrumRow(v: DrumVoiceId): void {
+    this.drRowIds = this.drRowIds.filter((x) => x !== v);
+    this.drMuted = this.drMuted.filter((x) => x !== v);
+    this.drGrid = { ...this.drGrid, [v]: Array(16).fill(0) as DrumGrid[DrumVoiceId] };
   }
   toggleDrMute(v: DrumVoiceId): void {
     this.drMuted = this.drMuted.includes(v) ? this.drMuted.filter((x) => x !== v) : [...this.drMuted, v];

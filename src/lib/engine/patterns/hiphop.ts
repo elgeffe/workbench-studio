@@ -40,7 +40,7 @@ export const HIPHOP_PATTERNS: DrumTemplate[] = [
     layers: [
       { name: 'Bouncing kick', why: 'Kick on 1, the “a of 1” and the “and of 3” — three kicks give the loop its rolling gait.', add: [{ v: 'kick', on: [0, 3, 10], acc: [0] }] },
       { name: 'Snare on 2 & 4', why: 'A fat, slightly reverbed snare — closer to a live funk kit than a sampled one.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
-      { name: 'Tambourine off-beats', why: 'Tambourine on every “and” — the Motown trick reused in 1993.', add: [{ v: 'rim', on: [2, 6, 10, 14] }] },
+      { name: 'Tambourine off-beats', why: 'Tambourine on every “and” — the Motown trick reused in 1993.', add: [{ v: 'tamb', on: [2, 6, 10, 14] }] },
       { name: '16th hats', why: 'Swung 16th hats sit under the tambourine and thicken the top end.', add: [{ v: 'chat', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 4, 8, 12] }] },
       { name: 'Ghost snares', why: 'Two ghosted snares before beat 3 add the live-drummer detail that separates G-funk from a drum machine.', add: [{ v: 'snare', on: [6, 7] }] },
     ],
@@ -96,7 +96,7 @@ export const HIPHOP_PATTERNS: DrumTemplate[] = [
       { name: 'Electro kick', why: 'Kick on 1, the “and of 2” and beat 4 — the 3+3+2 tresillo that underpins most electronic dance music.', add: [{ v: 'kick', on: [0, 6, 12], acc: [0] }] },
       { name: '808 clap', why: 'The clap on 2 & 4 with its famous stuttered attack. No snare at all in classic electro.', add: [{ v: 'clap', on: [4, 12], acc: [4, 12] }] },
       { name: '16th hats', why: 'Tight closed 808 hats on the 16ths, with the quarters accented — one gap left at the end of the bar.', add: [{ v: 'chat', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15], acc: [0, 4, 8, 12] }] },
-      { name: 'Cowbell hook', why: 'Cowbell on the “e” of each half-bar — in electro, percussion plays the melody.', add: [{ v: 'rim', on: [3, 11] }] },
+      { name: 'Cowbell hook', why: 'Cowbell on the “e” of each half-bar — in electro, percussion plays the melody.', add: [{ v: 'cowbell', on: [3, 11] }] },
       { name: 'Open-hat splash', why: 'One long open hat on the “and of 4” washes into the next bar.', add: [{ v: 'ohat', on: [14] }] },
     ],
   },

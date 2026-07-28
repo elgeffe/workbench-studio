@@ -7,10 +7,10 @@ export const HARD_PATTERNS: DrumTemplate[] = [
   // ----------------------------------------------------------- hardstyle ----
   {
     id: 'hardstyle-main', name: 'Hardstyle', genre: 'hardstyle', bpm: 150, swing: 50,
-    tip: 'Kick on every beat with a pitched, distorted tail, and a “reverse bass” answering on every off-beat 8th — here shown as the low tom. The two never overlap: that alternation is the entire genre.',
+    tip: 'Kick on every beat with a pitched, distorted tail, and a “reverse bass” answering on every off-beat 8th, on the Sub / 808 row. The two never overlap: that alternation is the entire genre.',
     layers: [
       { name: 'Distorted kick', why: 'Four on the floor at 150. In hardstyle the kick is a synth patch: a clipped transient plus a pitched-down tail.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 4, 8, 12] }] },
-      { name: 'Reverse bass', why: 'The off-beat bass note fills the gap between kicks — kick, bass, kick, bass. It must stop before the next kick or the low end mud-slides.', add: [{ v: 'ltom', on: [2, 6, 10, 14], acc: [2, 6, 10, 14] }] },
+      { name: 'Reverse bass', why: 'The off-beat bass note fills the gap between kicks — kick, bass, kick, bass. It must stop before the next kick or the low end mud-slides.', add: [{ v: 'sub', on: [2, 6, 10, 14], acc: [2, 6, 10, 14] }] },
       { name: 'Clap on 2 & 4', why: 'A wide reverbed clap gives the ear a backbeat inside a pattern that is otherwise all pulse.', add: [{ v: 'clap', on: [4, 12], acc: [4, 12] }] },
       { name: 'Off-beat open hats', why: 'Open hats double the reverse bass on the off-beats and add the top-end drive.', add: [{ v: 'ohat', on: [2, 6, 10, 14] }] },
       { name: '16th hat drive', why: 'Closed hats on the “e” and “a” fill the grid so the tempo reads clearly at 150.', add: [{ v: 'chat', on: [1, 3, 5, 7, 9, 11, 13, 15] }] },
@@ -21,7 +21,7 @@ export const HARD_PATTERNS: DrumTemplate[] = [
     tip: 'Darker and more syncopated: the kick sometimes doubles on a 16th, there is no clap softening the middle, and the snare only appears as a punctuation at the end of the bar.',
     layers: [
       { name: 'Raw kick', why: 'Four on the floor plus a 16th double before beat 4 — that stutter is the rawstyle signature.', add: [{ v: 'kick', on: [0, 4, 8, 11, 12], acc: [0, 4, 8, 12] }] },
-      { name: 'Reverse bass', why: 'The off-beat bass still answers, but skips the beat where the kick doubles.', add: [{ v: 'ltom', on: [2, 6, 14], acc: [2, 6, 14] }] },
+      { name: 'Reverse bass', why: 'The off-beat bass still answers, but skips the beat where the kick doubles.', add: [{ v: 'sub', on: [2, 6, 14], acc: [2, 6, 14] }] },
       { name: 'Snare punctuation', why: 'One snare on the “and of 4” instead of a backbeat — rawstyle keeps the middle of the bar empty and violent.', add: [{ v: 'snare', on: [14], acc: [14] }] },
       { name: 'Hat 16ths', why: 'Fast closed hats on the off-16ths carry the tempo where the missing clap used to.', add: [{ v: 'chat', on: [1, 3, 5, 7, 9, 13, 15] }] },
     ],
@@ -33,7 +33,7 @@ export const HARD_PATTERNS: DrumTemplate[] = [
       { name: 'Four-floor kick', why: 'The pulse, tuned to the key of the track so the pitched tail is part of the harmony.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 4, 8, 12] }] },
       { name: 'Clap + snare backbeat', why: 'Stacking both on 2 & 4 gives euphoric hardstyle its anthemic, festival-scale backbeat.', add: [{ v: 'clap', on: [4, 12], acc: [4, 12] }, { v: 'snare', on: [4, 12] }] },
       { name: 'Off-beat open hats', why: 'The off-beat hat keeps the see-saw motion under the melody.', add: [{ v: 'ohat', on: [2, 6, 10, 14] }] },
-      { name: 'Reverse bass', why: 'The off-beat bass note fills between kicks — quieter here than in raw, so the melody stays audible.', add: [{ v: 'ltom', on: [2, 6, 10, 14] }] },
+      { name: 'Reverse bass', why: 'The off-beat bass note fills between kicks — quieter here than in raw, so the melody stays audible.', add: [{ v: 'sub', on: [2, 6, 10, 14] }] },
       { name: 'Snare roll pickup', why: 'Three fast snares at the end of the bar launch the next phrase.', add: [{ v: 'snare', on: [13, 14, 15] }] },
     ],
   },
