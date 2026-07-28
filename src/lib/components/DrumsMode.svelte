@@ -7,18 +7,31 @@
 <div>
   <div style="margin-bottom:13px">
     <div class="eyebrow" style="margin-bottom:3px">Drums · groovebox</div>
-    <div class="caption" style="font-size:13px;max-width:560px">Pick a genre, press play, then peel it apart: the LAYERS chips rebuild the groove one part at a time, the way a drummer would. Tap any cell to edit — rest → hit → <b>accent</b> — and drag the swing to bend the feel.</div>
+    <div class="caption" style="font-size:13px;max-width:560px">Pick a <b>genre</b>, then one of its <b>patterns</b> — {v.drPatternCount} grooves across {v.drGenreCount} genres. Press play, then peel it apart: the LAYERS chips rebuild the groove one part at a time, the way a drummer would. Tap any cell to edit — rest → hit → <b>accent</b> — and drag the swing to bend the feel.</div>
   </div>
 
-  <!-- genre templates, grouped by family -->
-  {#each v.drGroups as grp (grp.name)}
-    <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap">
-      <span class="mono" style="flex:none;width:92px;font-size:8px;letter-spacing:.12em;color:#8a7350;text-transform:uppercase">{grp.name}</span>
-      {#each grp.chips as c (c.id)}
-        <div class="serif click" style="font-size:13.5px;font-weight:{c.weight};padding:6px 11px;border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setDrumTpl(c.id)} onkeydown={(e) => e.key === 'Enter' && store.setDrumTpl(c.id)}>{c.name} <span class="mono" style="font-size:8px;color:#a08a64">{c.bpm}</span></div>
+  <!-- step 1: genres, shelved by family -->
+  <div data-testid="drum-genres">
+    {#each v.drFamilies as fam (fam.name)}
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap">
+        <span class="mono" style="flex:none;width:92px;font-size:8px;letter-spacing:.12em;color:#8a7350;text-transform:uppercase">{fam.name}</span>
+        {#each fam.chips as c (c.id)}
+          <div class="serif click" style="font-size:{v.drChipFont};font-weight:{c.weight};padding:{v.drChipPad};border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setDrumGenre(c.id)} onkeydown={(e) => e.key === 'Enter' && store.setDrumGenre(c.id)}>{c.name} <span class="mono" style="font-size:8px;color:#a08a64">{c.n}</span></div>
+        {/each}
+      </div>
+    {/each}
+  </div>
+
+  <!-- step 2: the patterns inside the chosen genre -->
+  <div style="border-top:1px solid #e0cfae;margin-top:11px;padding-top:11px">
+    <div class="mono" style="font-size:8px;letter-spacing:.12em;color:#8a7350;margin-bottom:6px">{v.drGenreName} · PATTERNS</div>
+    <div data-testid="drum-variations" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px">
+      {#each v.drVariations as c (c.id)}
+        <div class="serif click" style="font-size:{v.drChipFont};font-weight:{c.weight};padding:{v.drChipPad};border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setDrumTpl(c.id)} onkeydown={(e) => e.key === 'Enter' && store.setDrumTpl(c.id)}>{c.name} <span class="mono" style="font-size:8px;color:{c.fg === '#fff' ? '#e7d9ba' : '#a08a64'}">{c.bpm}</span></div>
       {/each}
     </div>
-  {/each}
+    <div class="caption" style="font-size:13px;color:#5c4a30;line-height:1.5;max-width:620px">{v.drGenreBlurb}</div>
+  </div>
 
   <!-- transport -->
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#f3ead4;border:1px solid #e0cfae;border-radius:10px;padding:11px 13px;margin:12px 0 12px">
@@ -72,6 +85,7 @@
   <!-- how the pattern is built -->
   <div style="border-top:1px solid #ddccac;padding-top:14px">
     <div style="display:flex;align-items:baseline;gap:11px;margin-bottom:6px;flex-wrap:wrap">
+      <span class="mono" style="font-size:9px;letter-spacing:.12em;color:#8a7350">{v.drGenreName} ·</span>
       <span style="font-size:21px;font-weight:700;letter-spacing:-.01em">{v.drTplName}</span>
       <span class="mono" style="font-size:8px;letter-spacing:.14em;color:#fff;background:#3f6b5f;padding:3px 8px;border-radius:9px">HOW IT'S BUILT</span>
     </div>
@@ -85,6 +99,11 @@
     <div style="display:flex;gap:10px;background:#efe2c8;border-left:3px solid #3f6b5f;border-radius:0 8px 8px 0;padding:12px 14px;max-width:560px">
       <span class="mono" style="font-size:11px;color:#3f6b5f;flex:none">★</span>
       <span class="caption" style="font-size:14px;color:#4a3d29;line-height:1.5">{v.drLayerWhy}</span>
+    </div>
+    <!-- how to translate the grid into a groovebox / DAW -->
+    <div data-testid="drum-maschine" style="display:flex;gap:10px;background:#f3ead4;border:1px solid #e0cfae;border-radius:8px;padding:12px 14px;max-width:620px;margin-top:12px">
+      <span class="mono" style="font-size:8px;letter-spacing:.14em;color:#fff;background:#c2562e;padding:3px 7px;border-radius:9px;height:fit-content;flex:none">IN THE BOX</span>
+      <span class="caption" style="font-size:13.5px;color:#4a3d29;line-height:1.5">{v.drGenreMaschine}</span>
     </div>
     <div class="caption" style="font-size:12.5px;color:#8a7350;margin-top:12px;max-width:560px">Want the theory behind these patterns — backbeat, clave, swing, ghost notes? It's all in <b>Learn → Rhythm &amp; Drums</b>. And ▶ PLAY here is the same transport as the Workshop's: if a progression is loaded, the chords lock to this beat — one band, one clock, one tempo.</div>
   </div>

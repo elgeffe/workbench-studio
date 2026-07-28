@@ -5,6 +5,16 @@
 // anchor the kick, answer with the backbeat, fill the subdivision, then add
 // the syncopation and ghosts that make the style.
 
+import { ROCK_POP_PATTERNS } from './patterns/rockpop';
+import { FUNK_SOUL_PATTERNS } from './patterns/funksoul';
+import { HIPHOP_PATTERNS } from './patterns/hiphop';
+import { HOUSE_PATTERNS } from './patterns/house';
+import { TECHNO_PATTERNS } from './patterns/techno';
+import { BREAKS_PATTERNS } from './patterns/breaks';
+import { HARD_PATTERNS } from './patterns/hard';
+import { JAZZ_PATTERNS } from './patterns/jazz';
+import { WORLD_PATTERNS } from './patterns/world';
+
 export type DrumVoiceId = 'ride' | 'ohat' | 'chat' | 'clap' | 'rim' | 'snare' | 'ltom' | 'kick';
 
 export interface DrumVoice {
@@ -45,147 +55,207 @@ export interface DrumLayer {
 
 export interface DrumTemplate {
   id: string;
-  name: string;
-  group: string;  // template family for the picker
+  name: string;   // the *variation* name inside its genre ("Half-time", "Liquid roller")
+  genre: string;  // DrumGenre id — the picker is genre first, variation second
   bpm: number;    // authentic tempo for the style
   swing: number;  // 50 = straight … 75 = hard shuffle (percent of the beat-pair)
-  tip: string;    // what defines the style, read next to the grid
+  tip: string;    // what defines the variation, read next to the grid
   layers: DrumLayer[];
 }
 
-export const DRUM_GROUPS = ['Core', 'Electronic', 'World & Latin', 'Jazz & Shuffle'];
+/**
+ * A genre groups its variations. The picker is dependent: choose a genre, then
+ * one of its patterns. `maschine` is the practical note for programming the
+ * style in a groovebox — the swing/velocity/kit settings the grid can't show.
+ */
+export interface DrumGenre {
+  id: string;
+  name: string;
+  family: string; // shelf label in the genre row
+  blurb: string;  // what defines the genre's drum programming
+  maschine: string;
+}
+
+export const DRUM_FAMILIES = [
+  'Rock & Pop',
+  'Funk & Soul',
+  'Hip-Hop',
+  'House & Techno',
+  'Bass & Breaks',
+  'Hard Dance',
+  'Jazz & Blues',
+  'World & Latin',
+];
+
+export const DRUM_GENRES: DrumGenre[] = [
+  // ---- Rock & Pop ----
+  {
+    id: 'rock', name: 'Rock', family: 'Rock & Pop',
+    blurb: 'Kick on the strong beats, snare backbeat on 2 & 4, hats keeping the subdivision. Every groove in this box is a variation of that conversation.',
+    maschine: 'Straight 16ths, swing off. Program kick and snare first on separate pads, then hats — and vary hat velocity (accent the quarters) or the loop turns into a machine gun.',
+  },
+  {
+    id: 'metal', name: 'Metal & Punk', family: 'Rock & Pop',
+    blurb: 'Rock with the density turned up: double-kick carpets, blast beats, and half-time breakdowns that cut the backbeat in half for weight.',
+    maschine: 'Fast repeated kicks need velocity variation and a short sample or they flam into mush. Use Note Repeat at 1/16 or 1/32 to play the double-kick runs in live, then quantize.',
+  },
+  {
+    id: 'pop', name: 'Pop', family: 'Rock & Pop',
+    blurb: 'Simplicity engineered for the vocal: one big backbeat sound (clap layered on snare), tight hats, and space where the hook lands.',
+    maschine: 'Layer clap + snare on one pad group for the backbeat, and duck the hats under the vocal. Modern pop lives on sound choice more than on note choice.',
+  },
+  {
+    id: 'disco', name: 'Disco & Boogie', family: 'Rock & Pop',
+    blurb: 'The ancestor of house: four-on-the-floor kick, open hat on every off-beat, and a hi-hat foot that never stops breathing.',
+    maschine: 'Set swing around 54–56% — disco is not dead straight. Open-hat pads should choke the closed hat (same choke group) so the off-beat closes cleanly on the next kick.',
+  },
+  // ---- Funk & Soul ----
+  {
+    id: 'funk', name: 'Funk', family: 'Funk & Soul',
+    blurb: 'The One is law and the grid is 16ths. Backbeat stays rigid while the kick and ghost snares dance around it.',
+    maschine: 'Ghost notes are a velocity story: keep them near 30–45 and the backbeat near 120. Add a touch of swing (54–58%) to grease the 16ths.',
+  },
+  {
+    id: 'soul', name: 'Soul & Motown', family: 'Funk & Soul',
+    blurb: 'Backbeat-first songwriting drums: tambourine on every off-beat, side-stick when the singer is quiet, kick simple enough to sing.',
+    maschine: 'Tambourine/shaker on their own pads with ±10 velocity randomness gives the hand-played feel. Slight swing (54%) is the Motown lift.',
+  },
+  {
+    id: 'neosoul', name: 'Neo-Soul', family: 'Funk & Soul',
+    blurb: 'Funk played sleepy and behind the beat: hats pushed late, snares dragged, the loop feeling almost drunk on purpose.',
+    maschine: 'The whole style is nudging notes off the grid. Program straight, then shift the snare 5–15 ms late and swing the hats 58–62% — do not quantize it back.',
+  },
+  {
+    id: 'gospel', name: 'Gospel', family: 'Funk & Soul',
+    blurb: 'Church pocket: deep backbeat, busy hats, triplet shuffles, and fills that answer the choir instead of filling space.',
+    maschine: 'Gospel triplet feels need swing at 62–66%. Keep the hat pattern dense but quiet — the backbeat should still be the loudest hit in the bar.',
+  },
+  // ---- Hip-Hop ----
+  {
+    id: 'hiphop', name: 'Hip-Hop (boom-bap)', family: 'Hip-Hop',
+    blurb: '"Boom" kick, "bap" snare, sampled-funk skeleton. Sparse by design — the beat is a bed for the voice.',
+    maschine: 'Swing 56–60% is the head-nod. Filter the top off the hats, and let the snare be the loudest thing in the pattern.',
+  },
+  {
+    id: 'trap', name: 'Trap & Drill', family: 'Hip-Hop',
+    blurb: 'Half-time snare on beat 3, sub-808 kick doing the bass line, and hats that roll in 16ths, 32nds and triplets.',
+    maschine: 'Program the 808 on a pitched pad — the kick IS the bassline, so play notes, not just hits. Hat rolls come from Note Repeat with the rate flipped mid-bar.',
+  },
+  {
+    id: 'oldschool', name: 'Old-School & Electro', family: 'Hip-Hop',
+    blurb: 'The 808/909 era: electro syncopation, handclaps on the backbeat, cowbell and rimshot doing the melody work.',
+    maschine: 'This is drum-machine music — use the raw 808/909 kit with no layering, long decay on the kick, and quantize hard. Straightness is the sound.',
+  },
+  // ---- House & Techno ----
+  {
+    id: 'house', name: 'House', family: 'House & Techno',
+    blurb: 'Four-on-the-floor kick, clap on 2 & 4, open hats on every off-beat. The kick is the pulse; everything else decorates it.',
+    maschine: 'Swing 52–56% separates a groove from a grid. Keep the kick loud and short, and sidechain the pads to it — house is a mix technique as much as a pattern.',
+  },
+  {
+    id: 'techhouse', name: 'Tech-House & Minimal', family: 'House & Techno',
+    blurb: 'Reduction as a technique: fewer elements, more groove, everything rolling off the off-beat. Space is the main instrument.',
+    maschine: 'Program less than feels finished, then vary velocity across the loop. Shuffle/swing near 56% plus one percussive tick that moves every bar is the whole trick.',
+  },
+  {
+    id: 'techno', name: 'Techno', family: 'House & Techno',
+    blurb: 'Machine time: straight kick, relentless 16th hats, minimal backbeat, and texture instead of melody.',
+    maschine: 'Swing off (50%). Length and decay do the work — shorten the kick tail to make room for the sub, and let one long open hat blur the off-beat.',
+  },
+  {
+    id: 'trance', name: 'Trance & Big-Room', family: 'House & Techno',
+    blurb: 'Four-on-the-floor built for the drop: rolling off-beat bass, snare rolls that lift into the break, huge open hats.',
+    maschine: 'Build a 16-bar arrangement, not a bar. The snare roll (16ths accelerating into 32nds) is programmed with Note Repeat rate changes over the last two bars.',
+  },
+  // ---- Bass & Breaks ----
+  {
+    id: 'dnb', name: 'Drum & Bass', family: 'Bass & Breaks',
+    blurb: 'Two-step at 170+: kick on 1 and the "and of 3", snare on 2 & 4. Space at speed is what makes it roll.',
+    maschine: 'Set the project to 172 and program at 16ths — the pattern looks sparse because it is. Ghost snares at low velocity make it "roll" instead of stomp.',
+  },
+  {
+    id: 'jungle', name: 'Jungle', family: 'Bass & Breaks',
+    blurb: 'Chopped breakbeats, not programmed kits: the Amen and Think breaks resliced so the original ghost notes survive.',
+    maschine: 'Slice a break across 16 pads, then play the slices out of order — that is jungle. The grid below shows the target rhythm to aim your slices at.',
+  },
+  {
+    id: 'garage', name: 'UK Garage', family: 'Bass & Breaks',
+    blurb: 'Shuffled 2-step: the kick skips beat 3, the snare lands on 2 & 4, and every hat is swung hard.',
+    maschine: 'Swing 60–66% — garage is the swing setting. Program the shuffle first with hats alone, and only then place the kick against it.',
+  },
+  {
+    id: 'dubstep', name: 'Dubstep & Grime', family: 'Bass & Breaks',
+    blurb: '140 BPM played half-time: snare on beat 3 only, sub-heavy kick, and sparse percussion holding a huge amount of space.',
+    maschine: 'Same tempo as trap, different attitude. Leave whole beats empty and let the bass patch carry the rhythm.',
+  },
+  {
+    id: 'breaks', name: 'Breakbeat & Bruk', family: 'Bass & Breaks',
+    blurb: 'Anything built on a broken (non-four-to-the-floor) kick: big beat, rave hardcore, broken beat.',
+    maschine: 'Displace the kick off the strong beats and keep the snare anchored — the tension between them is the genre. Try nudging one kick a 16th late.',
+  },
+  // ---- Hard Dance ----
+  {
+    id: 'hardstyle', name: 'Hardstyle', family: 'Hard Dance',
+    blurb: 'A distorted kick with a pitched tail on every beat, a reverse-bass answer on the off-beats, and a clap that arrives like a snare.',
+    maschine: 'The kick is the instrument: layer a punchy transient with a long pitched-down tail, then distort. The "reverse bass" sits on every off-beat 8th.',
+  },
+  {
+    id: 'hardcore', name: 'Hardcore & Gabber', family: 'Hard Dance',
+    blurb: '160–200 BPM, distorted kicks four to the floor (or faster), breakbeats on top in the UK strains.',
+    maschine: 'Overdrive the kick until it clips, then tune it — gabber kicks are pitched. Keep everything else out of the low end.',
+  },
+  // ---- Jazz & Blues ----
+  {
+    id: 'jazz', name: 'Jazz', family: 'Jazz & Blues',
+    blurb: 'Timekeeping moves up to the ride cymbal, the hat foot chicks 2 & 4, and the snare comments instead of keeping time.',
+    maschine: 'Swing 62–66% and low velocities everywhere. Programmed jazz only works if you vary the ride velocity every hit — perfect repetition kills it.',
+  },
+  {
+    id: 'fusion', name: 'Jazz-Fusion', family: 'Jazz & Blues',
+    blurb: 'Funk 16ths played with jazz phrasing: linear grooves where no two limbs hit together, ghost notes everywhere, ride replacing the hat.',
+    maschine: 'Linear means one voice per step — build the pattern so kick, snare and hat never share a step. It instantly sounds "played" rather than programmed.',
+  },
+  {
+    id: 'blues', name: 'Blues & Shuffle', family: 'Jazz & Blues',
+    blurb: 'Everything in triplets: the shuffle, the half-time shuffle, the train beat. The notes are rock, the feel is not.',
+    maschine: 'Swing 66% is a true triplet. Compare the same pattern at 50% and 66% — that difference is the whole style.',
+  },
+  // ---- World & Latin ----
+  {
+    id: 'latin', name: 'Afro-Cuban & Brazilian', family: 'World & Latin',
+    blurb: 'No backbeat — a clave timeline that every other part must agree with, and a kick that anticipates rather than lands.',
+    maschine: 'Program the clave first on its own pad and never let it move. Everything else is written against it.',
+  },
+  {
+    id: 'afro', name: 'Afrobeat & Amapiano', family: 'World & Latin',
+    blurb: 'Interlocking parts instead of one drummer: bell timelines, log drums, shakers, and a kick that converses rather than pulses.',
+    maschine: 'Give each percussion part its own pad and its own velocity shape. The groove comes from parts weaving, not from any single pattern.',
+  },
+  {
+    id: 'reggae', name: 'Reggae & Dancehall', family: 'World & Latin',
+    blurb: 'Beat 1 is often empty on purpose. Kick and cross-stick move together, and the space is the instrument.',
+    maschine: 'Side-stick (rim) is the signature — quiet, dry, no reverb. A little swing (54–58%) keeps it from sounding stiff.',
+  },
+  {
+    id: 'reggaeton', name: 'Reggaeton & Dembow', family: 'World & Latin',
+    blurb: 'One riddim runs the whole genre: the dembow — kick on the beats, snare on the "a" of each pair. Learn it once and you own the style.',
+    maschine: 'The dembow snare pattern (steps 4, 7, 12, 15 on a 16-grid) is fixed; the variation lives in percussion and 808 movement.',
+  },
+];
+
+export function drumGenres(): DrumGenre[] { return DRUM_GENRES; }
 
 export function drumTemplates(): DrumTemplate[] {
   return [
-    // ---- Core ----
-    {
-      id: 'rock', name: 'Rock', group: 'Core', bpm: 104, swing: 50,
-      tip: 'The mother pattern of pop and rock: kick anchors beats 1 & 3, snare answers on 2 & 4 (the backbeat), hats keep straight 8ths on top. Nearly every groove in this box is a variation of this conversation.',
-      layers: [
-        { name: 'Kick on 1 & 3', why: 'The kick lays the foundation on the strong beats — where you would stomp your foot.', add: [{ v: 'kick', on: [0, 8], acc: [0] }] },
-        { name: 'Backbeat snare', why: 'The snare answers on beats 2 & 4 — the backbeat, where an audience claps. Kick and snare now have a call-and-response.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
-        { name: '8th-note hats', why: 'Closed hats subdivide the bar into straight 8ths — the timekeeping layer that glues kick and snare together.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14] }] },
-        { name: 'The push', why: 'An extra kick on the “and of 3” pushes the groove forward — the first taste of syncopation.', add: [{ v: 'kick', on: [10] }] },
-        { name: 'Ghost 16th', why: 'A quiet snare on the “a of 2” fills the gap before beat 3. Ghost notes are felt more than heard.', add: [{ v: 'snare', on: [7] }] },
-      ],
-    },
-    {
-      id: 'funk', name: 'Funk', group: 'Core', bpm: 96, swing: 54,
-      tip: 'Funk lives on “The One” and the 16th-note grid. The backbeat stays rock solid while kick and ghost snares dance around it in syncopated 16ths. A hair of swing makes it greasy.',
-      layers: [
-        { name: 'The One', why: 'Funk’s law: hit beat 1 hard and everything else can float. One accented kick owns the bar.', add: [{ v: 'kick', on: [0], acc: [0] }] },
-        { name: 'Backbeat snare', why: 'Beats 2 & 4 stay sacred — the anchor the syncopation plays against.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
-        { name: '16th-note hats', why: 'Hats move to 16ths — twice the resolution of rock. Accents on the quarters keep the pulse readable inside the wall of notes.', add: [{ v: 'chat', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 4, 8, 12] }] },
-        { name: 'Syncopated kick', why: 'Kicks on the “and of 2” and the “e of 3” — off the grid of strong beats. This is where funk gets its limp.', add: [{ v: 'kick', on: [6, 9] }] },
-        { name: 'Ghost snares', why: 'Quiet snare taps between the backbeats fill the pocket. Play them at a whisper — they are texture, not statement.', add: [{ v: 'snare', on: [3, 7, 10] }] },
-      ],
-    },
-    {
-      id: 'hiphop', name: 'Hip-hop (boom-bap)', group: 'Core', bpm: 90, swing: 58,
-      tip: '“Boom” (kick) … “bap” (snare): a laid-back sampled-funk skeleton. The swing is heavy — the off-16ths land late, which is the head-nod. Sparse beats leave room for the vocal.',
-      layers: [
-        { name: 'Boom', why: 'Kick on beat 1 and the “and of 3” — the classic boom-bap kick placement, one anchor and one push.', add: [{ v: 'kick', on: [0, 10], acc: [0] }] },
-        { name: 'Bap', why: 'The snare cracks on 2 & 4. In hip-hop the backbeat is the loudest thing in the beat.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
-        { name: 'Swung 8th hats', why: 'Straight-ish 8th hats, but the swing setting drags every off-beat late. Compare swing 50 vs 58 to hear the head-nod appear.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14] }] },
-        { name: 'Kick answer', why: 'A third kick on the “a of 2” answers the first snare — a little stumble that keeps the loop human.', add: [{ v: 'kick', on: [7] }] },
-        { name: 'Last-16th ghost', why: 'A ghost snare on the very last 16th trips into the next bar’s downbeat.', add: [{ v: 'snare', on: [15] }] },
-      ],
-    },
-    {
-      id: 'house', name: 'House', group: 'Electronic', bpm: 124, swing: 52,
-      tip: 'Four-on-the-floor: kick on every beat, clap on 2 & 4, open hats on every off-beat 8th. The kick IS the pulse — everything else decorates it.',
-      layers: [
-        { name: 'Four on the floor', why: 'Kick on all four beats — no call-and-response, just relentless pulse. This one layer already says “house”.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 4, 8, 12] }] },
-        { name: 'Clap backbeat', why: 'The clap keeps the 2-&-4 backbeat idea from funk, layered on top of the four-to-the-floor kick.', add: [{ v: 'clap', on: [4, 12] }] },
-        { name: 'Off-beat open hats', why: 'Open hats on every “and” — the exact opposite of the kick. Kick-hat-kick-hat is the engine of dance music.', add: [{ v: 'ohat', on: [2, 6, 10, 14] }] },
-        { name: 'The skip', why: 'Closed hats on the “a” 16ths add a skipping shuffle between the open hats — a garage/house signature.', add: [{ v: 'chat', on: [3, 7, 11, 15] }] },
-        { name: 'Perc sparkle', why: 'A rim tick on odd 16ths adds ear candy without touching the groove’s skeleton.', add: [{ v: 'rim', on: [5, 13] }] },
-      ],
-    },
-    // ---- Electronic ----
-    {
-      id: 'techno', name: 'Techno', group: 'Electronic', bpm: 132, swing: 50,
-      tip: 'House’s harder sibling: same four-on-the-floor skeleton, faster, straighter (no swing), with 16th hats as a machine texture and minimal snare — often just a clap.',
-      layers: [
-        { name: 'Four on the floor', why: 'The kick pulse again, but faster and dead straight — machine time, no swing.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 4, 8, 12] }] },
-        { name: 'Off-beat open hats', why: 'Open hats answer the kick on every “and”, pumping the off-beat.', add: [{ v: 'ohat', on: [2, 6, 10, 14] }] },
-        { name: '16th hat carpet', why: 'Closed hats on all the in-between 16ths make the relentless texture that defines techno.', add: [{ v: 'chat', on: [1, 3, 5, 7, 9, 11, 13, 15] }] },
-        { name: 'Clap on 2 & 4', why: 'The backbeat survives even here — as a clap buried in the wall of hats.', add: [{ v: 'clap', on: [4, 12] }] },
-        { name: 'Rumble tom', why: 'A low tom on the “a of 3” adds sub-level syncopation — the seed of the techno “rumble”.', add: [{ v: 'ltom', on: [11] }] },
-      ],
-    },
-    {
-      id: 'dnb', name: 'Drum & Bass', group: 'Electronic', bpm: 172, swing: 50,
-      tip: 'The two-step: at 170+ BPM the kick hits 1 and the “and of 3”, snare cracks 2 & 4. Half the density of house at twice the speed — the space is what makes it roll.',
-      layers: [
-        { name: 'Two-step kick', why: 'Kick on beat 1 and the “and of 3” — the two-step skeleton every D&B break reduces to.', add: [{ v: 'kick', on: [0, 10], acc: [0] }] },
-        { name: 'Snare 2 & 4', why: 'The snare stays on 2 & 4. At this tempo that alone sounds frantic — resist adding more.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
-        { name: '8th shuffle hats', why: 'Light 8th hats fill the top end. In a real break these would be the chopped cymbals of the sample.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14] }] },
-        { name: 'Ghost roll', why: 'Ghost snares on the “and of 2” and the final 16th mimic the stumble of the original Amen break.', add: [{ v: 'snare', on: [6, 15] }] },
-      ],
-    },
-    {
-      id: 'trap', name: 'Trap', group: 'Electronic', bpm: 140, swing: 50,
-      tip: 'Half-time: at 140 BPM the snare lands only on beat 3, so the groove feels like 70. Sparse 808 kicks underneath, busy hats on top — including the signature 16th-note roll.',
-      layers: [
-        { name: '808 kicks', why: 'Kick on 1, the “a of 2”, and the “and of 3” — a sparse, syncopated 808 line that doubles as the bass.', add: [{ v: 'kick', on: [0, 7, 10], acc: [0] }] },
-        { name: 'Half-time snare', why: 'One snare, on beat 3. Halving the backbeat makes 140 BPM feel like a slow 70 — the half-time trick.', add: [{ v: 'snare', on: [8], acc: [8] }] },
-        { name: '8th hats', why: 'Straight 8th hats keep the actual tempo audible over the half-time feel.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10] }] },
-        { name: 'The hat roll', why: 'The last beat bursts into 16ths — the trap hat-roll. Producers go further with 32nds and triplets.', add: [{ v: 'chat', on: [12, 13, 14, 15], acc: [12] }] },
-      ],
-    },
-    // ---- World & Latin ----
-    {
-      id: 'clave', name: 'Afro-Cuban (son clave)', group: 'World & Latin', bpm: 105, swing: 50,
-      tip: 'Everything sits on the 3-2 son clave — a two-bar key (here folded into one) that every other part must agree with. There is no backbeat; the clave itself is the timeline.',
-      layers: [
-        { name: '3-2 son clave', why: 'The key pattern: three strikes (“1, and-of-2, 4”) then two (“2, 3” of the next half). Learn to sing this before anything else.', add: [{ v: 'rim', on: [0, 3, 6, 10, 12], acc: [0, 3, 6, 10, 12] }] },
-        { name: 'Tumbao kick', why: 'The kick marks the “bombo” — the and-of-2 — and anticipates the next bar on the last 16th, instead of sitting on the downbeats.', add: [{ v: 'kick', on: [7, 15] }] },
-        { name: 'Cáscara', why: 'The shell-of-the-timbale pattern rides on top, weaving with the clave. Notice how it avoids fighting the clave’s accents.', add: [{ v: 'ride', on: [0, 3, 4, 6, 8, 10, 12, 14] }] },
-        { name: 'Open tones', why: 'Conga open tones (here the low tom) on beat 4 — the warm answer at the end of each cycle.', add: [{ v: 'ltom', on: [12, 14] }] },
-      ],
-    },
-    {
-      id: 'afrobeat', name: 'Afrobeat', group: 'World & Latin', bpm: 108, swing: 50,
-      tip: 'Tony Allen’s kit style: a bell timeline, a sparse conversational kick, and constant quiet 16th chatter. No backbeat wall — every voice is a percolating, interlocking part.',
-      layers: [
-        { name: 'Bell timeline', why: 'Like the clave, a bell pattern is the timeline the whole band locks to. This one leans on the off-beats after the downbeat.', add: [{ v: 'ride', on: [0, 3, 6, 10, 12, 14], acc: [0, 6, 12] }] },
-        { name: 'Talking kick', why: 'The kick converses with the bell — beat 1, the “a of 2”, the “and of 3” — rather than stating a steady pulse.', add: [{ v: 'kick', on: [0, 7, 10] }] },
-        { name: '16th chatter', why: 'Quiet rim taps scattered on off-16ths — the constant undercurrent of an Afrobeat kit.', add: [{ v: 'rim', on: [2, 5, 11, 13] }] },
-        { name: 'Hat glue', why: 'Soft 8th hats bind the interlocking parts into one groove.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14] }] },
-      ],
-    },
-    {
-      id: 'reggae', name: 'Reggae (one drop)', group: 'World & Latin', bpm: 76, swing: 56,
-      tip: 'The one drop: beat 1 is EMPTY — kick and cross-stick land together on beat 3 instead. Dropping the downbeat turns the whole groove inside-out; the space is the point.',
-      layers: [
-        { name: 'The drop', why: 'Kick and side-stick strike together on beat 3 — and nothing at all on beat 1. That missing downbeat is the “one drop”.', add: [{ v: 'kick', on: [8], acc: [8] }, { v: 'rim', on: [8], acc: [8] }] },
-        { name: '8th hats', why: 'Hats mark straight 8ths with a lean on 2 & 4, where the guitar skank lives.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12] }] },
-        { name: 'Open-hat lift', why: 'An open hat on the last “and” lifts the bar into the next one.', add: [{ v: 'ohat', on: [14] }] },
-        { name: 'Stick chatter', why: 'Sparse side-stick ghosts before the drop — quiet rolls that decorate the space beat 1 left behind.', add: [{ v: 'rim', on: [5, 7] }] },
-      ],
-    },
-    // ---- Jazz & Shuffle ----
-    {
-      id: 'swing', name: 'Jazz Swing', group: 'Jazz & Shuffle', bpm: 138, swing: 66,
-      tip: 'Timekeeping moves UP to the ride cymbal: “ding … ding-ga-ding”. The hat pedal chicks on 2 & 4, the kick “feathers” barely audibly, and the snare only comments. Swing at ~66 makes the 8ths triplet-shaped.',
-      layers: [
-        { name: 'Ride pattern', why: 'The classic ride: quarter pulse plus the skip note after beats 2 & 4 — “ding, ding-ga-ding”. With swing at 66 the skip lands on the triplet.', add: [{ v: 'ride', on: [0, 4, 6, 8, 12, 14], acc: [4, 12] }] },
-        { name: 'Hat on 2 & 4', why: 'The hi-hat foot chicks on 2 & 4 — jazz’s whispered backbeat.', add: [{ v: 'chat', on: [4, 12] }] },
-        { name: 'Feathered kick', why: 'The kick brushes all four beats so quietly it is felt, not heard — “feathering”.', add: [{ v: 'kick', on: [0, 4, 8, 12] }] },
-        { name: 'Snare comping', why: 'The snare drops sparse off-beat accents — comping, a conversation with the soloist rather than a fixed part.', add: [{ v: 'snare', on: [6, 11] }] },
-      ],
-    },
-    {
-      id: 'shuffle', name: 'Shuffle Blues', group: 'Jazz & Shuffle', bpm: 112, swing: 66,
-      tip: 'A rock beat poured into triplets: same kick-and-backbeat skeleton, but every 8th is swung hard (66 = true triplet). Toggle swing back to 50 and it stiffens into rock — that difference IS the shuffle.',
-      layers: [
-        { name: 'Kick pulse', why: 'Kick on all four beats keeps the dance floor moving — common in Chicago-style shuffles.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 8] }] },
-        { name: 'Backbeat snare', why: 'Snare cracks 2 & 4, exactly like rock — the skeleton doesn’t change, only the feel.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
-        { name: 'Shuffled 8ths', why: 'Hats play 8ths, but the swing drags every off-beat onto the last triplet: “doo-DAT doo-DAT”. This layer carries the shuffle.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12], acc: [0, 4, 8, 12] }] },
-        { name: 'Open-hat turn', why: 'An open hat takes over the “and of 4”, turning the bar around into the next chorus.', add: [{ v: 'ohat', on: [14] }] },
-      ],
-    },
+    ...ROCK_POP_PATTERNS,
+    ...FUNK_SOUL_PATTERNS,
+    ...HIPHOP_PATTERNS,
+    ...HOUSE_PATTERNS,
+    ...TECHNO_PATTERNS,
+    ...BREAKS_PATTERNS,
+    ...HARD_PATTERNS,
+    ...JAZZ_PATTERNS,
+    ...WORLD_PATTERNS,
   ];
 }
 
@@ -279,6 +349,21 @@ export const RHYTHM_CONCEPTS: RhythmConcept[] = [
     id: 'swingfeel', name: 'Swing & Shuffle', tag: 'FEEL', bpm: 112, swing: 66,
     text: 'Swing keeps the same notes but bends time: each pair of 8ths is played long-short (roughly a triplet — “doo-DAT”) instead of even. 50% is straight, 66% a true triplet shuffle, 75% a hard dotted skip. It is a feel, not a pattern — the demo is the rock beat from the Backbeat lesson with its 8ths swung to 66%. In the groovebox, drag the SWING slider on any pattern to morph it yourself.',
     demo: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 8] }, { v: 'snare', on: [4, 12], acc: [4, 12] }, { v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14], acc: [0, 4, 8, 12] }],
+  },
+  {
+    id: 'tresillo', name: 'The Tresillo (3+3+2)', tag: 'TIMELINE', bpm: 110, swing: 50,
+    text: 'Split 8 sixteenths as 3+3+2 instead of 4+4 and you get the tresillo: hits on 1, the “and of 2” and beat 4. It is the single most widespread rhythmic cell on earth — electro, reggaeton, dancehall, Afrobeats, trap 808 lines and Latin bass tumbaos are all built from it. Once you hear it you cannot unhear it; program it on a kick and half of modern music opens up.',
+    demo: [{ v: 'kick', on: [0, 6, 12], acc: [0] }, { v: 'rim', on: [0, 3, 6, 10, 12] }, { v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14] }],
+  },
+  {
+    id: 'linear', name: 'Linear Grooves', tag: 'PROGRAMMING', bpm: 104, swing: 52,
+    text: 'A linear groove never lets two voices hit on the same step — kick, snare and hat pass a single 16th line between them. Nothing stacks, so nothing sounds like a machine playing chords of drums. If your programmed beats sound stiff, rebuild one linearly: it is the fastest route from “sequenced” to “played”. The demo is one continuous 16th line shared by three drums.',
+    demo: [{ v: 'kick', on: [0, 3, 10], acc: [0] }, { v: 'snare', on: [4, 7, 12, 15], acc: [4, 12] }, { v: 'chat', on: [1, 2, 5, 6, 8, 9, 11, 13, 14] }],
+  },
+  {
+    id: 'velocity', name: 'Velocity & Dynamics', tag: 'PROGRAMMING', bpm: 96, swing: 56,
+    text: 'The step grid tells you WHERE; velocity tells you whether it grooves. A useful three-tier habit: accents (backbeat, downbeat) near 120, normal hits near 90, ghost notes near 35. Programming every note at the same level is the number-one reason a pattern sounds mechanical. In this box, tapping a cell twice makes it an ACCENT — the demo alternates loud and quiet snares so you can hear the difference the levels alone make.',
+    demo: [{ v: 'kick', on: [0, 10], acc: [0] }, { v: 'snare', on: [3, 4, 7, 11, 12, 15], acc: [4, 12] }, { v: 'chat', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 4, 8, 12] }],
   },
   {
     id: 'halftime', name: 'Half-time & Density', tag: 'PERCEPTION', bpm: 140, swing: 50,

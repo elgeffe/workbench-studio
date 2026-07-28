@@ -28,7 +28,10 @@ src/
       data.ts          Genres, pattern library, the Learn-mode jazz curriculum
       fretpatterns.ts  Fretboard diagram library (scale boxes, chord grips)
       bass.ts          Bassline grooves, degree resolution, walking tricks
-      drums.ts         Drum templates, grid composition, swing, rhythm concepts
+      drums.ts         Drum genres, grid composition, swing, rhythm concepts
+      patterns/        The groove library: 117 layered patterns across 29 genres
+                       (rockpop, funksoul, hiphop, house, techno, breaks, hard,
+                       jazz, world)
       ear.ts           Ear-training question generator
       reading.ts       Sight-reading drills: staff geometry, key signatures, targets
     view/              Pure view-model builders (state in → render props out)
@@ -38,7 +41,7 @@ src/
       instruments.ts   Fretboard + piano lighting and the jazz finger overlay
       workshop.ts      Palettes, progression strip, explore panel, bass workbench
       patterns.ts      Pattern library, chord shapes, fret-diagram tabs
-      drums.ts         Groovebox grid, template chips, layer stepper
+      drums.ts         Groovebox grid, genre → pattern picker, layer stepper
       learn.ts         Jazz curriculum, rhythm concepts, song-structure timelines
       practice.ts      Ear-training and sight-reading views
     metronome/         Practice metronome (ported from Metrognome): look-ahead
@@ -89,6 +92,14 @@ automatically; the live URL appears in the workflow's `deploy` job summary.
 - **Workshop** — build progressions in Classic, Jazz, or Classical palettes; explore any
   placed chord (extensions, inversions, secondary dominants, ii–V insertion, tritone
   subs); play them back with tempo/voicing control.
+- **Drums** — a 16-step groovebox with a dependent **genre → pattern** picker: 117 grooves
+  across 29 genres (rock, metal, pop, disco, funk, soul, neo-soul, gospel, boom-bap, trap,
+  electro, house, tech-house, techno, trance, D&B, jungle, garage, dubstep, breaks,
+  hardstyle, hardcore, jazz, fusion, blues, Latin, Afrobeat, reggae, reggaeton). Every
+  pattern is authored as ordered *layers*, so the LAYERS chips rebuild the groove one part
+  at a time and explain what each adds; each genre also carries a note on programming it in
+  a groovebox (swing, velocity, kit choices). Cells are editable (rest → hit → accent) and
+  the transport is shared with the Workshop.
 - **Metronome** — a full practice metronome (ported from the standalone Metrognome app):
   sample-accurate Web Audio click with tap tempo, time signatures, subdivisions and accents;
   tempo automation for rhythm drills (step trainer, smooth ramps by time or bars, gap-click

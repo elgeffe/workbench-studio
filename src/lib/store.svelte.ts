@@ -601,6 +601,11 @@ export class WorkbenchStore {
     const tpls = drumTemplates();
     return tpls.find((t) => t.id === this.drTplId) || tpls[0];
   }
+  /** Pick a genre: loads its first variation (the picker is genre → pattern). */
+  setDrumGenre(id: string): void {
+    const first = drumTemplates().find((t) => t.genre === id);
+    if (first) this.setDrumTpl(first.id);
+  }
   setDrumTpl(id: string): void {
     const tpl = drumTemplates().find((t) => t.id === id);
     if (!tpl) return;

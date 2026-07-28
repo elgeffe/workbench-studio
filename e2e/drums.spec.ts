@@ -9,21 +9,39 @@ test.describe('drums groovebox', () => {
     await expect(page.getByTestId('drum-grid')).toBeVisible();
   });
 
-  test('loads a genre template with its tempo, swing and layer chips', async ({ page }) => {
-    // default template is Rock at its authentic tempo
+  test('genre → pattern is a dependent selection', async ({ page }) => {
+    // default is Rock / Straight 8ths at its authentic tempo
     await expect(page.getByText('TEMPO · 104 BPM')).toBeVisible();
-    // pick Jazz Swing — tempo and swing follow the template
-    await page.getByText('Jazz Swing', { exact: false }).first().click();
+    const variations = page.getByTestId('drum-variations');
+    await expect(variations.getByText('Straight 8ths')).toBeVisible();
+    await expect(variations.getByText('Motorik / driving')).toBeVisible();
+    // rock variations are not jazz variations
+    await expect(variations.getByText('Medium swing')).toBeHidden();
+
+    // switching genre swaps the whole variation row and loads the first pattern
+    await page.getByTestId('drum-genres').getByRole('button', { name: /^Jazz\s+\d+$/ }).click();
+    await expect(variations.getByText('Medium swing')).toBeVisible();
+    await expect(variations.getByText('Brushes ballad')).toBeVisible();
+    await expect(variations.getByText('Straight 8ths')).toBeHidden();
     await expect(page.getByText('TEMPO · 138 BPM')).toBeVisible();
     await expect(page.getByText(/SWING · 66%/)).toBeVisible();
-    // its build-up layers appear
+
+    // and picking another variation inside the genre re-tempos the transport
+    await variations.getByText('Up-tempo bebop').click();
+    await expect(page.getByText('TEMPO · 190 BPM')).toBeVisible();
     const layers = page.getByTestId('drum-layers');
-    await expect(layers.getByText(/Ride pattern/)).toBeVisible();
-    await expect(layers.getByText(/Feathered kick/)).toBeVisible();
+    await expect(layers.getByText(/Bomb drops/)).toBeVisible();
+  });
+
+  test('every genre carries its own programming note', async ({ page }) => {
+    await expect(page.getByTestId('drum-maschine')).toContainText(/velocity|swing|pads?/i);
+    await page.getByTestId('drum-genres').getByText('Trap & Drill').click();
+    await expect(page.getByTestId('drum-maschine')).toContainText('808');
+    await expect(page.getByTestId('drum-variations').getByText('Drill')).toBeVisible();
   });
 
   test('layer chips rebuild the groove up to that point', async ({ page }) => {
-    // Rock layer 1 explanation vs layer 2's
+    // Rock / Straight 8ths: layer 1 explanation vs layer 2's
     await page.getByTestId('drum-layers').getByText(/Kick on 1 & 3/).click();
     await expect(page.getByText(/lays the foundation on the strong beats/)).toBeVisible();
     await page.getByTestId('drum-layers').getByText(/Backbeat snare/).click();
