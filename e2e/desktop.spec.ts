@@ -53,7 +53,14 @@ test.describe('desktop layout', () => {
   test('workshop: loading a starting point fills the progression', async ({ page }) => {
     await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'workshop' }).click();
     await expect(page.getByText(/Empty — load a starting point/)).toBeVisible();
-    await page.getByText('12-Bar Blues').first().click();
+    // the starting-point shelves open in a modal so they don't bury the strip
+    await page.getByTestId('ws-picker-summary').click();
+    const picker = page.getByTestId('ws-picker');
+    await expect(picker).toBeVisible();
+    await picker.getByRole('button', { name: /^Blues & Shuffle\s+\d+$/ }).click();
+    await picker.getByText('12-Bar Blues').click();
+    // picking a progression closes the picker behind you
+    await expect(picker).toBeHidden();
     await expect(page.getByText(/Empty — load a starting point/)).toBeHidden();
     // the blues progression places I7 chords into the strip
     await expect(page.getByText('I7').first()).toBeVisible();

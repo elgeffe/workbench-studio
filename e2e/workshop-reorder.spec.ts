@@ -5,7 +5,10 @@ test.use({ viewport: { width: 1280, height: 900 }, hasTouch: true });
 async function loadProgression(page: Page): Promise<Locator> {
   await page.goto('/');
   await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'workshop' }).click();
-  await page.getByText('12-Bar Blues').first().click();
+  // starting points live behind the genre picker now
+  await page.getByTestId('ws-picker-summary').click();
+  await page.getByTestId('ws-picker').getByRole('button', { name: /^Blues & Shuffle\s+\d+$/ }).click();
+  await page.getByTestId('ws-picker').getByText('12-Bar Blues').click();
   const cells = page.locator('[data-chip]');
   await expect(cells.first()).toBeVisible();
   return cells;

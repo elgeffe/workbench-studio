@@ -25,9 +25,15 @@ src/
     engine/            Pure, framework-agnostic music theory (unit-tested)
       constants.ts     Note names, scales, chord tables, functional-harmony colours
       theory.ts        Spelling, diatonic generation, substitutions, voicings, inversions
-      data.ts          Genres, pattern library, the Learn-mode jazz curriculum
+      genres.ts        THE shared genre taxonomy: 8 families, 31 genres. Drums,
+                       basslines and progressions all shelve off this one list,
+                       so a genre means the same thing in every tab.
+      data.ts          Progression library (119 across the 31 genres), the
+                       pattern library, the Learn-mode jazz curriculum
       fretpatterns.ts  Fretboard diagram library (scale boxes, chord grips)
-      bass.ts          Bassline grooves, degree resolution, walking tricks
+      bass.ts          Degree resolution, walking tricks, the bassline index
+      basslines/       The bassline library: 119 grooves across 31 genres
+                       (rockpop, funksoul, hiphop, house, breaks, hard, jazz, world)
       kit.ts           The instrument table: one entry per drum voice, carrying
                        its row metadata AND its synthesis recipe (noise/tone
                        layers). Add an instrument by adding an entry — the id
@@ -46,6 +52,7 @@ src/
       workshop.ts      Palettes, progression strip, explore panel, bass workbench
       patterns.ts      Pattern library, chord shapes, fret-diagram tabs
       drums.ts         Groovebox grid, genre → pattern picker, layer stepper
+      picker.ts        Shelf/chip builders shared by all three genre pickers
       learn.ts         Jazz curriculum, rhythm concepts, song-structure timelines
       practice.ts      Ear-training and sight-reading views
     metronome/         Practice metronome (ported from Metrognome): look-ahead
@@ -93,9 +100,14 @@ automatically; the live URL appears in the workflow's `deploy` job summary.
 
 - **Circle** — circle of fifths/fourths (major or minor view), diatonic chords for the
   current key/scale, with substitutions and a "why it works" readout.
-- **Workshop** — build progressions in Classic, Jazz, or Classical palettes; explore any
+- **Workshop** — build progressions in Classic, Jazz, Classical or Bass palettes; explore any
   placed chord (extensions, inversions, secondary dominants, ii–V insertion, tritone
-  subs); play them back with tempo/voicing control.
+  subs); play them back with tempo/voicing control. Starting points come from the same
+  **genre → template** picker the groovebox uses: 119 progressions across the 31 genres.
+  The **BASS** palette adds 119 basslines over the same shelf — pick a genre and the
+  drum groove, the changes and the bass line all agree on what the style is. Each line is
+  16 degree tokens that transpose themselves through your progression, and you can seed
+  the build-your-own grid from any of them.
 - **Drums** — a 16-step groovebox with a dependent **genre → pattern** picker: 132 grooves
   across 31 genres (rock, metal, pop, disco, funk, soul, neo-soul, gospel, boom-bap, trap,
   electro, house, tech-house, techno, trance, D&B, jungle, garage, dubstep, breaks,
@@ -105,7 +117,9 @@ automatically; the live URL appears in the workflow's `deploy` job summary.
   at a time and explain what each adds; each genre also carries a note on programming it in
   a groovebox (swing, velocity, kit choices). The grid shows only the instruments the
   pattern plays — add any of the 14 kit voices as a new row, or remove one. Cells are
-  editable (rest → hit → accent) and the transport is shared with the Workshop.
+  editable (rest → hit → accent) and the transport is shared with the Workshop. The picker
+  itself lives behind a one-line summary bar and opens as a modal (a full-height sheet on a
+  phone), so the grid — not the genre shelves — owns the top of the page.
 - **Metronome** — a full practice metronome (ported from the standalone Metrognome app):
   sample-accurate Web Audio click with tap tempo, time signatures, subdivisions and accents;
   tempo automation for rhythm drills (step trainer, smooth ramps by time or bars, gap-click

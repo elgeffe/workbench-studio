@@ -1,5 +1,6 @@
 <script lang="ts">
   import { useStore } from '../context';
+  import GenrePicker from './GenrePicker.svelte';
   import type { Chord } from '../engine/constants';
   const store = useStore();
   const v = $derived(store.view);
@@ -181,16 +182,23 @@
 
   <!-- CLASSIC palette -->
   {#if v.wsStyleClassic}
-    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">STARTING POINTS · {v.wsGenreName}</div>
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px">
-      {#each v.wsGenres as g (g.i)}
-        <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.04em;padding:6px 11px;border-radius:6px;border:1px solid {g.border};background:{g.bg};color:{g.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setWsGenre(g.i)} onkeydown={(e) => e.key === 'Enter' && store.setWsGenre(g.i)}>{g.name}</div>
-      {/each}
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px">
-      {#each v.wsPatterns as p, i (i)}
-        <div class="serif click" style="font-size:14px;font-weight:600;padding:7px 13px;border-radius:14px;border:1.5px solid #c2562e;background:#fbeede;color:#2c261d" role="button" tabindex="0" onclick={() => store.setProgression(p.defs)} onkeydown={(e) => e.key === 'Enter' && store.setProgression(p.defs)}>{p.name}</div>
-      {/each}
+    <div style="margin-bottom:16px">
+      <GenrePicker
+        open={v.wsPickerOpen}
+        label="STARTING POINT"
+        summaryGenre={v.wsGenreName}
+        summaryItem={v.wsProgSummary}
+        hint="{v.wsProgCount} across {v.wsGenreCount} genres"
+        shelves={v.wsShelves}
+        items={v.wsPatternChips}
+        itemsLabel="PROGRESSIONS · tap to load"
+        compact={!store.isDesktop}
+        testid="ws-picker"
+        onOpen={() => store.openPicker('progressions')}
+        onClose={() => store.closePicker()}
+        onGenre={(id) => store.setWsGenre(id)}
+        onItem={(i) => store.setProgression(v.wsPatterns[+i].defs, v.wsPatterns[+i].name)}
+      />
     </div>
     <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">DIATONIC · {v.keyName}</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px">
@@ -287,20 +295,27 @@
 
   <!-- BASS palette -->
   {#if v.wsStyleBass}
-    <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">STARTING POINTS · {v.wsGenreName} · load a groove to play under</div>
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px">
-      {#each v.wsGenres as g (g.i)}
-        <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.04em;padding:6px 11px;border-radius:6px;border:1px solid {g.border};background:{g.bg};color:{g.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setWsGenre(g.i)} onkeydown={(e) => e.key === 'Enter' && store.setWsGenre(g.i)}>{g.name}</div>
-      {/each}
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px">
-      {#each v.wsPatterns as p, i (i)}
-        <div class="serif click" style="font-size:14px;font-weight:600;padding:7px 13px;border-radius:14px;border:1.5px solid #c2562e;background:#fbeede;color:#2c261d" role="button" tabindex="0" onclick={() => store.setProgression(p.defs)} onkeydown={(e) => e.key === 'Enter' && store.setProgression(p.defs)}>{p.name}</div>
-      {/each}
+    <div style="margin-bottom:10px">
+      <GenrePicker
+        open={v.wsPickerOpen}
+        label="CHANGES"
+        summaryGenre={v.wsGenreName}
+        summaryItem={v.wsProgSummary}
+        hint="{v.wsProgCount} across {v.wsGenreCount} genres"
+        shelves={v.wsShelves}
+        items={v.wsPatternChips}
+        itemsLabel="PROGRESSIONS · tap to load"
+        compact={!store.isDesktop}
+        testid="ws-picker"
+        onOpen={() => store.openPicker('progressions')}
+        onClose={() => store.closePicker()}
+        onGenre={(id) => store.setWsGenre(id)}
+        onItem={(i) => store.setProgression(v.wsPatterns[+i].defs, v.wsPatterns[+i].name)}
+      />
     </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
-      <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64">THE BASSLINE · {v.bassActiveName} · follows each chord as the loop plays</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64">THE BASSLINE · follows each chord as the loop plays</div>
       <div style="display:flex;align-items:center;gap:7px">
         <span class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350">MIX</span>
         <div style="display:flex;gap:3px;background:#ece0c6;border:1px solid #cbb792;border-radius:7px;padding:2px">
@@ -309,10 +324,23 @@
         </div>
       </div>
     </div>
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px">
-      {#each v.bassGroupChips as g (g.name)}
-        <div class="mono click" style="flex:none;font-size:10px;letter-spacing:.04em;padding:6px 11px;border-radius:6px;border:1px solid {g.border};background:{g.bg};color:{g.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setBassGroup(g.name)} onkeydown={(e) => e.key === 'Enter' && store.setBassGroup(g.name)}>{g.name}</div>
-      {/each}
+    <div style="margin-bottom:10px">
+      <GenrePicker
+        open={v.bassPickerOpen}
+        label="GROOVE"
+        summaryGenre={v.bassGenreName}
+        summaryItem={v.bassActiveName}
+        hint="{v.bassCount} basslines · {v.bassGenreTotal} genres"
+        shelves={v.bassShelves}
+        items={v.bassGenreChips}
+        itemsLabel="BASSLINES"
+        compact={!store.isDesktop}
+        testid="bass-picker"
+        onOpen={() => store.openPicker('bass')}
+        onClose={() => store.closePicker()}
+        onGenre={(id) => store.setBassGenre(id)}
+        onItem={(id) => store.setBassPat(id)}
+      />
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
       {#each v.bassPats as p (p.id)}

@@ -8,9 +8,11 @@ import {
 import { spell, cname, gI, gPcs, subsFor, colorChordDefs, jzNotes, jFamily, invChord } from '../engine/theory';
 import { genreDefs, quickProgDefs, cadenceDefs, classicalProgDefs, jzBorrowDefs, jzSecondaryDefs } from '../engine/data';
 import {
-  BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS, BASS_ROLE_META, BASS_TOK_LABEL,
-  bassRole, type BassStep, type BassRole,
+  BASS_PATTERNS, BASS_TRICKS, BASS_ROLE_META, BASS_TOK_LABEL,
+  bassRole, bassPatternsIn, type BassStep, type BassRole,
 } from '../engine/bass';
+import { genreById } from '../engine/genres';
+import { genreShelves, itemChips } from './picker';
 import type { WorkbenchStore } from '../store.svelte';
 import type { ChordChip, PaletteChip } from './types';
 
@@ -18,12 +20,23 @@ export function buildWorkshop(s: WorkbenchStore) {
   const t = s.tonicPc;
   const ac = s.activeChord;
 
-  // workshop genres
+  // Workshop starting points: the same family → genre shelf the drum machine
+  // and the bass workbench use, then the progressions inside the chosen genre.
   const GEN = genreDefs();
-  const gi = Math.min(s.wsGenre || 0, GEN.length - 1);
-  const wsGenres = GEN.map((g, i) => ({ name: g.name, i, border: i === gi ? '#c2562e' : '#cbb792', bg: i === gi ? '#c2562e' : '#f6efe0', fg: i === gi ? '#fff' : '#5c4a30' }));
-  const wsGenreName = GEN[gi].name;
-  const wsPatterns = GEN[gi].items.map((p) => ({ name: p.name, defs: p.chords }));
+  const wsGenreId = GEN.some((g) => g.genre === s.wsGenre) ? s.wsGenre : GEN[0].genre;
+  const wsGenreName = genreById(wsGenreId).name;
+  const wsShelves = genreShelves(
+    GEN.flatMap((g) => g.items.map((p) => ({ genre: g.genre, p }))),
+    (x) => x.genre,
+    wsGenreId,
+  );
+  const wsPatterns = (GEN.find((g) => g.genre === wsGenreId)?.items || []).map((p) => ({ name: p.name, defs: p.chords, tempo: p.tempo }));
+  const wsPatternChips = itemChips(
+    wsPatterns.map((p, i) => ({ id: String(i), ...p })),
+    wsPatterns.findIndex((p) => p.name === s.wsProgName) >= 0 ? String(wsPatterns.findIndex((p) => p.name === s.wsProgName)) : null,
+    (p) => ({ name: p.name, meta: p.tempo ? String(p.tempo) : undefined }),
+  );
+  const wsProgCount = GEN.reduce((n, g) => n + g.items.length, 0);
 
   // color chords
   const colorChords: PaletteChip[] = colorChordDefs(t).map((c) => {
@@ -71,8 +84,10 @@ export function buildWorkshop(s: WorkbenchStore) {
   const clProgs = classicalProgDefs.map((p) => ({ name: p.name, defs: p.defs }));
 
   // bass workbench palette
-  const bassGroupChips = BASS_GROUPS.map((g) => ({ name: g, border: g === s.bassGroup ? '#3f6b5f' : '#cbb792', bg: g === s.bassGroup ? '#3f6b5f' : '#f6efe0', fg: g === s.bassGroup ? '#fff' : '#5c4a30' }));
-  const bassPats = BASS_PATTERNS.filter((p) => p.group === s.bassGroup).map((p) => {
+  const bassShelves = genreShelves(BASS_PATTERNS, (p) => p.genre, s.bassGenre);
+  const bassInGenre = bassPatternsIn(s.bassGenre);
+  const bassGenreChips = itemChips(bassInGenre, s.bassPatId, (p) => ({ name: p.name }));
+  const bassPats = bassInGenre.map((p) => {
     const sel = p.id === s.bassPatId;
     // 16 cells, one per 16th: coloured by the note's role in the line, a
     // grey × for ghosts, faint for rests (downbeats slightly darker).
@@ -96,7 +111,7 @@ export function buildWorkshop(s: WorkbenchStore) {
     return { label: cell.g ? '×' : BASS_TOK_LABEL[cell.d!], bg: color, fg: '#fff' };
   });
   const bassCustomEmpty = s.bassCustom.every((c) => !c);
-  const bassSeedChips = BASS_PATTERNS.filter((p) => p.group === s.bassGroup).map((p) => ({ id: p.id, name: p.name }));
+  const bassSeedChips = bassInGenre.map((p) => ({ id: p.id, name: p.name }));
 
   // explore selected
   let exploreOpen = false, selName = '', selRoman = '', showIIV = false, showV = false;
@@ -134,11 +149,18 @@ export function buildWorkshop(s: WorkbenchStore) {
   }
 
   return {
-    wsGenres, wsPatterns, wsGenreName, colorChords, subs,
+    wsShelves, wsPatterns, wsPatternChips, wsGenreName, wsProgCount,
+    // What the summary bar says is loaded: the starting point's name once one
+    // has been picked, otherwise how many this genre's shelf holds.
+    wsProgSummary: s.wsProgName || `${wsPatterns.length} to choose from`,
+    wsGenreCount: GEN.length, colorChords, subs,
+    wsPickerOpen: s.picker === 'progressions', bassPickerOpen: s.picker === 'bass',
     jzChangesView, jzEmpty: s.jzChanges.length === 0,
     jzDia, jzBorrow, jzSecondary, quickProgs,
     clDia, cadences, clProgs,
-    bassGroupChips, bassPats, bassLegend, bassTricks,
+    bassShelves, bassGenreChips, bassPats, bassLegend, bassTricks,
+    bassGenreName: genreById(s.bassGenre).name, bassCount: BASS_PATTERNS.length,
+    bassGenreTotal: new Set(BASS_PATTERNS.map((p) => p.genre)).size,
     bassCustomCells, bassCustomSelected, bassCustomEmpty, bassSeedChips,
     bassActiveName: bassActive ? bassActive.name : bassCustomSelected ? 'Custom line' : 'none',
     exploreOpen, selName, selRoman, extChips, invChips, showIIV, showV, buildSubs,

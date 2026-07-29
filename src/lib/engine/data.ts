@@ -23,80 +23,221 @@ export interface Preset {
   chords: ChordDef[];
 }
 
-export interface Genre {
-  name: string;
+/**
+ * Progressions are shelved on the studio's shared genre taxonomy
+ * (engine/genres.ts) — the same shelf the drum machine and the bass workbench
+ * use — so "Neo-Soul" means the same thing in all three, and a groove, a
+ * bassline and a set of changes can be loaded as one band.
+ */
+export interface GenreProgs {
+  genre: string; // StudioGenre id
   items: Preset[];
 }
 
-export function genreDefs(): Genre[] {
+export function genreDefs(): GenreProgs[] {
   return [
-    { name: 'Blues', items: [
-      { name: '12-Bar Blues', tempo: 104, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'dom7', roman: 'I7' }] },
-      { name: 'Quick-Change', tempo: 108, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
-      { name: 'Minor Blues', tempo: 92, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+    // ---------------------------------------------------------- Rock & Pop ----
+    { genre: 'rock', items: [
+      { name: 'Power I–IV–V', tempo: 140, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 0, q: 'maj', roman: 'I' }] },
+      { name: 'Mixolydian I–♭VII–IV', tempo: 124, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 10, q: 'maj', roman: '♭VII' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }] },
+      { name: 'Anthem vi–IV–I–V', tempo: 128, chords: [{ iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+      { name: 'Lydian Vamp', tempo: 132, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'maj', roman: 'II' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'maj', roman: 'II' }] },
     ] },
-    { name: 'Jazz', items: [
-      { name: 'ii–V–I', tempo: 120, chords: [{ iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }] },
-      { name: 'I–vi–ii–V Turnaround', tempo: 132, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
-      { name: 'Bossa Nova', tempo: 128, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }] },
+    { genre: 'metal', items: [
+      { name: 'Phrygian i–♭II', tempo: 150, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 1, q: 'maj', roman: '♭II', fn: 'S' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 1, q: 'maj', roman: '♭II', fn: 'S' }] },
+      { name: 'Riff Minor i–♭VI–♭VII', tempo: 160, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }] },
+      { name: 'Punk I–IV–V–IV', tempo: 180, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
+      { name: 'Neoclassical i–♭VI–V', tempo: 144, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }] },
     ] },
-    { name: 'Pop', items: [
+    { genre: 'pop', items: [
       { name: 'Axis I–V–vi–IV', tempo: 100, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
       { name: 'Doo-Wop I–vi–IV–V', tempo: 92, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
       { name: 'vi–IV–I–V', tempo: 104, chords: [{ iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+      { name: 'Ballad I–iii–vi–IV', tempo: 86, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 4, q: 'min', roman: 'iii' }, { iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
     ] },
-    { name: 'Rock', items: [
-      { name: 'Mixolydian I–♭VII–IV', tempo: 124, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 10, q: 'maj', roman: '♭VII' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }] },
-      { name: 'Lydian Vamp', tempo: 132, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'maj', roman: 'II' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'maj', roman: 'II' }] },
-      { name: 'Power I–IV–V', tempo: 140, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 0, q: 'maj', roman: 'I' }] },
-    ] },
-    { name: 'Funk', items: [
-      { name: 'One-Chord I9 (James Brown)', tempo: 104, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
-      { name: 'Dorian Funk i9–IV9', tempo: 100, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
-      { name: 'Funk Vamp i7–IV7', tempo: 108, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }] },
-      { name: 'P-Funk i7–♭VII9', tempo: 96, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }] },
-    ] },
-    { name: 'Soul', items: [
-      { name: 'Soul I–iii–IV–V', tempo: 96, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 4, q: 'min', roman: 'iii' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
-      { name: 'Sweet Soul I–IV (My Girl)', tempo: 102, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
-      { name: 'Southern Soul I–III7–IV–II7', tempo: 104, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 4, q: 'dom7', roman: 'III7', fn: 'D' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 2, q: 'dom7', roman: 'II7', fn: 'D' }] },
-      { name: 'Motown I7–IV7–V7', tempo: 112, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'dom7', roman: 'I7' }] },
-    ] },
-    { name: 'Neo-Soul', items: [
-      { name: 'Neo ii9–V13–Imaj9', tempo: 84, chords: [{ iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 7, q: 'dom13', roman: 'V13', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }] },
-      { name: 'Lush Descent IVmaj9–iii7–ii9–Imaj9', tempo: 76, chords: [{ iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }, { iv: 4, q: 'min7', roman: 'iii7' }, { iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }] },
-      { name: 'D’Angelo i9–iv9', tempo: 72, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }] },
-      { name: 'Backdoor Imaj9–♭VII9', tempo: 80, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }] },
-    ] },
-    { name: 'Soul-Jazz', items: [
-      { name: 'Boogaloo I9–IV9', tempo: 106, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }] },
-      { name: 'Organ Blues I9–IV9–V9', tempo: 112, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 7, q: 'dom9', roman: 'V9', fn: 'D' }] },
-      { name: 'Gospel-Jazz I–IV–I–V7sus', tempo: 76, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'dom7sus', roman: 'V7sus', fn: 'D' }] },
-      { name: 'Boogaloo Turnaround I7–IV7–♭VI7–V7', tempo: 128, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 8, q: 'dom7', roman: '♭VI7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
-    ] },
-    { name: 'Jazz-Funk', items: [
-      { name: 'Crossover Vamp i9–IV13', tempo: 104, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }] },
-      { name: 'Crossover Lift ♭VImaj9–♭VII13–i9', tempo: 98, chords: [{ iv: 8, q: 'maj9', roman: '♭VImaj9', fn: 'S' }, { iv: 10, q: 'dom13', roman: '♭VII13', fn: 'D' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }] },
-      { name: 'Sunshine Vamp Imaj9–IVmaj9', tempo: 88, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }, { iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }] },
-      { name: 'Modal Climb i11–♭IIImaj9–IV13', tempo: 116, chords: [{ iv: 0, q: 'min11', roman: 'i11' }, { iv: 3, q: 'maj9', roman: '♭IIImaj9' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }, { iv: 0, q: 'min11', roman: 'i11' }] },
-    ] },
-    { name: 'Jazz Fusion', items: [
-      { name: 'Headhunters i7–IV7', tempo: 96, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }] },
-      { name: 'Sus Voyage I7sus–♭III7sus', tempo: 104, chords: [{ iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }] },
-      { name: 'Cantaloupe i7–♭VI7–vi7', tempo: 112, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 8, q: 'dom7', roman: '♭VI7', fn: 'S' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 0, q: 'min7', roman: 'i7' }] },
-      { name: '80s Fusion i11–♭VIImaj7', tempo: 100, chords: [{ iv: 0, q: 'min11', roman: 'i11' }, { iv: 10, q: 'maj7', roman: '♭VIImaj7', fn: 'S' }, { iv: 0, q: 'min11', roman: 'i11' }, { iv: 10, q: 'maj7', roman: '♭VIImaj7', fn: 'S' }] },
-    ] },
-    { name: 'Disco', items: [
+    { genre: 'disco', items: [
       { name: 'Four-on-the-Floor i7–♭VII', tempo: 116, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'S' }] },
       { name: 'Survive Circle (full cycle)', tempo: 112, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }, { iv: 10, q: 'dom7', roman: '♭VII7', fn: 'D' }, { iv: 3, q: 'maj7', roman: '♭IIImaj7' }, { iv: 8, q: 'maj7', roman: '♭VImaj7', fn: 'S' }, { iv: 2, q: 'm7b5', roman: 'iiø7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'min7', roman: 'i7' }] },
       { name: 'Chic Groove i7–IV9', tempo: 118, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
       { name: 'Uptown ii7–iii7–IVmaj7', tempo: 114, chords: [{ iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 4, q: 'min7', roman: 'iii7' }, { iv: 5, q: 'maj7', roman: 'IVmaj7', fn: 'S' }, { iv: 4, q: 'min7', roman: 'iii7' }] },
     ] },
-    { name: 'Latin / Flamenco', items: [
+
+    // --------------------------------------------------------- Funk & Soul ----
+    { genre: 'funk', items: [
+      { name: 'One-Chord I9 (James Brown)', tempo: 104, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
+      { name: 'Dorian Funk i9–IV9', tempo: 100, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
+      { name: 'Funk Vamp i7–IV7', tempo: 108, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+      { name: 'P-Funk i7–♭VII9', tempo: 96, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+    ] },
+    { genre: 'soul', items: [
+      { name: 'Soul I–iii–IV–V', tempo: 96, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 4, q: 'min', roman: 'iii' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+      { name: 'Sweet Soul I–IV (My Girl)', tempo: 102, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
+      { name: 'Southern Soul I–III7–IV–II7', tempo: 104, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 4, q: 'dom7', roman: 'III7', fn: 'D' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 2, q: 'dom7', roman: 'II7', fn: 'D' }] },
+      { name: 'Motown I7–IV7–V7', tempo: 112, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'dom7', roman: 'I7' }] },
+    ] },
+    { genre: 'neosoul', items: [
+      { name: 'Neo ii9–V13–Imaj9', tempo: 84, chords: [{ iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 7, q: 'dom13', roman: 'V13', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }] },
+      { name: 'Lush Descent IVmaj9–iii7–ii9–Imaj9', tempo: 76, chords: [{ iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }, { iv: 4, q: 'min7', roman: 'iii7' }, { iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }] },
+      { name: 'D’Angelo i9–iv9', tempo: 72, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }] },
+      { name: 'Backdoor Imaj9–♭VII9', tempo: 80, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }] },
+    ] },
+    { genre: 'gospel', items: [
+      { name: 'Amen Cadence IV–I', tempo: 72, chords: [{ iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }] },
+      { name: 'Praise Break I–IV–V–IV', tempo: 132, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
+      { name: 'Gospel Climb I–ii7–iii7–IV', tempo: 88, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 4, q: 'min7', roman: 'iii7' }, { iv: 5, q: 'maj7', roman: 'IVmaj7', fn: 'S' }] },
+      { name: 'Gospel Turnaround Imaj7–vi7–ii7–V7sus', tempo: 80, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7sus', roman: 'V7sus', fn: 'D' }] },
+    ] },
+
+    // ------------------------------------------------------------- Hip-Hop ----
+    { genre: 'hiphop', items: [
+      { name: 'Boom-Bap Loop i7–iv7', tempo: 90, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }] },
+      { name: 'Sampled ii–V Loop', tempo: 88, chords: [{ iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 7, q: 'dom13', roman: 'V13', fn: 'D' }, { iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 7, q: 'dom13', roman: 'V13', fn: 'D' }] },
+      { name: 'Soul Chop Imaj7–vi7', tempo: 92, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 9, q: 'min7', roman: 'vi7' }] },
+      { name: 'Dusty Minor i7–♭VImaj7–♭VII7', tempo: 86, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 8, q: 'maj7', roman: '♭VImaj7', fn: 'S' }, { iv: 10, q: 'dom7', roman: '♭VII7', fn: 'D' }] },
+    ] },
+    { genre: 'trap', items: [
+      { name: 'Dark Loop i–♭VI', tempo: 140, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }] },
+      { name: 'Drill i–♭VII–♭VI', tempo: 144, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 0, q: 'min', roman: 'i' }] },
+      { name: 'Minor Cycle i–iv–♭VI–V', tempo: 138, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 5, q: 'min', roman: 'iv', fn: 'S' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+      { name: 'Trap Soul i9–♭IIImaj9', tempo: 136, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 3, q: 'maj9', roman: '♭IIImaj9' }, { iv: 3, q: 'maj9', roman: '♭IIImaj9' }] },
+    ] },
+    { genre: 'oldschool', items: [
+      { name: 'Electro Vamp i–♭VII', tempo: 118, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }] },
+      { name: 'Old-School Funk I9–IV9', tempo: 108, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }] },
+      { name: 'Freestyle vi–IV–I–V', tempo: 120, chords: [{ iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+      { name: 'Planet Rock i–♭VI–♭VII', tempo: 126, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }] },
+    ] },
+
+    // ------------------------------------------------------ House & Techno ----
+    { genre: 'house', items: [
+      { name: 'Deep House ii9–Imaj9', tempo: 122, chords: [{ iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }] },
+      { name: 'Classic House i7–iv7', tempo: 124, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }] },
+      { name: 'Soulful Imaj7–vi7–ii7–V7', tempo: 122, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+      { name: 'Piano House I–V–vi–IV', tempo: 126, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
+    ] },
+    { genre: 'techhouse', items: [
+      { name: 'Two-Chord Bump i7–♭VII', tempo: 126, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'S' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'S' }] },
+      { name: 'Minimal Drone i7', tempo: 125, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+      { name: 'Dub Chord i9–iv9', tempo: 124, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }] },
+      { name: 'Rolling ii7–V7', tempo: 127, chords: [{ iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+    ] },
+    { genre: 'techno', items: [
+      { name: 'One-Chord Hypnosis i', tempo: 132, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }] },
+      { name: 'Dark Pair i–♭VI', tempo: 134, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }] },
+      { name: 'Dub Techno i9–iv9', tempo: 128, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }] },
+      { name: 'Acid Drone i7–♭VII', tempo: 136, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+    ] },
+    { genre: 'trance', items: [
+      { name: 'Uplifting vi–IV–I–V', tempo: 138, chords: [{ iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+      { name: 'Trance Cadence i–♭VI–♭III–♭VII', tempo: 138, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 3, q: 'maj', roman: '♭III' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }] },
+      { name: 'Emotional i–♭VII–♭VI–V', tempo: 140, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+      { name: 'Big-Room I–V–vi–IV', tempo: 128, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
+    ] },
+
+    // ------------------------------------------------------- Bass & Breaks ----
+    { genre: 'dnb', items: [
+      { name: 'Liquid Imaj9–vi9', tempo: 174, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 9, q: 'min9', roman: 'vi9' }, { iv: 9, q: 'min9', roman: 'vi9' }] },
+      { name: 'Amen Minor i7–♭VImaj7', tempo: 172, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 8, q: 'maj7', roman: '♭VImaj7', fn: 'S' }, { iv: 8, q: 'maj7', roman: '♭VImaj7', fn: 'S' }] },
+      { name: 'Jump-Up i–♭VII', tempo: 174, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }] },
+      { name: 'Neuro Drone i7', tempo: 174, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+    ] },
+    { genre: 'jungle', items: [
+      { name: 'Ragga i–♭VI–♭VII', tempo: 165, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }] },
+      { name: 'Dub Jungle i7–iv7', tempo: 168, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }] },
+      { name: 'Darkside i–♭II', tempo: 170, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 1, q: 'maj', roman: '♭II', fn: 'S' }, { iv: 0, q: 'min', roman: 'i' }] },
+    ] },
+    { genre: 'garage', items: [
+      { name: '2-Step ii9–V13–Imaj9', tempo: 132, chords: [{ iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 7, q: 'dom13', roman: 'V13', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }] },
+      { name: 'Speed Garage i7–♭VII', tempo: 135, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }] },
+      { name: 'Organ Bass i9–iv9', tempo: 133, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }] },
+      { name: 'UKG Soul Imaj7–vi7', tempo: 132, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+    ] },
+    { genre: 'dubstep', items: [
+      { name: 'Half-Time i–♭VI', tempo: 140, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }] },
+      { name: 'Grime i–♭II–i', tempo: 140, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 1, q: 'maj', roman: '♭II', fn: 'S' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }] },
+      { name: 'Sub Drone i', tempo: 140, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }] },
+    ] },
+    { genre: 'breaks', items: [
+      { name: 'Big Beat i–♭VII', tempo: 130, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }] },
+      { name: 'Rave Stab i–♭VI–♭VII', tempo: 135, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }] },
+      { name: 'Bruk ii9–V13', tempo: 128, chords: [{ iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 7, q: 'dom13', roman: 'V13', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }] },
+    ] },
+
+    // ---------------------------------------------------------- Hard Dance ----
+    { genre: 'hardstyle', items: [
+      { name: 'Euphoric i–♭VI–♭III–♭VII', tempo: 150, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 3, q: 'maj', roman: '♭III' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }] },
+      { name: 'Raw Minor i–♭II', tempo: 152, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 1, q: 'maj', roman: '♭II', fn: 'S' }, { iv: 0, q: 'min', roman: 'i' }] },
+      { name: 'Hardstyle Cadence i–♭VII–♭VI–V', tempo: 150, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+    ] },
+    { genre: 'hardcore', items: [
+      { name: 'Gabber Minor i–♭VI', tempo: 180, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }] },
+      { name: 'Hoover Riff i–♭III–♭VII', tempo: 175, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 3, q: 'maj', roman: '♭III' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }] },
+      { name: 'UK Hardcore vi–IV–I–V', tempo: 175, chords: [{ iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+    ] },
+
+    // --------------------------------------------------------- Jazz & Blues ----
+    { genre: 'jazz', items: [
+      { name: 'ii–V–I', tempo: 120, chords: [{ iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }] },
+      { name: 'I–vi–ii–V Turnaround', tempo: 132, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+      { name: 'Circle vi–ii–V–I', tempo: 128, chords: [{ iv: 9, q: 'min7', roman: 'vi7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }] },
+      { name: 'Minor ii–V–i', tempo: 118, chords: [{ iv: 2, q: 'm7b5', roman: 'iiø7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+      { name: 'Bossa Nova', tempo: 128, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }] },
+    ] },
+    { genre: 'souljazz', items: [
+      { name: 'Boogaloo I9–IV9', tempo: 106, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }] },
+      { name: 'Organ Blues I9–IV9–V9', tempo: 112, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 7, q: 'dom9', roman: 'V9', fn: 'D' }] },
+      { name: 'Gospel-Jazz I–IV–I–V7sus', tempo: 76, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'dom7sus', roman: 'V7sus', fn: 'D' }] },
+      { name: 'Boogaloo Turnaround I7–IV7–♭VI7–V7', tempo: 128, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 8, q: 'dom7', roman: '♭VI7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+    ] },
+    { genre: 'jazzfunk', items: [
+      { name: 'Crossover Vamp i9–IV13', tempo: 104, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }] },
+      { name: 'Crossover Lift ♭VImaj9–♭VII13–i9', tempo: 98, chords: [{ iv: 8, q: 'maj9', roman: '♭VImaj9', fn: 'S' }, { iv: 10, q: 'dom13', roman: '♭VII13', fn: 'D' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }] },
+      { name: 'Sunshine Vamp Imaj9–IVmaj9', tempo: 88, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }, { iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }] },
+      { name: 'Modal Climb i11–♭IIImaj9–IV13', tempo: 116, chords: [{ iv: 0, q: 'min11', roman: 'i11' }, { iv: 3, q: 'maj9', roman: '♭IIImaj9' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }, { iv: 0, q: 'min11', roman: 'i11' }] },
+    ] },
+    { genre: 'fusion', items: [
+      { name: 'Headhunters i7–IV7', tempo: 96, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }] },
+      { name: 'Sus Voyage I7sus–♭III7sus', tempo: 104, chords: [{ iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }] },
+      { name: 'Cantaloupe i7–♭VI7–vi7', tempo: 112, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 8, q: 'dom7', roman: '♭VI7', fn: 'S' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+      { name: '80s Fusion i11–♭VIImaj7', tempo: 100, chords: [{ iv: 0, q: 'min11', roman: 'i11' }, { iv: 10, q: 'maj7', roman: '♭VIImaj7', fn: 'S' }, { iv: 0, q: 'min11', roman: 'i11' }, { iv: 10, q: 'maj7', roman: '♭VIImaj7', fn: 'S' }] },
+    ] },
+    { genre: 'blues', items: [
+      { name: '12-Bar Blues', tempo: 104, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'dom7', roman: 'I7' }] },
+      { name: 'Quick-Change', tempo: 108, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'dom7', roman: 'I7' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+      { name: 'Minor Blues', tempo: 92, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'min7', roman: 'iv7', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+      { name: 'Jazz Blues Turnaround I7–VI7–ii7–V7', tempo: 120, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 9, q: 'dom7', roman: 'VI7', fn: 'D' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+    ] },
+
+    // -------------------------------------------------------- World & Latin ----
+    { genre: 'latin', items: [
       { name: 'Andalusian', tempo: 96, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII' }, { iv: 8, q: 'maj', roman: '♭VI' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
       { name: 'Montuno I–IV–V', tempo: 120, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj', roman: 'I' }] },
+      { name: 'Bossa Imaj7–ii7–V7', tempo: 128, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }] },
+      { name: 'Samba i7–V7', tempo: 130, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+    ] },
+    { genre: 'afro', items: [
+      { name: 'Afrobeat One-Chord i9', tempo: 110, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }] },
+      { name: 'Highlife I–IV–V', tempo: 116, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }, { iv: 0, q: 'maj', roman: 'I' }] },
+      { name: 'Amapiano i9–♭VImaj9', tempo: 112, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 8, q: 'maj9', roman: '♭VImaj9', fn: 'S' }, { iv: 8, q: 'maj9', roman: '♭VImaj9', fn: 'S' }] },
+      { name: 'Soukous I–IV', tempo: 125, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+    ] },
+    { genre: 'reggae', items: [
+      { name: 'One-Drop I–IV', tempo: 76, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }] },
+      { name: 'Roots Minor i–♭VII', tempo: 74, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }] },
+      { name: 'Steppers i–iv', tempo: 80, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 5, q: 'min', roman: 'iv', fn: 'S' }, { iv: 5, q: 'min', roman: 'iv', fn: 'S' }] },
+      { name: 'Rocksteady I–vi–IV–V', tempo: 82, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 9, q: 'min', roman: 'vi' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+    ] },
+    { genre: 'reggaeton', items: [
+      { name: 'Dembow i–♭VI–♭VII', tempo: 96, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 0, q: 'min', roman: 'i' }] },
+      { name: 'Urbano i–♭VII–♭VI–V', tempo: 94, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 10, q: 'maj', roman: '♭VII', fn: 'D' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
+      { name: 'Latin Trap i9–♭VImaj9', tempo: 92, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 8, q: 'maj9', roman: '♭VImaj9', fn: 'S' }, { iv: 8, q: 'maj9', roman: '♭VImaj9', fn: 'S' }] },
     ] },
   ];
+}
+
+/** The progressions filed under one genre. */
+export function progsIn(genreId: string): Preset[] {
+  return genreDefs().find((g) => g.genre === genreId)?.items || [];
 }
 
 export interface Pattern {

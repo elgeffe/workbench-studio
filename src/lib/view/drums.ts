@@ -1,41 +1,25 @@
 // Drums-mode view: the dependent genre → variation picker, the layer stepper,
 // the 16-step grid rows and the count ruler.
-import { DRUM_VOICES, DRUM_COUNT, DRUM_FAMILIES, DRUM_GENRES, drumTemplates, drumVoice } from '../engine/drums';
+import { DRUM_VOICES, DRUM_COUNT, DRUM_GENRES, drumTemplates, drumVoice } from '../engine/drums';
+import { genreById } from '../engine/genres';
+import { genreShelves, itemChips } from './picker';
 import type { WorkbenchStore } from '../store.svelte';
 
 export function buildDrums(s: WorkbenchStore) {
   const DR_TPLS = drumTemplates();
   const drTpl = DR_TPLS.find((x) => x.id === s.drTplId) || DR_TPLS[0];
-  const drGenre = DRUM_GENRES.find((g) => g.id === drTpl.genre) || DRUM_GENRES[0];
+  const drGenre = genreById(drTpl.genre);
 
   // Row 1 of the picker: every genre, shelved by family. Row 2 (below) depends
   // on which genre is selected here.
-  const drFamilies = DRUM_FAMILIES.map((f) => ({
-    name: f,
-    chips: DRUM_GENRES.filter((g) => g.family === f).map((g) => {
-      const on = g.id === drGenre.id;
-      return {
-        id: g.id, name: g.name,
-        n: DR_TPLS.filter((t) => t.genre === g.id).length,
-        border: on ? '#c2562e' : '#cbb792',
-        bg: on ? '#fbeede' : '#f6efe0',
-        fg: on ? '#c2562e' : '#5c4a30',
-        weight: on ? '700' : '500',
-      };
-    }),
-  })).filter((f) => f.chips.length > 0);
+  const drFamilies = genreShelves(DR_TPLS, (t) => t.genre, drGenre.id);
 
   // Row 2: the variations inside the selected genre.
-  const drVariations = DR_TPLS.filter((t) => t.genre === drGenre.id).map((t) => {
-    const on = t.id === drTpl.id;
-    return {
-      id: t.id, name: t.name, bpm: t.bpm,
-      border: on ? '#3f6b5f' : '#cbb792',
-      bg: on ? '#3f6b5f' : '#f6efe0',
-      fg: on ? '#fff' : '#5c4a30',
-      weight: on ? '700' : '500',
-    };
-  });
+  const drVariations = itemChips(
+    DR_TPLS.filter((t) => t.genre === drGenre.id),
+    drTpl.id,
+    (t) => ({ name: t.name, meta: String(t.bpm) }),
+  );
 
   const drLayers = drTpl.layers.map((l, i) => ({
     name: l.name, i,
@@ -72,9 +56,7 @@ export function buildDrums(s: WorkbenchStore) {
 
   return {
     drFamilies, drVariations,
-    // 31 genres is a long list on a phone — tighten the chips when narrow.
-    drChipFont: s.isDesktop ? '13.5px' : '12px',
-    drChipPad: s.isDesktop ? '6px 11px' : '4px 9px',
+    drPickerOpen: s.picker === 'drums',
     drGenreName: drGenre.name, drGenreBlurb: drGenre.blurb, drGenreMaschine: drGenre.maschine,
     drTplName: drTpl.name, drTip: drTpl.tip,
     drPatternCount: DR_TPLS.length, drGenreCount: DRUM_GENRES.length,
