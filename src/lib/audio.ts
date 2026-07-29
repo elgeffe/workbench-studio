@@ -10,6 +10,25 @@ import type { DrumVoiceId, DrumFilter, DrumWave, DrumSynthLayer } from './engine
 // laggy under the finger.
 const LEAD = 0.03;
 
+/** Below this the safety clamp is exactly linear; above it, a soft knee to 1.0. */
+const CLIP_KNEE = 0.8;
+
+/**
+ * Transfer curve for the master safety clamp: identity up to CLIP_KNEE, then a
+ * tanh knee that approaches ±1.0 without ever reaching it. Ordinary playing
+ * lives entirely in the linear part and comes through bit-for-bit; only a
+ * genuine overshoot is bent, and it saturates gently instead of hard-clipping.
+ */
+export function softClipCurve(n = 2048, knee = CLIP_KNEE) {
+  const c = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    const a = Math.abs(x);
+    c[i] = Math.sign(x) * (a <= knee ? a : knee + (1 - knee) * Math.tanh((a - knee) / (1 - knee)));
+  }
+  return c;
+}
+
 export class AudioEngine {
   private actx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -37,23 +56,32 @@ export class AudioEngine {
       const lp = this.actx.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.value = 3000;
-      // Safety limiter. Many-voice chords can momentarily sum past ±1.0, and
+      // Safety clamp. Many-voice chords can momentarily sum past ±1.0, and
       // anything beyond full scale hard-clips at the DAC — the fizzy crackle
       // once heard on 9th/13th chords. Per-hit scaling (chordAmp) keeps the
-      // average level in check; this catches the transient overshoots. The
-      // high threshold leaves triads untouched.
-      const lim = this.actx.createDynamicsCompressor();
-      lim.threshold.value = -3;
-      lim.knee.value = 3;
-      lim.ratio.value = 20;
-      lim.attack.value = 0.001;
-      lim.release.value = 0.1;
+      // average level in check; this catches the transient overshoots.
+      //
+      // This was a DynamicsCompressor, which was the wrong instrument for the
+      // job. A compressor is a time-domain detector, so it turns down the
+      // *whole* mix — the kit shares this node — for a release-time after any
+      // transient; and Chrome pre-emphasises highs in its detector, so bright
+      // chord and hat attacks were pulling it down by more than 10dB even
+      // though what reaches it peaks below full scale on its own and never
+      // needed limiting at all. That duck, landing right on each change, was
+      // the little interruption between chords.
+      //
+      // A waveshaper has no detector and no memory. It reshapes only the
+      // samples that actually approach the ceiling and passes everything below
+      // it through untouched, so nothing can ever duck anything else.
+      const safety = this.actx.createWaveShaper();
+      safety.curve = softClipCurve();
+      safety.oversample = '4x';
       this.master.connect(lp);
-      lp.connect(lim);
-      lim.connect(this.actx.destination);
+      lp.connect(safety);
+      safety.connect(this.actx.destination);
       this.drumBus = this.actx.createGain();
       this.drumBus.gain.value = 0.9;
-      this.drumBus.connect(lim);
+      this.drumBus.connect(safety);
     }
     if (this.actx.state === 'suspended') void this.actx.resume();
   }
