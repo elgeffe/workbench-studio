@@ -200,6 +200,16 @@ export const DRUM_GENRES: DrumGenre[] = [
     maschine: 'Swing 62–66% and low velocities everywhere. Programmed jazz only works if you vary the ride velocity every hit — perfect repetition kills it.',
   },
   {
+    id: 'souljazz', name: 'Soul-Jazz & Boogaloo', family: 'Jazz & Blues',
+    blurb: 'Jazz played for dancers: the ride pattern gives way to a real backbeat, the Hammond organ takes the bass line, and gospel triads sit under the solos. The boogaloo is its signature groove.',
+    maschine: 'Swing belongs between the two worlds — 56–60% rather than a full jazz triplet. Put tambourine and hand-claps on their own pads with ±10 velocity randomness, and keep the kick to two notes so the organ owns the low end.',
+  },
+  {
+    id: 'jazzfunk', name: 'Jazz-Funk & Crossover', family: 'Jazz & Blues',
+    blurb: 'The 70s crossover records: funk 16ths under jazz harmony, sweet production, percussion instead of extra kit, and drummers who hold a pocket rather than comp. It sits between soul-jazz and fusion.',
+    maschine: 'Program a funk kick and a rigid backbeat first, then colour the top with tambourine, shaker and congas — never with more drums. Swing 54–58%, hats well under the backbeat, and let the percussion pads carry the sparkle.',
+  },
+  {
     id: 'fusion', name: 'Jazz-Fusion', family: 'Jazz & Blues',
     blurb: 'Funk 16ths played with jazz phrasing: linear grooves where no two limbs hit together, ghost notes everywhere, ride replacing the hat.',
     maschine: 'Linear means one voice per step — build the pattern so kick, snare and hat never share a step. It instantly sounds "played" rather than programmed.',

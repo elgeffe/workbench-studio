@@ -68,6 +68,18 @@ export function genreDefs(): Genre[] {
       { name: 'D’Angelo i9–iv9', tempo: 72, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }] },
       { name: 'Backdoor Imaj9–♭VII9', tempo: 80, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }] },
     ] },
+    { name: 'Soul-Jazz', items: [
+      { name: 'Boogaloo I9–IV9', tempo: 106, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }] },
+      { name: 'Organ Blues I9–IV9–V9', tempo: 112, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 7, q: 'dom9', roman: 'V9', fn: 'D' }] },
+      { name: 'Gospel-Jazz I–IV–I–V7sus', tempo: 76, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'dom7sus', roman: 'V7sus', fn: 'D' }] },
+      { name: 'Boogaloo Turnaround I7–IV7–♭VI7–V7', tempo: 128, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 8, q: 'dom7', roman: '♭VI7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+    ] },
+    { name: 'Jazz-Funk', items: [
+      { name: 'Crossover Vamp i9–IV13', tempo: 104, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }] },
+      { name: 'Crossover Lift ♭VImaj9–♭VII13–i9', tempo: 98, chords: [{ iv: 8, q: 'maj9', roman: '♭VImaj9', fn: 'S' }, { iv: 10, q: 'dom13', roman: '♭VII13', fn: 'D' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }] },
+      { name: 'Sunshine Vamp Imaj9–IVmaj9', tempo: 88, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }, { iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }] },
+      { name: 'Modal Climb i11–♭IIImaj9–IV13', tempo: 116, chords: [{ iv: 0, q: 'min11', roman: 'i11' }, { iv: 3, q: 'maj9', roman: '♭IIImaj9' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }, { iv: 0, q: 'min11', roman: 'i11' }] },
+    ] },
     { name: 'Jazz Fusion', items: [
       { name: 'Headhunters i7–IV7', tempo: 96, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }] },
       { name: 'Sus Voyage I7sus–♭III7sus', tempo: 104, chords: [{ iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }] },

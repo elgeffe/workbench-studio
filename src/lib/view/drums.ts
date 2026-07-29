@@ -72,7 +72,7 @@ export function buildDrums(s: WorkbenchStore) {
 
   return {
     drFamilies, drVariations,
-    // 29 genres is a long list on a phone — tighten the chips when narrow.
+    // 31 genres is a long list on a phone — tighten the chips when narrow.
     drChipFont: s.isDesktop ? '13.5px' : '12px',
     drChipPad: s.isDesktop ? '6px 11px' : '4px 9px',
     drGenreName: drGenre.name, drGenreBlurb: drGenre.blurb, drGenreMaschine: drGenre.maschine,

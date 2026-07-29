@@ -33,7 +33,7 @@ src/
                        layers). Add an instrument by adding an entry — the id
                        union, the grid shape and the audio engine follow.
       drums.ts         Drum genres, grid composition, swing, rhythm concepts
-      patterns/        The groove library: 123 layered patterns across 29 genres
+      patterns/        The groove library: 132 layered patterns across 31 genres
                        (rockpop, funksoul, hiphop, house, techno, breaks, hard,
                        jazz, world)
       ear.ts           Ear-training question generator
@@ -96,10 +96,11 @@ automatically; the live URL appears in the workflow's `deploy` job summary.
 - **Workshop** — build progressions in Classic, Jazz, or Classical palettes; explore any
   placed chord (extensions, inversions, secondary dominants, ii–V insertion, tritone
   subs); play them back with tempo/voicing control.
-- **Drums** — a 16-step groovebox with a dependent **genre → pattern** picker: 123 grooves
-  across 29 genres (rock, metal, pop, disco, funk, soul, neo-soul, gospel, boom-bap, trap,
+- **Drums** — a 16-step groovebox with a dependent **genre → pattern** picker: 132 grooves
+  across 31 genres (rock, metal, pop, disco, funk, soul, neo-soul, gospel, boom-bap, trap,
   electro, house, tech-house, techno, trance, D&B, jungle, garage, dubstep, breaks,
-  hardstyle, hardcore, jazz, fusion, blues, Latin, Afrobeat, reggae, reggaeton). Every
+  hardstyle, hardcore, jazz, soul-jazz, jazz-funk, fusion, blues, Latin, Afrobeat, reggae,
+  reggaeton). Every
   pattern is authored as ordered *layers*, so the LAYERS chips rebuild the groove one part
   at a time and explain what each adds; each genre also carries a note on programming it in
   a groovebox (swing, velocity, kit choices). The grid shows only the instruments the
