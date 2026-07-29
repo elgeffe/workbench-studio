@@ -96,6 +96,12 @@ export const BASS_PATTERNS: BassPattern[] = [
   { id: 'ontheone', group: 'Funk / Disco / Soul', name: 'On the One', tag: 'James Brown funk',
     tip: 'Whatever else happens, the root owns beat ONE — everything after is syncopation and ghost notes. The bass is a drum that happens to have pitch.',
     steps: [{ s: 0, d: 'R', l: 4 }, { s: 6, g: true }, { s: 7, g: true }, { s: 8, d: '5' }, { s: 11, g: true }, { s: 12, d: 'b7' }, { s: 14, d: 'R' }] },
+  { id: 'crossover', group: 'Funk / Disco / Soul', name: 'Crossover 16ths', tag: '70s jazz-funk · Mizell era',
+    tip: 'Funk 16ths with jazz manners: the root pushed on the “a of 1”, an octave in the middle of the bar, and the Dorian natural 6 before the change — that 6 is the note that makes a funk line sound like jazz.',
+    steps: [{ s: 0, d: 'R' }, { s: 3, d: 'R' }, { s: 4, g: true }, { s: 6, d: '5' }, { s: 8, d: 'b7' }, { s: 10, d: 'O' }, { s: 11, g: true }, { s: 13, d: '6' }, { s: 14, d: 'A' }] },
+  { id: 'spiritual', group: 'Funk / Disco / Soul', name: 'Two-Chord Vamp', tag: 'spiritual jazz-funk',
+    tip: 'The floating end of jazz-funk: long notes, one octave leap, and a bar that ends on the 9 instead of the root — the note that stops a vamp ever sounding finished.',
+    steps: [{ s: 0, d: 'R', l: 3 }, { s: 4, d: '5' }, { s: 6, d: 'O', l: 3 }, { s: 10, d: '5' }, { s: 11, g: true }, { s: 14, d: '2' }] },
 
   // -- Jazz & Blues --
   { id: 'walkup', group: 'Jazz & Blues', name: 'Walking · Up the Chord', tag: 'walking bass',
@@ -107,6 +113,9 @@ export const BASS_PATTERNS: BassPattern[] = [
   { id: 'boogie', group: 'Jazz & Blues', name: 'Blues Boogie Shuffle', tag: 'jump blues',
     tip: 'The boogie-woogie cell that powered early rock’n’roll: up 1–3–5–6–♭7 and back down. The 3rd follows the chord, so it works over major and minor blues alike.',
     steps: [{ s: 0, d: 'R' }, { s: 2, d: '3' }, { s: 4, d: '5' }, { s: 6, d: '6' }, { s: 8, d: 'b7' }, { s: 10, d: '6' }, { s: 12, d: '5' }, { s: 14, d: '3' }] },
+  { id: 'boogaloo', group: 'Jazz & Blues', name: 'Boogaloo Line', tag: 'soul-jazz · Blue Note 60s',
+    tip: 'The tresillo (3+3+2) that gave the boogaloo its name: root on 1, root again on the “and of 2”, fifth on beat 4 — a Latin cell under a backbeat, then a jazz walk into the change.',
+    steps: [{ s: 0, d: 'R', l: 3 }, { s: 6, d: 'R' }, { s: 8, g: true }, { s: 12, d: '5' }, { s: 14, d: 'A' }] },
   { id: 'twofeel', group: 'Jazz & Blues', name: 'The Two-Feel', tag: 'jazz ballads',
     tip: 'Half notes — just root and five — until the last eighth walks into the change. Restraint is a bass trick too: save the four-to-the-bar walk for when the tune lifts.',
     steps: [{ s: 0, d: 'R', l: 7 }, { s: 8, d: '5', l: 5 }, { s: 14, d: 'A' }] },

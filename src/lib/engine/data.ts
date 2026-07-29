@@ -364,6 +364,8 @@ export function jazzChapters(tonicPc: number): JazzChapter[] {
         { kind: 'p', text: 'Marcus Miller’s slap style: thumb the root, pluck the octave, connect targets with chromatic approach notes (♭7–7–8), and pepper everything with dead-note 16ths. The pattern “Marcus Miller Slap Octaves” walks the shape; the “Chromatic Approach Walk” drills the connective tissue.' },
         { kind: 'h', text: 'Jamerson & Edwards · the walking pocket' },
         { kind: 'p', text: 'James Jamerson walks 1–5–6–♭7 cells with chromatic pickups under Motown; Bernard Edwards drives disco with relentless root–octave eighths (“Good Times” — the line hip-hop was born over). Both live in the Bassline Grooves patterns.' },
+        { kind: 'h', text: 'The crossover line · jazz-funk' },
+        { kind: 'p', text: 'By the mid-70s the same laws were being applied under jazz harmony: 16th-note lines with ghost notes and octaves, but reaching for the Dorian natural 6 and the 9 instead of staying inside the blues palette. That one note is the tell — a funk line that keeps landing on the 6 sounds like jazz-funk, not funk. Try “Crossover 16ths” and “Two-Chord Vamp” in Bassline Grooves over the Workshop’s Jazz-Funk templates, and “Boogaloo Line” for the 60s soul-jazz version, where the bass plays a 3+3+2 tresillo under a backbeat.' },
         { kind: 'seq', label: 'Groove to practise over · i9–IV9', rows: [
           { iv: 0, q: 'min9', name: 'i9' },
           { iv: 5, q: 'dom9', fn: 'S', name: 'IV9' }] },
