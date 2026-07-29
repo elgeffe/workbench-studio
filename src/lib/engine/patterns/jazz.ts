@@ -1,5 +1,6 @@
-// Jazz, jazz-fusion and the blues/shuffle family — everything whose feel lives
-// in the swing setting rather than in the step pattern.
+// Jazz, jazz-fusion, the soul-jazz/jazz-funk crossover, and the blues/shuffle
+// family — everything whose feel lives in the swing setting rather than in the
+// step pattern.
 import type { DrumTemplate } from '../drums';
 
 export const JAZZ_PATTERNS: DrumTemplate[] = [
@@ -96,6 +97,109 @@ export const JAZZ_PATTERNS: DrumTemplate[] = [
       { name: 'Ghost carpet', why: 'Ghost snares on every remaining “e” and “a” — a continuous 16th whisper under the backbeat.', add: [{ v: 'snare', on: [1, 5, 7, 9, 11, 13, 15] }] },
       { name: 'Hat 8ths', why: 'Hats on the 8ths keep the pulse readable through the ghost-note haze.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12] }] },
       { name: 'Open-hat splash', why: 'An open hat on the “and of 4” marks the turnaround.', add: [{ v: 'ohat', on: [14] }] },
+    ],
+  },
+
+  // ----------------------------------------------------------- soul-jazz ----
+  {
+    id: 'souljazz-boogaloo', name: 'Boogaloo', genre: 'souljazz', bpm: 104, swing: 58,
+    tip: 'The groove that took jazz out of the concert hall and back onto the dance floor: a Latin-tinged kick under a hard backbeat, hats swung just enough to lean. Not straight, not a jazz triplet — sit the swing around 58 and it lands exactly between the two.',
+    layers: [
+      { name: 'Boogaloo kick', why: 'Kick on 1, the “and of 2” and the “a of 3” — a tresillo pulled toward funk. It never plays a plain four.', add: [{ v: 'kick', on: [0, 6, 11], acc: [0] }] },
+      { name: 'Backbeat snare', why: 'A real backbeat on 2 & 4 is the whole point: this is jazz phrasing over an R&B drummer.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Loose 8th hats', why: 'Hats on 8ths with a half-swing. Push the SWING slider to 66 and it becomes an organ shuffle instead.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14], acc: [0, 4, 8, 12] }] },
+      { name: 'Tambourine', why: 'Off-beat tambourine is the one soul ingredient the jazz rhythm section borrowed wholesale.', add: [{ v: 'tamb', on: [2, 6, 10, 14] }] },
+      { name: 'Ghost snares', why: 'Two whispered taps on the “a of 2” and the last 16th roll the bar over into the next one.', add: [{ v: 'snare', on: [7, 15] }] },
+    ],
+  },
+  {
+    id: 'souljazz-organ', name: 'Organ-trio shuffle', genre: 'souljazz', bpm: 108, swing: 66,
+    tip: 'The Hammond trio groove: ride carrying a full shuffle, hat foot chicking 2 & 4, and the kick reduced to two notes because the organ pedals are playing the bass. Greasy rather than fast.',
+    layers: [
+      { name: 'Shuffled ride', why: 'The ride plays every swung 8th — at 66 that is a rolling triplet, and it is the entire timekeeping part.', add: [{ v: 'ride', on: [0, 2, 4, 6, 8, 10, 12, 14], acc: [0, 4, 8, 12] }] },
+      { name: 'Hat foot on 2 & 4', why: 'The jazz hat foot survives intact even though everything else has turned into R&B.', add: [{ v: 'chat', on: [4, 12] }] },
+      { name: 'Two-note kick', why: 'Kick on 1 and the “and of 3”. The organist’s left hand or pedals own the low end, so the drummer stays out of it.', add: [{ v: 'kick', on: [0, 10], acc: [0] }] },
+      { name: 'Backbeat', why: 'Snare on 2 & 4 — firmer than swing jazz, softer than funk. It rides the shuffle rather than cracking on top of it.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Triplet ghosts', why: 'Ghost snares on the swung off-beats fill the triplet gaps under the solo.', add: [{ v: 'snare', on: [2, 6, 14] }] },
+    ],
+  },
+  {
+    id: 'souljazz-gospel', name: 'Gospel-jazz 12/8', genre: 'souljazz', bpm: 76, swing: 66,
+    tip: 'The church side of soul-jazz: swing at 66 turns the 8ths into a 12/8 triplet bed, cross-stick keeps the backbeat quiet, and the whole bar sways. Play everything at low velocity except the ride accents.',
+    layers: [
+      { name: 'Triplet ride', why: 'Every swung 8th on the ride — four groups of three, which is what makes this read as 12/8 without changing a step.', add: [{ v: 'ride', on: [0, 2, 4, 6, 8, 10, 12, 14], acc: [0, 4, 8, 12] }] },
+      { name: 'Cross-stick backbeat', why: 'Side-stick on 2 & 4 marks the backbeat without ever raising its voice — the ballad setting of the style.', add: [{ v: 'rim', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Kick on 1 & 3', why: 'Two soft kicks per bar. At this tempo any more low end swallows the space the horns need.', add: [{ v: 'kick', on: [0, 8], acc: [0] }] },
+      { name: 'Tambourine on the beats', why: 'Tambourine on the quarters rather than the off-beats — a congregation, not a Motown session.', add: [{ v: 'tamb', on: [0, 4, 8, 12] }] },
+      { name: 'Snare turnaround', why: 'Three triplet snares at the end of the bar are the fill that hands the tune back to the soloist.', add: [{ v: 'snare', on: [13, 14, 15] }] },
+    ],
+  },
+  {
+    id: 'souljazz-clap', name: 'Hand-clap soul-jazz', genre: 'souljazz', bpm: 116, swing: 58,
+    tip: 'The live-trio crossover hit: audience claps doubling the backbeat, a two-beat kick, and swung hats driving it. Simple on paper — the energy is entirely in the clap layer and the tempo.',
+    layers: [
+      { name: 'Backbeat plus claps', why: 'Snare and hand-claps together on 2 & 4. The claps are the record’s hook as much as the piano is.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }, { v: 'clap', on: [4, 12] }] },
+      { name: 'Two-beat kick', why: 'Kick on 1 and 3 only — the bass player is walking, so the bass drum just marks the strong beats.', add: [{ v: 'kick', on: [0, 8], acc: [0] }] },
+      { name: 'Swung hats', why: 'Hats on 8ths with a light swing keep it dancing without tipping into a full shuffle.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14], acc: [0, 4, 8, 12] }] },
+      { name: 'Kick pickup', why: 'A single kick on the “a of 3” pushes into beat 4 — the one bit of syncopation in the bar.', add: [{ v: 'kick', on: [11] }] },
+      { name: 'Ride bell', why: 'A bell hit on 1 and 3 puts the jazz drummer’s signature back on top of an R&B beat.', add: [{ v: 'ride', on: [0, 8] }] },
+    ],
+  },
+
+  // ----------------------------------------------------------- jazz-funk ----
+  {
+    id: 'jazzfunk-crossover', name: 'Crossover 16ths', genre: 'jazzfunk', bpm: 104, swing: 54,
+    tip: 'The 70s crossover production sound: a funk 16th bed under jazz harmony, kick answering itself in 16ths, and percussion — not more kit — providing the sparkle. Everything is played politely; the arrangement does the shouting.',
+    layers: [
+      { name: 'Crossover kick', why: 'Kick on 1 and 3 with a 16th answer after each — busier than soul, tidier than funk.', add: [{ v: 'kick', on: [0, 3, 8, 11], acc: [0] }] },
+      { name: 'Backbeat snare', why: 'A rigid 2 & 4. In this style the drummer holds the pocket while the horns and Rhodes move.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
+      { name: '16th hats', why: 'Continuous 16ths, quiet, accented on the quarters — the sheen these records are mixed around.', add: [{ v: 'chat', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 4, 8, 12] }] },
+      { name: 'Tambourine', why: 'Off-beat tambourine lifts the whole loop. Add percussion before you add drums — that is the crossover rule.', add: [{ v: 'tamb', on: [2, 6, 10, 14] }] },
+      { name: 'Ghost snares', why: 'Two ghosts on the “a of 2” and the last 16th stop the backbeat sounding stamped on.', add: [{ v: 'snare', on: [7, 15] }] },
+    ],
+  },
+  {
+    id: 'jazzfunk-laidback', name: 'Laid-back crossover', genre: 'jazzfunk', bpm: 92, swing: 58,
+    tip: 'The mellow end of jazz-funk: cross-stick instead of snare, shaker instead of hats, and a kick that speaks twice a bar. Built to sit under a flute or a vibraphone without ever competing.',
+    layers: [
+      { name: 'Cross-stick backbeat', why: 'Side-stick on 2 & 4 — the backbeat is present but weightless, which is what makes the track float.', add: [{ v: 'rim', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Two-note kick', why: 'Kick on 1 and the “and of 3”, the Memphis skeleton borrowed straight into jazz.', add: [{ v: 'kick', on: [0, 10], acc: [0] }] },
+      { name: 'Shaker 16ths', why: 'A shaker carries the subdivision instead of a hat — softer top end, and it never fights the cymbals.', add: [{ v: 'shaker', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 4, 8, 12] }] },
+      { name: 'Ride-bell quarters', why: 'A bell on each beat gives the ear a slow pulse above the shaker haze.', add: [{ v: 'ride', on: [0, 4, 8, 12], acc: [0, 8] }] },
+      { name: 'Ghost snares', why: 'Three whispered snares around the cross-stick are the only trace of a funk drummer left.', add: [{ v: 'snare', on: [7, 11, 15] }] },
+    ],
+  },
+  {
+    id: 'jazzfunk-ride', name: 'Ride-led jazz-funk', genre: 'jazzfunk', bpm: 112, swing: 56,
+    tip: 'Funk played by a jazz drummer: timekeeping stays on the ride, the kick syncopates underneath, and a conga answers every phrase. The ride is what separates this from plain funk.',
+    layers: [
+      { name: 'Ride 8ths', why: 'Riding the cymbal instead of the hat opens the top end and keeps one foot in jazz.', add: [{ v: 'ride', on: [0, 2, 4, 6, 8, 10, 12, 14], acc: [0, 4, 8, 12] }] },
+      { name: 'Backbeat snare', why: 'Snare on 2 & 4, hit firmly — the anchor the syncopated kick is measured against.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Syncopated kick', why: 'Kick on 1, the “a of 1” and the “and of 3” — the funk figure, played under a jazz cymbal.', add: [{ v: 'kick', on: [0, 3, 10], acc: [0] }] },
+      { name: 'Conga answers', why: 'A hand drum answering in the gaps is how these records fill space without a second drummer.', add: [{ v: 'htom', on: [7, 11, 14] }] },
+      { name: 'Ghost snares', why: 'Ghosts on the “and of 1” and the last 16th tie the kick figure back to the backbeat.', add: [{ v: 'snare', on: [2, 15] }] },
+    ],
+  },
+  {
+    id: 'jazzfunk-latin', name: 'Latin jazz-funk', genre: 'jazzfunk', bpm: 118, swing: 52,
+    tip: 'The spiritual/cosmic end of the style: straight 16ths, congas in both hands, and a cowbell hinting at the tresillo. Set swing to 50 — this one is dead straight, and the Latin percussion supplies all the lean.',
+    layers: [
+      { name: 'Anticipating kick', why: 'Kick on 1, the “and of 2”, 3 and the “and of 4” — it anticipates the beat instead of landing on it.', add: [{ v: 'kick', on: [0, 6, 8, 14], acc: [0] }] },
+      { name: 'Backbeat snare', why: 'A backbeat is what keeps this jazz-funk rather than Latin jazz: the clave-side parts sit on top of it.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Straight 16th hats', why: 'No swing at all. Every bit of the groove’s lean comes from the percussion parts, not the timing.', add: [{ v: 'chat', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 4, 8, 12] }] },
+      { name: 'Congas', why: 'High conga on the “a”s, low conga answering — two hands weaving, the way a percussionist actually plays.', add: [{ v: 'htom', on: [3, 7, 11, 15] }, { v: 'ltom', on: [2, 10] }] },
+      { name: 'Cowbell timeline', why: 'Bell on 1, the “and of 2” and the “and of 3” — a tresillo hiding inside the 16ths.', add: [{ v: 'cowbell', on: [0, 6, 10] }] },
+    ],
+  },
+  {
+    id: 'jazzfunk-vibes', name: 'Slow vibes vamp', genre: 'jazzfunk', bpm: 88, swing: 60,
+    tip: 'A two-chord vamp groove: cross-stick, ride bell 8ths, tambourine doubling the backbeat, and a kick that lands late on purpose. Hypnotic rather than driving — programmed to loop for six minutes.',
+    layers: [
+      { name: 'Cross-stick backbeat', why: 'Side-stick on 2 & 4 keeps the pulse readable at whisper volume.', add: [{ v: 'rim', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Two kicks', why: 'Beat 1 and the “a of 3”. The late second kick is what gives the bar its sway.', add: [{ v: 'kick', on: [0, 11], acc: [0] }] },
+      { name: 'Ride-bell 8ths', why: 'A bell pattern instead of hats — dark, ringing, and it blurs slightly with the swing at 60.', add: [{ v: 'ride', on: [0, 2, 4, 6, 8, 10, 12, 14], acc: [0, 8] }] },
+      { name: 'Tambourine on 2 & 4', why: 'Tambourine doubling the backbeat rather than the off-beats widens it without adding volume.', add: [{ v: 'tamb', on: [4, 12] }] },
+      { name: 'Ghost snares', why: 'Three ghosts on the “a”s are the only thing moving in the second half of each beat.', add: [{ v: 'snare', on: [3, 7, 15] }] },
     ],
   },
 

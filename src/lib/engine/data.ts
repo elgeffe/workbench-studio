@@ -68,6 +68,18 @@ export function genreDefs(): Genre[] {
       { name: 'D’Angelo i9–iv9', tempo: 72, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }] },
       { name: 'Backdoor Imaj9–♭VII9', tempo: 80, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'D' }] },
     ] },
+    { name: 'Soul-Jazz', items: [
+      { name: 'Boogaloo I9–IV9', tempo: 106, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }] },
+      { name: 'Organ Blues I9–IV9–V9', tempo: 112, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 7, q: 'dom9', roman: 'V9', fn: 'D' }] },
+      { name: 'Gospel-Jazz I–IV–I–V7sus', tempo: 76, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 0, q: 'maj', roman: 'I' }, { iv: 7, q: 'dom7sus', roman: 'V7sus', fn: 'D' }] },
+      { name: 'Boogaloo Turnaround I7–IV7–♭VI7–V7', tempo: 128, chords: [{ iv: 0, q: 'dom7', roman: 'I7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 8, q: 'dom7', roman: '♭VI7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
+    ] },
+    { name: 'Jazz-Funk', items: [
+      { name: 'Crossover Vamp i9–IV13', tempo: 104, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }] },
+      { name: 'Crossover Lift ♭VImaj9–♭VII13–i9', tempo: 98, chords: [{ iv: 8, q: 'maj9', roman: '♭VImaj9', fn: 'S' }, { iv: 10, q: 'dom13', roman: '♭VII13', fn: 'D' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }] },
+      { name: 'Sunshine Vamp Imaj9–IVmaj9', tempo: 88, chords: [{ iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 0, q: 'maj9', roman: 'Imaj9' }, { iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }, { iv: 5, q: 'maj9', roman: 'IVmaj9', fn: 'S' }] },
+      { name: 'Modal Climb i11–♭IIImaj9–IV13', tempo: 116, chords: [{ iv: 0, q: 'min11', roman: 'i11' }, { iv: 3, q: 'maj9', roman: '♭IIImaj9' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }, { iv: 0, q: 'min11', roman: 'i11' }] },
+    ] },
     { name: 'Jazz Fusion', items: [
       { name: 'Headhunters i7–IV7', tempo: 96, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }] },
       { name: 'Sus Voyage I7sus–♭III7sus', tempo: 104, chords: [{ iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 0, q: 'dom7sus', roman: 'I7sus' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }, { iv: 3, q: 'dom7sus', roman: '♭III7sus', fn: 'S' }] },
@@ -352,6 +364,8 @@ export function jazzChapters(tonicPc: number): JazzChapter[] {
         { kind: 'p', text: 'Marcus Miller’s slap style: thumb the root, pluck the octave, connect targets with chromatic approach notes (♭7–7–8), and pepper everything with dead-note 16ths. The pattern “Marcus Miller Slap Octaves” walks the shape; the “Chromatic Approach Walk” drills the connective tissue.' },
         { kind: 'h', text: 'Jamerson & Edwards · the walking pocket' },
         { kind: 'p', text: 'James Jamerson walks 1–5–6–♭7 cells with chromatic pickups under Motown; Bernard Edwards drives disco with relentless root–octave eighths (“Good Times” — the line hip-hop was born over). Both live in the Bassline Grooves patterns.' },
+        { kind: 'h', text: 'The crossover line · jazz-funk' },
+        { kind: 'p', text: 'By the mid-70s the same laws were being applied under jazz harmony: 16th-note lines with ghost notes and octaves, but reaching for the Dorian natural 6 and the 9 instead of staying inside the blues palette. That one note is the tell — a funk line that keeps landing on the 6 sounds like jazz-funk, not funk. Try “Crossover 16ths” and “Two-Chord Vamp” in Bassline Grooves over the Workshop’s Jazz-Funk templates, and “Boogaloo Line” for the 60s soul-jazz version, where the bass plays a 3+3+2 tresillo under a backbeat.' },
         { kind: 'seq', label: 'Groove to practise over · i9–IV9', rows: [
           { iv: 0, q: 'min9', name: 'i9' },
           { iv: 5, q: 'dom9', fn: 'S', name: 'IV9' }] },
