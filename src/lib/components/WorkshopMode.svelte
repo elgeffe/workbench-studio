@@ -120,6 +120,14 @@
         <div class="mono click" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.vShellBg};color:{v.vShellFg}" role="button" tabindex="0" onclick={() => store.setVoicing('shell')} onkeydown={(e) => e.key === 'Enter' && store.setVoicing('shell')}>SHELL</div>
       </div>
     </div>
+    <div style="display:flex;align-items:center;gap:7px">
+      <span class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350" title="How long each chord holds. The tempo doesn't change — only how often the changes come round.">CHORD</span>
+      <div style="display:flex;gap:3px;background:#ece0c6;border:1px solid #cbb792;border-radius:7px;padding:2px">
+        <div class="mono click" data-testid="slot-half" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.slotHalfBg};color:{v.slotHalfFg}" role="button" tabindex="0" aria-pressed={v.slotHalfBg !== '#f6efe0'} onclick={() => store.setChordSlot('half')} onkeydown={(e) => e.key === 'Enter' && store.setChordSlot('half')}>½ BAR</div>
+        <div class="mono click" data-testid="slot-bar" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.slotBarBg};color:{v.slotBarFg}" role="button" tabindex="0" aria-pressed={v.slotBarBg !== '#f6efe0'} onclick={() => store.setChordSlot('bar')} onkeydown={(e) => e.key === 'Enter' && store.setChordSlot('bar')}>1 BAR</div>
+      </div>
+      <span class="mono" style="font-size:9px;color:#a08a64;white-space:nowrap">{v.chordSlotHint}</span>
+    </div>
     <div style="display:flex;align-items:center;gap:8px;flex:1 1 150px;min-width:140px">
       <span class="mono" style="font-size:9px;color:#8a7350;letter-spacing:.08em">TEMPO</span>
       <input type="range" min="50" max="170" value={v.tempo} oninput={(e) => store.setTempo(+e.currentTarget.value)} style="flex:1" />
@@ -389,6 +397,6 @@
       <div class="caption" style="font-size:11.5px;color:#6b5a3e;margin-top:8px">Tap a step to cycle <b>rest → R → 3 → 5 → ♭7 → 8 → ×</b> (ghost). Seed from a groove above, then tweak — each note sustains to the next, and the line transposes through your progression when you hit <b>▶ PLAY</b>.</div>
     </div>
 
-    <div class="caption" style="font-size:13.5px;color:#5c4a30">Load a progression, pick a groove, hit <b>▶ PLAY</b> — the bassline transposes itself through every change (in BASS each chord lasts a full 4-beat bar). Use <b>MIX</b> to mute the chords or the bass and study either half alone. Selecting a pattern previews one bar solo; watch it land on the bass fretboard in the side panel. Learn the moves behind these lines in <b>Learn → Tricks of the trade</b>.</div>
+    <div class="caption" style="font-size:13.5px;color:#5c4a30">Load a progression, pick a groove, hit <b>▶ PLAY</b> — the bassline transposes itself through every change. The line is always one bar of 16ths whatever <b>CHORD</b> length you set, so on ½ BAR each half of the line resolves against its own change. Use <b>MIX</b> to mute the chords or the bass and study either half alone. Selecting a pattern previews one bar solo; watch it land on the bass fretboard in the side panel. Learn the moves behind these lines in <b>Learn → Tricks of the trade</b>.</div>
   {/if}
 </div>

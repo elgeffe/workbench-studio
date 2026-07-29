@@ -120,6 +120,11 @@ export function computeView(s: WorkbenchStore) {
     jzPlayLabel: transportOn ? '■ STOP' : '▶ PLAY', jzPlayBg: transportOn ? '#9a3f1f' : '#c2562e', jzPlayShadow: transportOn ? '#6e2c12' : '#9a3f1f',
     vFullBg: s.jzVoicing === 'full' ? '#3f6b5f' : '#f6efe0', vFullFg: s.jzVoicing === 'full' ? '#fff' : '#5c4a30',
     vShellBg: s.jzVoicing === 'shell' ? '#3f6b5f' : '#f6efe0', vShellFg: s.jzVoicing === 'shell' ? '#fff' : '#5c4a30',
+    slotHalfBg: s.chordSlot === 'half' ? '#3f6b5f' : '#f6efe0', slotHalfFg: s.chordSlot === 'half' ? '#fff' : '#5c4a30',
+    slotBarBg: s.chordSlot === 'bar' ? '#3f6b5f' : '#f6efe0', slotBarFg: s.chordSlot === 'bar' ? '#fff' : '#5c4a30',
+    // How long a change holds, spelled out in beats — the number people hear as
+    // "the tempo" when a chord suddenly lasts twice as long.
+    chordSlotHint: s.chordSlot === 'half' ? '2 beats per chord' : '4 beats per chord',
     // patterns
     ...patterns.view,
     // drums
