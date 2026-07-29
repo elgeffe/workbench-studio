@@ -32,6 +32,15 @@ export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
 /** How long one chord of the progression holds: half a bar (2 beats) or a full bar. */
 export type ChordSlot = 'half' | 'bar';
 
+// The transport is a lookahead scheduler, not a metronome of setTimeouts (the
+// same "two clocks" pattern the practice metronome uses). A coarse timer wakes
+// us often and we place every slot that falls inside the next SCHEDULE_AHEAD_S
+// at an exact time on the audio clock, accumulated from the slot before it.
+// A late or jittery wake-up then changes when we *schedule*, never when
+// anything *sounds*.
+const LOOKAHEAD_MS = 25;
+const SCHEDULE_AHEAD_S = 0.12;
+
 /** One scheduled bar of drums, as the playhead needs to see it. */
 interface DrumBar {
   /** audio-clock time the ear gets step 0 */
@@ -158,15 +167,16 @@ export class WorkbenchStore {
 
   // ---- non-reactive ----
   private audio = new AudioEngine();
-  // The global transport: ONE interval, ticking every half bar (2 beats),
-  // drives both the drum groove (bar ticks) and the chord loop (half-bar
-  // slots, or bar slots in bass style) so the two stay locked as one band.
+  // The global transport: ONE timeline, in half-bar (2 beat) slots, driving the
+  // drum groove (bar slots), the chord loop (half-bar or bar slots) and the
+  // bassline (bar slots) so they stay locked as one band. `trLoop` is only the
+  // wake-up; the music's timing lives in `trNext` on the audio clock.
   private trLoop: ReturnType<typeof setInterval> | null = null;
+  private trNext = 0; // audio-clock time of the next slot
   private trHalf = 0; // half-bar counter since transport start
   private jIdx = 0; // next progression index the live loop will play
   private seqTimers: ReturnType<typeof setTimeout>[] = [];
   private singleTimers: ReturnType<typeof setTimeout>[] = [];
-  private bassTimers: ReturnType<typeof setTimeout>[] = [];
   // The drum playhead runs off the audio clock, not off timers: a bar carries
   // the moment the ear gets its step 0 (`heard`) and the shape it was laid out
   // with, and a rAF loop reads the clock against it. See drDraw().
@@ -188,17 +198,18 @@ export class WorkbenchStore {
     this.stopDrDraw();
     this.seqTimers.forEach((id) => clearTimeout(id));
     this.singleTimers.forEach((id) => clearTimeout(id));
-    this.bassTimers.forEach((id) => clearTimeout(id));
   }
 
   // ---- audio wrappers (respect the mute toggle) ----
-  private playMidis(midis: number[], dur?: number, stagger?: number): void {
+  // `at` pins a sound to an exact time on the audio clock — how the transport
+  // keeps the band locked. Omitted, it plays a lead ahead of now (a preview).
+  private playMidis(midis: number[], dur?: number, stagger?: number, at?: number): void {
     if (!this.soundOn) return;
-    this.audio.playMidis(midis, dur ?? 1.2, stagger ?? 0);
+    this.audio.playMidis(midis, dur ?? 1.2, stagger ?? 0, at);
   }
-  playChord(ch: Chord | null, stagger = 0.018): void {
+  playChord(ch: Chord | null, stagger = 0.018, at?: number): void {
     if (!ch) return;
-    this.playMidis(gMidis(ch), 1.3, stagger);
+    this.playMidis(gMidis(ch), 1.3, stagger, at);
   }
 
   // ---- key navigation ----
@@ -342,24 +353,22 @@ export class WorkbenchStore {
   /** One bar of steps, solo, over the current harmonic context. */
   private playBassBar(steps: BassStep[]): void {
     const { ch, next } = this.bassContext();
-    this.scheduleBassSteps(steps, this.barMs(), () => ({ ch, next }));
+    this.scheduleBassSteps(steps, this.audio.now() + 0.06, () => ({ ch, next }));
   }
   /**
-   * Lay a bar of bass steps out over `barMs`. `chordAt` says which chord a step
-   * sits on (and which one it should be walking towards), so a bar carrying two
-   * changes gets each half resolved against its own chord.
+   * Lay a bar of bass steps out from `at` on the audio clock — sample-accurate,
+   * like the kit, so the line can't drift against it. `chordAt` says which
+   * chord a step sits on (and which one it should be walking towards), so a bar
+   * carrying two changes gets each half resolved against its own chord.
    */
-  private scheduleBassSteps(steps: BassStep[], barMs: number, chordAt: (s: number) => { ch: Chord; next: Chord }): void {
-    this.bassTimers.forEach((id) => clearTimeout(id));
-    this.bassTimers = [];
-    const stepMs = barMs / 16;
+  private scheduleBassSteps(steps: BassStep[], at: number, chordAt: (s: number) => { ch: Chord; next: Chord }): void {
+    if (!this.soundOn) return;
+    const stepSec = this.barMs() / 16000;
     steps.forEach((st) => {
-      this.bassTimers.push(setTimeout(() => {
-        if (!this.soundOn) return;
-        const { ch, next } = chordAt(st.s);
-        if (st.g) this.audio.ghost(bassRootMidi(ch.rootPc));
-        else if (st.d) this.playMidis([resolveBassStep(st.d, ch, next, this.tonicPc)], Math.max(0.16, ((st.l ?? 1.6) * stepMs) / 1000));
-      }, Math.round(st.s * stepMs)));
+      const { ch, next } = chordAt(st.s);
+      const t = at + st.s * stepSec;
+      if (st.g) this.audio.ghost(bassRootMidi(ch.rootPc), t);
+      else if (st.d) this.playMidis([resolveBassStep(st.d, ch, next, this.tonicPc)], Math.max(0.16, (st.l ?? 1.6) * stepSec), 0, t);
     });
   }
   toggleFinger(): void { this.fingerOn = !this.fingerOn; }
@@ -548,7 +557,7 @@ export class WorkbenchStore {
   // One chord slot of the live loop. Reads this.jzChanges fresh each tick
   // (never a captured snapshot) so chords swapped, added, or removed
   // mid-playback take effect on the very next slot.
-  private jTick = (): void => {
+  private jTick = (at: number): void => {
     const chs = this.jzChanges;
     if (!chs.length) {
       // Progression emptied mid-play: the chords drop out; the drums (if any)
@@ -564,7 +573,7 @@ export class WorkbenchStore {
     this.activeChord = jChVoiced(ch, this.jzVoicing);
     // Bass-style mix: the chord comp can be muted to hear the line alone
     // (the chord still lights the instruments — only the sound is skipped).
-    if (this.wsStyle !== 'bass' || this.bassChordsOn) this.playChord(jChVoiced(ch, this.jzVoicing), 0.02);
+    if (this.wsStyle !== 'bass' || this.bassChordsOn) this.playChord(jChVoiced(ch, this.jzVoicing), 0.02, at);
     this.jIdx = i + 1;
   };
   /**
@@ -574,14 +583,14 @@ export class WorkbenchStore {
    * approach notes at the end of a slot walk into the change that follows.
    * Rebuilt every bar, so groove swaps and chord edits land on the next ONE.
    */
-  private barBass(): void {
+  private barBass(at: number): void {
     if (this.wsStyle !== 'bass' || !this.bassOn || !this.bassPatId) return;
     const steps = this.activeBassSteps();
     const chs = this.jzChanges;
     if (!steps || !chs.length) return;
     const first = this.jzStep >= 0 ? this.jzStep : 0;
     const half = this.chordSlot === 'half';
-    this.scheduleBassSteps(steps, this.barMs(), (s) => {
+    this.scheduleBassSteps(steps, at, (s) => {
       const i = (first + (half && s >= 8 ? 1 : 0)) % chs.length;
       return { ch: chs[i], next: chs[(i + 1) % chs.length] };
     });
@@ -602,43 +611,62 @@ export class WorkbenchStore {
     this.jzPlaying = this.jzChanges.length > 0;
     this.drPlaying = this.gridHasHits();
     if (!this.jzPlaying && !this.drPlaying) return; // nothing to play yet
-    this.trTick();
-    this.trLoop = setInterval(this.trTick, this.halfBarMs());
+    // Start far enough out that the first slot is scheduled ahead like every
+    // other one, rather than racing the clock the moment PLAY is pressed.
+    this.trNext = this.audio.now() + 0.08;
+    this.pump();
+    this.trLoop = setInterval(this.pump, LOOKAHEAD_MS);
   }
   stopTransport(): void {
     if (this.trLoop) { clearInterval(this.trLoop); this.trLoop = null; }
-    this.bassTimers.forEach((id) => clearTimeout(id));
-    this.bassTimers = [];
+    // A bar is queued in advance, so silence what hasn't sounded yet. Notes
+    // already ringing are left alone — cutting those mid-note would click.
+    this.audio.cancelScheduled();
     this.stopDrDraw();
     this.jzPlaying = false;
     this.jzStep = -1;
     this.drPlaying = false;
     this.drStep = -1;
   }
-  private retimeTransport(): void {
-    if (!this.trLoop) return;
-    clearInterval(this.trLoop);
-    this.trLoop = setInterval(this.trTick, this.halfBarMs());
-  }
-  // One half-bar of the band. Bar ticks fire the drums and the bassline (both
-  // are written a bar at a time); chord slots fire every half bar or every bar,
-  // whichever the user asked for. Every part is re-checked each bar so one
-  // added mid-play joins on the next ONE.
-  private trTick = (): void => {
+  /**
+   * The wake-up. Schedules every slot now inside the lookahead window, each at
+   * a time accumulated from the last, so the grid is exact however unevenly
+   * this happens to be called. Tempo changes are picked up here too — the next
+   * slot simply lands a new interval later, with no clock to restart.
+   */
+  private pump = (): void => {
+    const now = this.audio.now();
+    const slot = this.halfBarMs() / 1000;
+    // Backgrounded tab or a long stall: rejoin the grid at the next whole slot
+    // instead of firing every missed one at once. Whole slots keep the bar /
+    // half-bar alternation intact.
+    if (this.trNext < now) {
+      const missed = Math.ceil((now - this.trNext) / slot);
+      this.trNext += missed * slot;
+      this.trHalf += missed;
+    }
+    const horizon = now + SCHEDULE_AHEAD_S;
+    while (this.trNext < horizon) {
+      this.trTick(this.trNext);
+      this.trNext += this.halfBarMs() / 1000;
+    }
+  };
+  // One half-bar of the band, at an exact time on the audio clock. Bar slots
+  // fire the drums and the bassline (both are written a bar at a time); chord
+  // slots fire every half bar or every bar, whichever the user asked for. Every
+  // part is re-checked each bar so one added mid-play joins on the next ONE.
+  private trTick = (at: number): void => {
     const barStart = this.trHalf % 2 === 0;
     if (barStart) {
       if (!this.drPlaying && this.gridHasHits()) this.drPlaying = true;
       if (!this.jzPlaying && this.jzChanges.length) { this.jzPlaying = true; this.jIdx = 0; }
-      if (this.drPlaying) this.drTick();
+      if (this.drPlaying) this.drTick(at);
     }
-    if (this.jzPlaying && (this.chordSlot === 'half' || barStart)) this.jTick();
-    if (barStart && this.jzPlaying) this.barBass();
+    if (this.jzPlaying && (this.chordSlot === 'half' || barStart)) this.jTick(at);
+    if (barStart && this.jzPlaying) this.barBass(at);
     this.trHalf++;
   };
-  setTempo(v: number): void {
-    this.tempo = v;
-    this.retimeTransport();
-  }
+  setTempo(v: number): void { this.tempo = v; }
 
   // ---- patterns ----
   playPatChord(): void {
@@ -691,8 +719,8 @@ export class WorkbenchStore {
     this.drMuted = this.drMuted.filter((v) => this.drRowIds.includes(v));
     this.tempo = tpl.bpm;
     this.drSwing = tpl.swing;
-    // A live transport keeps rolling but at the new tempo and pattern.
-    this.retimeTransport();
+    // A live transport keeps rolling and picks the new tempo up on its next
+    // slot — there is no clock to restart.
   }
   /** Show the groove built up to layer `n` (1-based); re-composes the grid. */
   setDrLayers(n: number): void {
@@ -749,20 +777,19 @@ export class WorkbenchStore {
   // One bar of the live loop: schedule every hit sample-accurately against the
   // audio clock, and hand the playhead the same origin. Reads the grid fresh
   // each bar, so edits, mutes and swing changes land on the next ONE.
-  private drTick = (): void => {
+  private drTick = (at: number): void => {
     const stepSec = this.barMs() / 16000;
-    const { at, heard } = this.audio.anchor();
     if (this.soundOn) this.audio.playDrums(this.gridHits(this.drGrid, this.drSwing, stepSec), at);
-    // The playhead follows `heard`, not `at`: the bar is scheduled a lead ahead
-    // and then buffered out to the speakers, and lighting a step the moment we
-    // queued it is exactly what put the ring in front of the kit.
+    // The playhead follows when the bar is *heard*, not when it was scheduled:
+    // it goes out to the speakers an output latency later, and lighting a step
+    // the moment we queued it is exactly what put the ring in front of the kit.
     //
     // Which is also why the new bar can't take the playhead over here. The
     // transport ticks on the bar line, but the ring is running that same lead
     // plus output latency behind it, so the bar that is playing still has that
     // much of its tail to show — 4a, and on a slow output 4& too. It queues
     // behind the bar in the speakers and drDraw promotes it when it arrives.
-    const bar: DrumBar = { heard, stepSec, swing: this.drSwing };
+    const bar: DrumBar = { heard: at + this.audio.latency(), stepSec, swing: this.drSwing };
     if (!this.drBar) this.drBar = bar;
     else {
       if (this.drQueued) this.drBar = this.drQueued; // never promoted (hidden tab) — catch up

@@ -110,6 +110,33 @@ export class AudioEngine {
     return n <= 4 ? 0.22 : 0.22 * Math.pow(4 / n, 0.7);
   }
 
+  // Sources scheduled ahead of the clock. The transport now queues a whole bar
+  // in advance, so stopping has to be able to drop what hasn't sounded yet
+  // rather than let it ring on.
+  private scheduled: Array<{ node: AudioScheduledSourceNode; at: number }> = [];
+
+  private track(node: AudioScheduledSourceNode, at: number): void {
+    this.scheduled.push({ node, at });
+    if (this.scheduled.length > 512) {
+      const now = this.actx!.currentTime;
+      this.scheduled = this.scheduled.filter((s) => s.at > now);
+    }
+  }
+
+  /**
+   * Drop everything scheduled that hasn't started yet. Notes already sounding
+   * are left to ring out naturally — cutting those would click.
+   */
+  cancelScheduled(): void {
+    if (!this.actx) return;
+    const now = this.actx.currentTime;
+    this.scheduled.forEach(({ node, at }) => {
+      // Per spec a stop at or before the start means the node never sounds.
+      if (at > now) { try { node.stop(now); } catch { /* already stopped */ } }
+    });
+    this.scheduled = [];
+  }
+
   private voice(midi: number, t: number, dur: number, amp = 0.22): void {
     const ctx = this.actx!;
     const f = 440 * Math.pow(2, (midi - 69) / 12);
@@ -125,37 +152,47 @@ export class AudioEngine {
     g.gain.linearRampToValueAtTime(0, t + dur + 0.03);
     o1.connect(g); o2.connect(g); g.connect(this.master!);
     o1.start(t); o2.start(t); o1.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+    this.track(o1, t); this.track(o2, t);
   }
 
-  /** The audio clock, in seconds. 0 until the context exists. */
+  /** The audio clock, in seconds. Creates the context if it doesn't exist yet. */
   now(): number {
-    return this.actx ? this.actx.currentTime : 0;
+    this.ensure();
+    return this.actx!.currentTime;
   }
 
   /**
-   * Where to put the next musical event, and when the ear will actually get it.
-   *
-   * `at` is the time to schedule on; `heard` is that plus the device's own
-   * output latency — the buffering between a rendered sample and the speaker.
-   * Anything visual that has to line up with a sound must run off `heard`:
-   * scheduling time is when we hand the note over, not when it arrives, and
-   * the gap between the two (the lead plus tens of ms of output latency) is
-   * exactly how far a playhead drawn "now" runs ahead of the kit.
+   * The device's own output latency: the buffering between a rendered sample
+   * and the speaker. Anything visual that has to line up with a sound belongs
+   * at its scheduled time plus this — scheduling time is when we hand the note
+   * over, not when it arrives.
    */
-  anchor(): { at: number; heard: number } {
-    this.ensure();
-    const ctx = this.actx!;
-    const at = ctx.currentTime + LEAD;
-    return { at, heard: at + (ctx.outputLatency || ctx.baseLatency || 0) };
+  latency(): number {
+    const ctx = this.actx;
+    return ctx ? ctx.outputLatency || ctx.baseLatency || 0 : 0;
   }
 
-  /** Play a set of MIDI notes, optionally strummed with a per-note stagger. */
-  playMidis(midis: number[], dur = 1.2, stagger = 0): void {
+  /**
+   * Play a set of MIDI notes, optionally strummed with a per-note stagger.
+   * `at` places them at an exact time on the audio clock — that's how the
+   * transport keeps a loop seamless. Without it they land a lead ahead of now,
+   * which is what a one-off preview wants.
+   */
+  playMidis(midis: number[], dur = 1.2, stagger = 0, at?: number): void {
     this.run(() => {
-      const t0 = this.actx!.currentTime + LEAD;
+      const t0 = this.startTime(at);
       const amp = this.chordAmp(midis.length);
       midis.forEach((m, i) => this.voice(m, t0 + i * stagger, dur, amp));
     });
+  }
+
+  /**
+   * Resolve a requested time against the clock. A context that had to resume
+   * first may have moved past it; never schedule into the past.
+   */
+  private startTime(at?: number): number {
+    const now = this.actx!.currentTime;
+    return at != null ? Math.max(at, now) : now + LEAD;
   }
 
   /**
@@ -163,10 +200,10 @@ export class AudioEngine {
    * A very short, quiet, heavily damped pluck at the given register — enough
    * attack to mark the subdivision, gone before it reads as a pitch.
    */
-  ghost(midi: number): void {
+  ghost(midi: number, at?: number): void {
     this.run(() => {
       const ctx = this.actx!;
-      const t = ctx.currentTime + LEAD;
+      const t = this.startTime(at);
       const f = 440 * Math.pow(2, (midi - 69) / 12);
       const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
       const g = ctx.createGain();
@@ -176,6 +213,7 @@ export class AudioEngine {
       g.gain.linearRampToValueAtTime(0, t + 0.08);
       o.connect(g); g.connect(this.master!);
       o.start(t); o.stop(t + 0.1);
+      this.track(o, t);
     });
   }
 
@@ -276,6 +314,7 @@ export class AudioEngine {
     g.gain.linearRampToValueAtTime(0, t + dur + 0.02);
     src.connect(f); f.connect(g); g.connect(this.drumBus!);
     src.start(t); src.stop(t + dur + 0.05);
+    this.track(src, t);
   }
 
   /** A pitched drum body: an oscillator swept down in frequency while decaying. */
@@ -291,6 +330,7 @@ export class AudioEngine {
     g.gain.linearRampToValueAtTime(0, t + dur + 0.02);
     o.connect(g); g.connect(this.drumBus!);
     o.start(t); o.stop(t + dur + 0.05);
+    this.track(o, t);
   }
 
   /**
@@ -312,17 +352,14 @@ export class AudioEngine {
    * offset in seconds from the bar start. Called once per bar by the loop,
    * so within-bar timing never depends on setTimeout jitter.
    *
-   * `start` pins the bar to a time from `anchor()`, so the loop's playhead and
-   * its hits share one origin. Without it the bar simply starts a lead ahead
-   * of now.
+   * `start` pins the bar to an exact time on the audio clock, which is how the
+   * transport keeps successive bars on one unbroken grid. Without it the bar
+   * simply starts a lead ahead of now.
    */
   playDrums(hits: Array<{ v: DrumVoiceId; at: number; vel: number }>, start?: number): void {
     if (!hits.length) return;
     this.run(() => {
-      const now = this.actx!.currentTime;
-      // A context that had to resume first may have moved past the requested
-      // start; never schedule into the past.
-      const t0 = start != null ? Math.max(start, now) : now + LEAD;
+      const t0 = this.startTime(start);
       hits.forEach((h) => this.drumVoice(h.v, t0 + h.at, h.vel));
     });
   }
