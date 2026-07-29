@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS, BASS_TOK_LABEL,
-  bassRole, bassRootMidi, resolveBassStep, type BassStep,
+  BASS_GENRES, BASS_PATTERNS, BASS_TRICKS, BASS_TOK_LABEL,
+  bassGenreOf, bassPatternsIn, bassRole, bassRootMidi, resolveBassStep, type BassStep,
 } from './bass';
 import { INT, type Chord } from './constants';
 
@@ -75,21 +75,32 @@ describe('the groove library', () => {
     });
   };
 
-  it('every pattern is well-formed and belongs to a known group', () => {
+  it('every pattern is well-formed and belongs to a known genre', () => {
     const ids = new Set<string>();
+    const genreIds = BASS_GENRES.map((g) => g.id);
     BASS_PATTERNS.forEach((p) => {
       expect(ids.has(p.id)).toBe(false);
       ids.add(p.id);
-      expect(BASS_GROUPS).toContain(p.group);
+      expect(genreIds).toContain(p.genre);
+      expect(p.name.length).toBeGreaterThan(0);
+      expect(p.tip.length).toBeGreaterThan(0);
       expect(p.steps.length).toBeGreaterThan(0);
       validSteps(p.steps);
     });
   });
 
-  it('every group has patterns', () => {
-    BASS_GROUPS.forEach((g) => {
-      expect(BASS_PATTERNS.some((p) => p.group === g)).toBe(true);
+  // The bass workbench and the drum groovebox share one genre taxonomy, so a
+  // genre offered in the picker must never open onto an empty shelf.
+  it('every genre in the shared taxonomy carries basslines', () => {
+    BASS_GENRES.forEach((g) => {
+      expect(bassPatternsIn(g.id).length).toBeGreaterThan(0);
     });
+  });
+
+  it('resolves a pattern back to the genre shelf it lives on', () => {
+    BASS_PATTERNS.forEach((p) => expect(bassGenreOf(p.id)).toBe(p.genre));
+    expect(bassGenreOf(null)).toBe(BASS_GENRES[0].id);
+    expect(bassGenreOf('custom')).toBe(BASS_GENRES[0].id);
   });
 
   it('every trick has a unique id and a playable demo', () => {

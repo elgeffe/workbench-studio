@@ -13,7 +13,7 @@ import {
   type ReadAnswerMode, type ReadTarget,
 } from './engine/reading';
 import {
-  BASS_GROUPS, BASS_PATTERNS, BASS_TRICKS,
+  BASS_PATTERNS, BASS_TRICKS, bassGenreOf, bassPatternsIn,
   bassRootMidi, resolveBassStep, type BassStep, type DegTok,
 } from './engine/bass';
 import {
@@ -29,6 +29,8 @@ import type { Wedge } from './view/types';
 export type Mode = 'circle' | 'workshop' | 'drums' | 'metronome' | 'ear' | 'reading' | 'patterns' | 'jazz';
 export type LearnTab = 'harmony' | 'rhythm' | 'bass' | 'form';
 export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
+/** The genre pickers that can be open: the drum machine, Workshop starting points, bass grooves. */
+export type PickerId = 'drums' | 'progressions' | 'bass';
 
 // Re-exported so components can keep importing view-model types from here.
 export type {
@@ -74,8 +76,12 @@ export class WorkbenchStore {
   rdStreak = $state(0);
   rdMsg = $state('');
 
-  wsGenre = $state(0);
-  bassGroup = $state(BASS_GROUPS[0]);
+  // Workshop starting points and bass grooves are both shelved on the studio's
+  // shared genre taxonomy (engine/genres.ts) — the same one the drum machine
+  // uses — so each is held as a genre id rather than a list index.
+  wsGenre = $state('rock');
+  wsProgName = $state(''); // the starting point currently loaded, for the picker summary
+  bassGenre = $state('disco');
   bassPatId = $state<string | null>('discopump');
   // The user's hand-built groove: 16 cells (one 16th each), null = a rest. Its
   // id in the pattern list is the special 'custom'. Step lengths are computed
@@ -118,6 +124,12 @@ export class WorkbenchStore {
   circleDir = $state<'fifths' | 'fourths'>('fifths');
 
   isDesktop = $state(false);
+
+  // Which genre picker is open, if any. The libraries are now big enough
+  // (31 genres, 100+ templates each) that leaving the shelves on the page
+  // buried the actual instrument, so they live behind a modal: the page keeps
+  // a one-line summary and the full picker opens over it on demand.
+  picker = $state<PickerId | null>(null);
 
   // ---- practice metronome (its own engine + runes sub-store) ----
   // The click runs on its own AudioContext and keeps ticking when you browse
@@ -210,17 +222,30 @@ export class WorkbenchStore {
       this.circleView = 'maj';
     }
   }
-  setWsGenre(i: number): void { this.wsGenre = i; }
+  // ---- the genre pickers (one modal at a time) ----
+  openPicker(id: PickerId): void { this.picker = id; }
+  closePicker(): void { this.picker = null; }
+  togglePicker(id: PickerId): void { this.picker = this.picker === id ? null : id; }
+
+  setWsGenre(id: string): void { this.wsGenre = id; }
   setWsStyle(s: WsStyle): void {
     this.wsStyle = s;
     // No retiming needed: the transport ticks every half bar regardless of
     // style — bass style simply advances chords on bar ticks only.
   }
-  setBassGroup(g: string): void { this.bassGroup = g; }
+  /** Pick a bass genre: loads its first groove (the picker is genre → groove). */
+  setBassGenre(id: string): void {
+    this.bassGenre = id;
+    const first = bassPatternsIn(id)[0];
+    if (first) this.setBassPat(first.id);
+  }
   toggleBassChords(): void { this.bassChordsOn = !this.bassChordsOn; }
   toggleBassOn(): void { this.bassOn = !this.bassOn; }
   setBassPat(id: string | null): void {
     this.bassPatId = id;
+    // Keep the picker's shelf pointing at whatever is actually loaded, so a
+    // groove chosen from anywhere (seed chip, deep link) reopens on its genre.
+    if (id && id !== 'custom') this.bassGenre = bassGenreOf(id);
     // Solo one-bar preview so you hear the groove before committing; a live
     // loop just picks the new pattern up on its next bar instead.
     if (id && !this.jzPlaying) {
@@ -399,8 +424,10 @@ export class WorkbenchStore {
     this.jzSel = arr.length - 1;
     this.activeChord = jChVoiced(arr[this.jzSel], this.jzVoicing);
   }
-  setProgression(defs: ChordDef[]): void {
+  /** Replace the strip with a starting point. `name` labels it in the picker summary. */
+  setProgression(defs: ChordDef[], name = ''): void {
     const arr = defs.map((d) => this.chFromDef(d));
+    this.wsProgName = name;
     this.jzChanges = arr;
     this.jzSel = 0;
     this.jzStep = -1;
@@ -434,6 +461,7 @@ export class WorkbenchStore {
   }
   jzClear(): void {
     this.stopJazz();
+    this.wsProgName = '';
     this.jzChanges = [];
     this.jzSel = -1;
     this.jzStep = -1;

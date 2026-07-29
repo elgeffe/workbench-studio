@@ -7,6 +7,15 @@
 
 import { mod12, gI } from './theory';
 import type { Chord } from './constants';
+import { FAMILIES, GENRES } from './genres';
+import { ROCK_POP_BASSLINES } from './basslines/rockpop';
+import { FUNK_SOUL_BASSLINES } from './basslines/funksoul';
+import { HIPHOP_BASSLINES } from './basslines/hiphop';
+import { HOUSE_BASSLINES } from './basslines/house';
+import { BREAKS_BASSLINES } from './basslines/breaks';
+import { HARD_BASSLINES } from './basslines/hard';
+import { JAZZ_BASSLINES } from './basslines/jazz';
+import { WORLD_BASSLINES } from './basslines/world';
 
 // Degree tokens: offsets from the sounding chord's root, plus the special
 // moves bassists actually use. '3' resolves to the chord's own third (major
@@ -67,12 +76,18 @@ export function resolveBassStep(tok: DegTok, ch: Chord, next: Chord, tonicPc: nu
 }
 
 // ---- the groove library ----
+//
+// Patterns are shelved exactly like the drum templates: family → genre →
+// pattern, off the shared taxonomy in `engine/genres.ts`. Picking "Neo-Soul"
+// in the bass workbench therefore lands on the same shelf as the neo-soul
+// grooves in the drum machine, and the two can be loaded as one band.
 
-export const BASS_GROUPS = ['Funk / Disco / Soul', 'Jazz & Blues', 'Rock / Pop / Punk', 'Latin / Reggae / World'];
+export const BASS_FAMILIES = FAMILIES;
+export const BASS_GENRES = GENRES;
 
 export interface BassPattern {
   id: string;
-  group: string;
+  genre: string; // StudioGenre id — the picker is genre first, groove second
   name: string;
   tag: string;   // the player / tradition it comes from
   tip: string;   // the trick to hear inside it
@@ -80,74 +95,25 @@ export interface BassPattern {
 }
 
 export const BASS_PATTERNS: BassPattern[] = [
-  // -- Funk / Disco / Soul --
-  { id: 'discopump', group: 'Funk / Disco / Soul', name: 'Octave Pump', tag: 'Bernard Edwards · Chic',
-    tip: 'Root–octave eighths welded to the four-on-the-floor kick — the engine of disco. The ♭7 on beat 4 is the pickup that yanks the line back to the ONE.',
-    steps: [{ s: 0, d: 'R' }, { s: 2, d: 'O' }, { s: 4, d: 'R' }, { s: 6, d: 'O' }, { s: 8, d: 'R' }, { s: 10, d: 'O' }, { s: 12, d: 'b7' }, { s: 14, d: 'O' }] },
-  { id: 'jamerson', group: 'Funk / Disco / Soul', name: 'Motown Boogie Cell', tag: 'James Jamerson',
-    tip: 'The 1–5–6–♭7 climb to the octave and back — bedrock of Motown and soul. The last eighth abandons the cell to walk chromatically into the next chord: Jamerson never wastes a pickup.',
-    steps: [{ s: 0, d: 'R' }, { s: 2, d: '5' }, { s: 4, d: '6' }, { s: 6, d: 'b7' }, { s: 8, d: 'O' }, { s: 10, d: 'b7' }, { s: 12, d: '6' }, { s: 14, d: 'A' }] },
-  { id: 'jackson', group: 'Funk / Disco / Soul', name: 'Chameleon Space Riff', tag: 'Paul Jackson · Headhunters',
-    tip: 'A short, syncopated Dorian riff repeated until it’s hypnotic. The rests are the funk — Jackson leaves beat 3 almost empty and lets the drums show through.',
-    steps: [{ s: 0, d: 'R' }, { s: 3, d: 'b3' }, { s: 6, d: 'R' }, { s: 8, g: true }, { s: 10, d: '2' }, { s: 11, d: 'b3' }, { s: 14, d: '5' }] },
-  { id: 'marcus', group: 'Funk / Disco / Soul', name: 'Slap Octaves', tag: 'Marcus Miller',
-    tip: 'Thumb the root, pluck the octave, and pepper the gaps with dead-note "chk"s. The chromatic climb ♭7–7–8 into the octave is pure Marcus.',
-    steps: [{ s: 0, d: 'R' }, { s: 2, d: 'O' }, { s: 4, g: true }, { s: 6, d: 'R' }, { s: 8, g: true }, { s: 10, d: 'b7' }, { s: 11, d: 'n7' }, { s: 12, d: 'O' }, { s: 14, g: true }] },
-  { id: 'ontheone', group: 'Funk / Disco / Soul', name: 'On the One', tag: 'James Brown funk',
-    tip: 'Whatever else happens, the root owns beat ONE — everything after is syncopation and ghost notes. The bass is a drum that happens to have pitch.',
-    steps: [{ s: 0, d: 'R', l: 4 }, { s: 6, g: true }, { s: 7, g: true }, { s: 8, d: '5' }, { s: 11, g: true }, { s: 12, d: 'b7' }, { s: 14, d: 'R' }] },
-  { id: 'crossover', group: 'Funk / Disco / Soul', name: 'Crossover 16ths', tag: '70s jazz-funk · Mizell era',
-    tip: 'Funk 16ths with jazz manners: the root pushed on the “a of 1”, an octave in the middle of the bar, and the Dorian natural 6 before the change — that 6 is the note that makes a funk line sound like jazz.',
-    steps: [{ s: 0, d: 'R' }, { s: 3, d: 'R' }, { s: 4, g: true }, { s: 6, d: '5' }, { s: 8, d: 'b7' }, { s: 10, d: 'O' }, { s: 11, g: true }, { s: 13, d: '6' }, { s: 14, d: 'A' }] },
-  { id: 'spiritual', group: 'Funk / Disco / Soul', name: 'Two-Chord Vamp', tag: 'spiritual jazz-funk',
-    tip: 'The floating end of jazz-funk: long notes, one octave leap, and a bar that ends on the 9 instead of the root — the note that stops a vamp ever sounding finished.',
-    steps: [{ s: 0, d: 'R', l: 3 }, { s: 4, d: '5' }, { s: 6, d: 'O', l: 3 }, { s: 10, d: '5' }, { s: 11, g: true }, { s: 14, d: '2' }] },
-
-  // -- Jazz & Blues --
-  { id: 'walkup', group: 'Jazz & Blues', name: 'Walking · Up the Chord', tag: 'walking bass',
-    tip: 'Quarter notes: chord tones on the strong beats, then a chromatic approach a half-step under the NEXT chord’s root. Beat 4 belongs to where you’re going, not where you are.',
-    steps: [{ s: 0, d: 'R', l: 3.5 }, { s: 4, d: '3', l: 3.5 }, { s: 8, d: '5', l: 3.5 }, { s: 12, d: 'A', l: 3.5 }] },
-  { id: 'walkdown', group: 'Jazz & Blues', name: 'Walking · From Above', tag: 'walking bass',
-    tip: 'The mirror move: drift down through the 6 and 5, then fall onto the next root from a half-step above. Mixing under- and over-approaches keeps a walk from sounding like an exercise.',
-    steps: [{ s: 0, d: 'R', l: 3.5 }, { s: 4, d: '6', l: 3.5 }, { s: 8, d: '5', l: 3.5 }, { s: 12, d: 'A+', l: 3.5 }] },
-  { id: 'boogie', group: 'Jazz & Blues', name: 'Blues Boogie Shuffle', tag: 'jump blues',
-    tip: 'The boogie-woogie cell that powered early rock’n’roll: up 1–3–5–6–♭7 and back down. The 3rd follows the chord, so it works over major and minor blues alike.',
-    steps: [{ s: 0, d: 'R' }, { s: 2, d: '3' }, { s: 4, d: '5' }, { s: 6, d: '6' }, { s: 8, d: 'b7' }, { s: 10, d: '6' }, { s: 12, d: '5' }, { s: 14, d: '3' }] },
-  { id: 'boogaloo', group: 'Jazz & Blues', name: 'Boogaloo Line', tag: 'soul-jazz · Blue Note 60s',
-    tip: 'The tresillo (3+3+2) that gave the boogaloo its name: root on 1, root again on the “and of 2”, fifth on beat 4 — a Latin cell under a backbeat, then a jazz walk into the change.',
-    steps: [{ s: 0, d: 'R', l: 3 }, { s: 6, d: 'R' }, { s: 8, g: true }, { s: 12, d: '5' }, { s: 14, d: 'A' }] },
-  { id: 'twofeel', group: 'Jazz & Blues', name: 'The Two-Feel', tag: 'jazz ballads',
-    tip: 'Half notes — just root and five — until the last eighth walks into the change. Restraint is a bass trick too: save the four-to-the-bar walk for when the tune lifts.',
-    steps: [{ s: 0, d: 'R', l: 7 }, { s: 8, d: '5', l: 5 }, { s: 14, d: 'A' }] },
-
-  // -- Rock / Pop / Punk --
-  { id: 'eighths', group: 'Rock / Pop / Punk', name: 'Driving Eighths', tag: 'punk · hard rock',
-    tip: 'Relentless root eighths, every note the same length and weight — the pocket IS the technique. The ♭7 pickup on the last eighth is the one flourish allowed.',
-    steps: [{ s: 0, d: 'R' }, { s: 2, d: 'R' }, { s: 4, d: 'R' }, { s: 6, d: 'R' }, { s: 8, d: 'R' }, { s: 10, d: 'R' }, { s: 12, d: 'R' }, { s: 14, d: 'b7' }] },
-  { id: 'rootfive', group: 'Rock / Pop / Punk', name: 'Root–Five', tag: 'country · early rock',
-    tip: 'The oom-pah skeleton under country, polka and early rock: root, then the fifth BELOW. The walk-up into the next chord telegraphs the change to the whole band.',
-    steps: [{ s: 0, d: 'R', l: 3.5 }, { s: 4, d: '5_', l: 3.5 }, { s: 8, d: 'R', l: 3.5 }, { s: 12, d: '5_' }, { s: 14, d: 'A' }] },
-  { id: 'mccartney', group: 'Rock / Pop / Punk', name: 'Melodic Counter-Line', tag: 'McCartney-style',
-    tip: 'The bass as a second melody: arpeggiate the chord but shape it into a singable contour with the 6th. It answers the vocal instead of just anchoring it.',
-    steps: [{ s: 0, d: 'R' }, { s: 4, d: '3' }, { s: 6, d: '5' }, { s: 8, d: '6', l: 3 }, { s: 12, d: '5' }, { s: 14, d: '3' }] },
-  { id: 'pedal', group: 'Rock / Pop / Punk', name: 'Tonic Pedal', tag: 'U2 · film scores',
-    tip: 'The bass refuses to move: the key’s tonic drones under every chord while the harmony shifts above it. Tension comes from the chords rubbing against the unmoving floor.',
-    steps: [{ s: 0, d: 'T' }, { s: 2, d: 'T' }, { s: 4, d: 'T' }, { s: 6, d: 'T' }, { s: 8, d: 'T' }, { s: 10, d: 'T' }, { s: 12, d: 'T' }, { s: 14, d: 'T' }] },
-
-  // -- Latin / Reggae / World --
-  { id: 'bossa', group: 'Latin / Reggae / World', name: 'Bossa Root–Five', tag: 'bossa nova',
-    tip: 'Root on the downbeats, fifth on the and-of-two — the surdo drum translated to bass. The last eighth anticipates the next bar’s root, arriving before the chord does.',
-    steps: [{ s: 0, d: 'R', l: 5 }, { s: 6, d: '5_' }, { s: 8, d: 'R', l: 5 }, { s: 14, d: 'N' }] },
-  { id: 'tumbao', group: 'Latin / Reggae / World', name: 'Tumbao', tag: 'salsa · son montuno',
-    tip: 'The radical move: NOTHING lands on beat one. The bass floats on the and-of-two and pushes the next chord in on beat four, tied over the barline. The band feels the ONE precisely because you never play it.',
-    steps: [{ s: 3, g: true }, { s: 6, d: '5', l: 5 }, { s: 12, d: 'N', l: 4 }] },
-  { id: 'onedrop', group: 'Latin / Reggae / World', name: 'Reggae One-Drop', tag: 'roots reggae',
-    tip: 'Drop beat one entirely and let the line breathe — fat, short notes clustered mid-bar. In reggae the space before the bass enters is as loud as the notes.',
-    steps: [{ s: 4, d: 'R', l: 3 }, { s: 8, d: 'R' }, { s: 10, d: '3' }, { s: 12, d: '5', l: 3 }] },
-  { id: 'afrobeat', group: 'Latin / Reggae / World', name: 'Afrobeat Ostinato', tag: 'Fela · Tony Allen era',
-    tip: 'One tight bar, repeated forever without variation — the bass is a tuned drum inside the interlocking percussion machine. Change nothing; let the horns do the travelling.',
-    steps: [{ s: 0, d: 'R' }, { s: 3, d: 'O' }, { s: 6, d: 'R' }, { s: 8, g: true }, { s: 10, d: 'b7' }, { s: 12, d: '5' }, { s: 14, g: true }] },
+  ...ROCK_POP_BASSLINES,
+  ...FUNK_SOUL_BASSLINES,
+  ...HIPHOP_BASSLINES,
+  ...HOUSE_BASSLINES,
+  ...BREAKS_BASSLINES,
+  ...HARD_BASSLINES,
+  ...JAZZ_BASSLINES,
+  ...WORLD_BASSLINES,
 ];
+
+/** The grooves inside one genre, in library order. */
+export function bassPatternsIn(genreId: string): BassPattern[] {
+  return BASS_PATTERNS.filter((p) => p.genre === genreId);
+}
+
+/** The genre a groove belongs to — used to re-open the picker on the right shelf. */
+export function bassGenreOf(patId: string | null): string {
+  return BASS_PATTERNS.find((p) => p.id === patId)?.genre || BASS_GENRES[0].id;
+}
 
 // ---- tricks of the trade: named techniques with a one-bar audio demo ----
 

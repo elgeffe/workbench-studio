@@ -1,37 +1,36 @@
 <script lang="ts">
   import { useStore } from '../context';
+  import GenrePicker from './GenrePicker.svelte';
   const store = useStore();
   const v = $derived(store.view);
 </script>
 
 <div>
-  <div style="margin-bottom:13px">
+  <div style="margin-bottom:11px">
     <div class="eyebrow" style="margin-bottom:3px">Drums · groovebox</div>
-    <div class="caption" style="font-size:13px;max-width:560px">Pick a <b>genre</b>, then one of its <b>patterns</b> — {v.drPatternCount} grooves across {v.drGenreCount} genres. Press play, then peel it apart: the LAYERS chips rebuild the groove one part at a time, the way a drummer would. Tap any cell to edit — rest → hit → <b>accent</b> — and drag the swing to bend the feel.</div>
+    <div class="caption" style="font-size:13px;max-width:560px">{v.drPatternCount} grooves across {v.drGenreCount} genres — open the picker to choose one. Press play, then peel it apart: the LAYERS chips rebuild the groove one part at a time, the way a drummer would. Tap any cell to edit — rest → hit → <b>accent</b> — and drag the swing to bend the feel.</div>
   </div>
 
-  <!-- step 1: genres, shelved by family -->
-  <div data-testid="drum-genres">
-    {#each v.drFamilies as fam (fam.name)}
-      <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap">
-        <span class="mono" style="flex:none;width:92px;font-size:8px;letter-spacing:.12em;color:#8a7350;text-transform:uppercase">{fam.name}</span>
-        {#each fam.chips as c (c.id)}
-          <div class="serif click" style="font-size:{v.drChipFont};font-weight:{c.weight};padding:{v.drChipPad};border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setDrumGenre(c.id)} onkeydown={(e) => e.key === 'Enter' && store.setDrumGenre(c.id)}>{c.name} <span class="mono" style="font-size:8px;color:#a08a64">{c.n}</span></div>
-        {/each}
-      </div>
-    {/each}
-  </div>
-
-  <!-- step 2: the patterns inside the chosen genre -->
-  <div style="border-top:1px solid #e0cfae;margin-top:11px;padding-top:11px">
-    <div class="mono" style="font-size:8px;letter-spacing:.12em;color:#8a7350;margin-bottom:6px">{v.drGenreName} · PATTERNS</div>
-    <div data-testid="drum-variations" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px">
-      {#each v.drVariations as c (c.id)}
-        <div class="serif click" style="font-size:{v.drChipFont};font-weight:{c.weight};padding:{v.drChipPad};border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setDrumTpl(c.id)} onkeydown={(e) => e.key === 'Enter' && store.setDrumTpl(c.id)}>{c.name} <span class="mono" style="font-size:8px;color:{c.fg === '#fff' ? '#e7d9ba' : '#a08a64'}">{c.bpm}</span></div>
-      {/each}
-    </div>
-    <div class="caption" style="font-size:13px;color:#5c4a30;line-height:1.5;max-width:620px">{v.drGenreBlurb}</div>
-  </div>
+  <!-- genre → pattern, behind a modal so the grid stays above the fold -->
+  <GenrePicker
+    open={v.drPickerOpen}
+    label="GROOVE"
+    summaryGenre={v.drGenreName}
+    summaryItem={v.drTplName}
+    hint="{v.drPatternCount} patterns · {v.drGenreCount} genres"
+    shelves={v.drFamilies}
+    items={v.drVariations}
+    itemsLabel="PATTERNS"
+    blurb={v.drGenreBlurb}
+    compact={!store.isDesktop}
+    testid="drum-picker"
+    genresTestid="drum-genres"
+    itemsTestid="drum-variations"
+    onOpen={() => store.openPicker('drums')}
+    onClose={() => store.closePicker()}
+    onGenre={(id) => store.setDrumGenre(id)}
+    onItem={(id) => store.setDrumTpl(id)}
+  />
 
   <!-- transport -->
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#f3ead4;border:1px solid #e0cfae;border-radius:10px;padding:11px 13px;margin:12px 0 12px">

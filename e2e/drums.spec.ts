@@ -12,6 +12,7 @@ test.describe('drums groovebox', () => {
   test('genre → pattern is a dependent selection', async ({ page }) => {
     // default is Rock / Straight 8ths at its authentic tempo
     await expect(page.getByText('TEMPO · 104 BPM')).toBeVisible();
+    await page.getByTestId('drum-picker-summary').click();
     const variations = page.getByTestId('drum-variations');
     await expect(variations.getByText('Straight 8ths')).toBeVisible();
     await expect(variations.getByText('Motorik / driving')).toBeVisible();
@@ -27,7 +28,9 @@ test.describe('drums groovebox', () => {
     await expect(page.getByText(/SWING · 66%/)).toBeVisible();
 
     // and picking another variation inside the genre re-tempos the transport
+    // and closes the picker behind you
     await variations.getByText('Up-tempo bebop').click();
+    await expect(page.getByTestId('drum-picker')).toBeHidden();
     await expect(page.getByText('TEMPO · 190 BPM')).toBeVisible();
     const layers = page.getByTestId('drum-layers');
     await expect(layers.getByText(/Bomb drops/)).toBeVisible();
@@ -35,9 +38,25 @@ test.describe('drums groovebox', () => {
 
   test('every genre carries its own programming note', async ({ page }) => {
     await expect(page.getByTestId('drum-maschine')).toContainText(/velocity|swing|pads?/i);
+    await page.getByTestId('drum-picker-summary').click();
     await page.getByTestId('drum-genres').getByText('Trap & Drill').click();
-    await expect(page.getByTestId('drum-maschine')).toContainText('808');
     await expect(page.getByTestId('drum-variations').getByText('Drill')).toBeVisible();
+    await page.getByTestId('drum-picker-close').click();
+    await expect(page.getByTestId('drum-maschine')).toContainText('808');
+  });
+
+  test('the picker summarises what is loaded and opens over the grid', async ({ page }) => {
+    const summary = page.getByTestId('drum-picker-summary');
+    await expect(summary).toContainText('Rock');
+    await expect(summary).toContainText('Straight 8ths');
+    // shelves are out of the way until asked for
+    await expect(page.getByTestId('drum-genres')).toBeHidden();
+    await summary.click();
+    await expect(page.getByTestId('drum-genres')).toBeVisible();
+    // escape dismisses without changing the selection
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('drum-genres')).toBeHidden();
+    await expect(summary).toContainText('Straight 8ths');
   });
 
   test('layer chips rebuild the groove up to that point', async ({ page }) => {
@@ -76,6 +95,7 @@ test.describe('drums groovebox', () => {
 
   test('rows follow the pattern: Latin brings percussion, techno brings a sub', async ({ page }) => {
     const grid = page.getByTestId('drum-grid');
+    await page.getByTestId('drum-picker-summary').click();
     await page.getByTestId('drum-genres').getByRole('button', { name: /^Afro-Cuban & Brazilian\s+\d+$/ }).click();
     await expect(grid.getByRole('button', { name: 'preview Cowbell / Block' })).toBeVisible();
     await expect(grid.getByRole('button', { name: 'preview High Tom / Conga' })).toBeVisible();
