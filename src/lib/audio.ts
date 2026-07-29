@@ -5,6 +5,11 @@
 import { drumVoice as drumVoiceDef } from './engine/drums';
 import type { DrumVoiceId, DrumFilter, DrumWave, DrumSynthLayer } from './engine/drums';
 
+// How far ahead of the clock a scheduled event is placed: long enough that a
+// busy main thread can't push a note into the past, short enough not to feel
+// laggy under the finger.
+const LEAD = 0.03;
+
 export class AudioEngine {
   private actx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -94,10 +99,32 @@ export class AudioEngine {
     o1.start(t); o2.start(t); o1.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
   }
 
+  /** The audio clock, in seconds. 0 until the context exists. */
+  now(): number {
+    return this.actx ? this.actx.currentTime : 0;
+  }
+
+  /**
+   * Where to put the next musical event, and when the ear will actually get it.
+   *
+   * `at` is the time to schedule on; `heard` is that plus the device's own
+   * output latency — the buffering between a rendered sample and the speaker.
+   * Anything visual that has to line up with a sound must run off `heard`:
+   * scheduling time is when we hand the note over, not when it arrives, and
+   * the gap between the two (the lead plus tens of ms of output latency) is
+   * exactly how far a playhead drawn "now" runs ahead of the kit.
+   */
+  anchor(): { at: number; heard: number } {
+    this.ensure();
+    const ctx = this.actx!;
+    const at = ctx.currentTime + LEAD;
+    return { at, heard: at + (ctx.outputLatency || ctx.baseLatency || 0) };
+  }
+
   /** Play a set of MIDI notes, optionally strummed with a per-note stagger. */
   playMidis(midis: number[], dur = 1.2, stagger = 0): void {
     this.run(() => {
-      const t0 = this.actx!.currentTime + 0.03;
+      const t0 = this.actx!.currentTime + LEAD;
       const amp = this.chordAmp(midis.length);
       midis.forEach((m, i) => this.voice(m, t0 + i * stagger, dur, amp));
     });
@@ -111,7 +138,7 @@ export class AudioEngine {
   ghost(midi: number): void {
     this.run(() => {
       const ctx = this.actx!;
-      const t = ctx.currentTime + 0.02;
+      const t = ctx.currentTime + LEAD;
       const f = 440 * Math.pow(2, (midi - 69) / 12);
       const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
       const g = ctx.createGain();
@@ -256,11 +283,18 @@ export class AudioEngine {
    * Schedule one bar of drum hits sample-accurately: `at` is each hit's
    * offset in seconds from the bar start. Called once per bar by the loop,
    * so within-bar timing never depends on setTimeout jitter.
+   *
+   * `start` pins the bar to a time from `anchor()`, so the loop's playhead and
+   * its hits share one origin. Without it the bar simply starts a lead ahead
+   * of now.
    */
-  playDrums(hits: Array<{ v: DrumVoiceId; at: number; vel: number }>): void {
+  playDrums(hits: Array<{ v: DrumVoiceId; at: number; vel: number }>, start?: number): void {
     if (!hits.length) return;
     this.run(() => {
-      const t0 = this.actx!.currentTime + 0.03;
+      const now = this.actx!.currentTime;
+      // A context that had to resume first may have moved past the requested
+      // start; never schedule into the past.
+      const t0 = start != null ? Math.max(start, now) : now + LEAD;
       hits.forEach((h) => this.drumVoice(h.v, t0 + h.at, h.vel));
     });
   }

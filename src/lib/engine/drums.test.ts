@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   DRUM_VOICES, DRUM_STEPS, DRUM_FAMILIES, DRUM_GENRES, DRUM_COUNT,
   drumTemplates, drumGenres, drumVoice, inKitOrder, composeGrid, emptyGrid,
-  swingDelaySteps, templateVoices, voicesInGrid, RHYTHM_CONCEPTS,
+  swingDelaySteps, stepAtElapsed, templateVoices, voicesInGrid, RHYTHM_CONCEPTS,
 } from './drums';
 
 const voiceIds = new Set(DRUM_VOICES.map((v) => v.id));
@@ -208,6 +208,44 @@ describe('swingDelaySteps', () => {
   it('gives odd 16ths half the off-beat delay', () => {
     expect(swingDelaySteps(1, 75)).toBeCloseTo(0.5, 5);
     expect(swingDelaySteps(3, 75)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe('stepAtElapsed (the playhead)', () => {
+  const STEP = 0.125; // 16ths at 120bpm
+
+  it('is silent before the bar starts', () => {
+    expect(stepAtElapsed(-0.01, STEP, 50)).toBe(-1);
+    expect(stepAtElapsed(0.4, 0, 50)).toBe(-1);
+  });
+
+  it('lights a step exactly when its hit sounds, never before', () => {
+    for (let s = 0; s < DRUM_STEPS; s++) {
+      expect(stepAtElapsed(s * STEP, STEP, 50)).toBe(s);
+      // a hair earlier is still the step before — the ring must not lead the kit
+      if (s > 0) expect(stepAtElapsed(s * STEP - 0.001, STEP, 50)).toBe(s - 1);
+    }
+  });
+
+  it('holds the last step until the next bar re-anchors it', () => {
+    expect(stepAtElapsed(DRUM_STEPS * STEP + 1, STEP, 50)).toBe(DRUM_STEPS - 1);
+  });
+
+  it('waits for a swung step instead of lighting on its grid line', () => {
+    // At 66% the off-beat 8th plays 0.64 of a step late.
+    const late = swingDelaySteps(2, 66) * STEP;
+    expect(late).toBeGreaterThan(0);
+    expect(stepAtElapsed(2 * STEP, STEP, 66)).toBe(1);            // grid line — not yet heard
+    expect(stepAtElapsed(2 * STEP + late, STEP, 66)).toBe(2);     // the hit itself
+  });
+
+  it('agrees with the hit times it is drawn against, at every swing', () => {
+    [50, 58, 66, 75].forEach((swing) => {
+      for (let s = 0; s < DRUM_STEPS; s++) {
+        const at = (s + swingDelaySteps(s, swing)) * STEP;
+        expect(stepAtElapsed(at, STEP, swing), `step ${s} @ ${swing}%`).toBe(s);
+      }
+    });
   });
 });
 

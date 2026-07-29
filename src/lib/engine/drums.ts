@@ -133,6 +133,21 @@ export function swingDelaySteps(s: number, swing: number): number {
   return 0;
 }
 
+/**
+ * Where the playhead belongs `elapsed` seconds into a bar: the last step whose
+ * hit has actually sounded. Swing is part of the answer — a swung step lights
+ * when you hear it, not when its grid line goes by — so the ring stays on the
+ * note the ear is hearing instead of running ahead of the kit. Returns -1
+ * before the bar starts.
+ */
+export function stepAtElapsed(elapsed: number, stepSec: number, swing: number): number {
+  if (!(stepSec > 0) || elapsed < 0) return -1;
+  let s = Math.min(DRUM_STEPS - 1, Math.floor(elapsed / stepSec));
+  // Walk back over any step that swings late enough not to have sounded yet.
+  while (s > 0 && elapsed < (s + swingDelaySteps(s, swing)) * stepSec) s--;
+  return s;
+}
+
 // The count along the top of the grid: 16ths are spoken "1 e & a 2 e & a…".
 export const DRUM_COUNT = ['1', 'e', '&', 'a', '2', 'e', '&', 'a', '3', 'e', '&', 'a', '4', 'e', '&', 'a'];
 
