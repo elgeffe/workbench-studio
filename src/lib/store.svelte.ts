@@ -31,6 +31,14 @@ export type LearnTab = 'harmony' | 'rhythm' | 'bass' | 'form';
 export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
 /** How long one chord of the progression holds: half a bar (2 beats) or a full bar. */
 export type ChordSlot = 'half' | 'bar';
+
+/** One scheduled bar of drums, as the playhead needs to see it. */
+interface DrumBar {
+  /** audio-clock time the ear gets step 0 */
+  heard: number;
+  stepSec: number;
+  swing: number;
+}
 /** The genre pickers that can be open: the drum machine, Workshop starting points, bass grooves. */
 export type PickerId = 'drums' | 'progressions' | 'bass';
 
@@ -159,13 +167,12 @@ export class WorkbenchStore {
   private seqTimers: ReturnType<typeof setTimeout>[] = [];
   private singleTimers: ReturnType<typeof setTimeout>[] = [];
   private bassTimers: ReturnType<typeof setTimeout>[] = [];
-  // The drum playhead runs off the audio clock, not off timers: `drHeard` is
-  // the moment the ear gets step 0 of the current bar, and a rAF loop reads the
-  // clock against it. See drDraw().
+  // The drum playhead runs off the audio clock, not off timers: a bar carries
+  // the moment the ear gets its step 0 (`heard`) and the shape it was laid out
+  // with, and a rAF loop reads the clock against it. See drDraw().
   private drRaf: number | null = null;
-  private drHeard = 0;
-  private drStepSec = 0;
-  private drBarSwing = 50;
+  private drBar: DrumBar | null = null;    // the bar the ring is drawing
+  private drQueued: DrumBar | null = null; // scheduled, not yet out of the speakers
 
   constructor() {
     // Prepare an ear-training target so the tab isn't empty, but stay silent:
@@ -749,9 +756,18 @@ export class WorkbenchStore {
     // The playhead follows `heard`, not `at`: the bar is scheduled a lead ahead
     // and then buffered out to the speakers, and lighting a step the moment we
     // queued it is exactly what put the ring in front of the kit.
-    this.drHeard = heard;
-    this.drStepSec = stepSec;
-    this.drBarSwing = this.drSwing;
+    //
+    // Which is also why the new bar can't take the playhead over here. The
+    // transport ticks on the bar line, but the ring is running that same lead
+    // plus output latency behind it, so the bar that is playing still has that
+    // much of its tail to show — 4a, and on a slow output 4& too. It queues
+    // behind the bar in the speakers and drDraw promotes it when it arrives.
+    const bar: DrumBar = { heard, stepSec, swing: this.drSwing };
+    if (!this.drBar) this.drBar = bar;
+    else {
+      if (this.drQueued) this.drBar = this.drQueued; // never promoted (hidden tab) — catch up
+      this.drQueued = bar;
+    }
     this.startDrDraw();
   };
   // The playhead reads the audio clock every frame instead of counting its own
@@ -759,13 +775,18 @@ export class WorkbenchStore {
   private drDraw = (): void => {
     this.drRaf = null;
     if (!this.drPlaying) return;
-    const el = this.audio.now() - this.drHeard;
-    // Anything more than a bar (plus a step of slack for a late tick) means the
-    // anchor is stale — an audio clock that hadn't started when we took it, or
-    // a stalled tick. Leave the playhead alone rather than pin it to step 16.
-    if (el < 17 * this.drStepSec) {
-      const s = stepAtElapsed(el, this.drStepSec, this.drBarSwing);
-      if (s >= 0) this.drStep = s;
+    const now = this.audio.now();
+    if (this.drQueued && now >= this.drQueued.heard) { this.drBar = this.drQueued; this.drQueued = null; }
+    const b = this.drBar;
+    if (b) {
+      const el = now - b.heard;
+      // Anything more than a bar (plus a step of slack) means the anchor is
+      // stale — an audio clock that hadn't started when we took it, or a
+      // stalled tick. Leave the playhead alone rather than pin it to step 16.
+      if (el < 17 * b.stepSec) {
+        const s = stepAtElapsed(el, b.stepSec, b.swing);
+        if (s >= 0) this.drStep = s;
+      }
     }
     this.startDrDraw();
   };
@@ -775,6 +796,8 @@ export class WorkbenchStore {
   }
   private stopDrDraw(): void {
     if (this.drRaf != null) { cancelAnimationFrame(this.drRaf); this.drRaf = null; }
+    this.drBar = null;
+    this.drQueued = null;
   }
   toggleDrumPlay(): void { this.togglePlay(); }
   stopDrums(): void { this.stopTransport(); }
