@@ -24,7 +24,7 @@ test.describe('chords: chord length vs tempo', () => {
     const tempo = await page.locator('input[type=range]').first().inputValue();
 
     await tabs.getByRole('tab', { name: 'bass' }).click();
-    await expect(page.getByText('BUILD YOUR OWN', { exact: false })).toBeVisible();
+    await expect(page.getByTestId('bass-line')).toBeVisible();
     // the bass tab rides the same clock and doesn't touch it
     expect(await page.locator('input[type=range]').first().inputValue()).toBe(tempo);
 

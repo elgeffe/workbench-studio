@@ -27,10 +27,11 @@ test.describe('drums groovebox', () => {
     await expect(page.getByText('TEMPO · 138 BPM')).toBeVisible();
     await expect(page.getByText(/SWING · 66%/)).toBeVisible();
 
-    // and picking another variation inside the genre re-tempos the transport
-    // and closes the picker behind you
+    // and picking another variation inside the genre re-tempos the transport.
+    // Expanded in place (desktop) the shelf stays open — trying six grooves in
+    // a row shouldn't mean reopening it six times.
     await variations.getByText('Up-tempo bebop').click();
-    await expect(page.getByTestId('drum-picker')).toBeHidden();
+    await expect(page.getByTestId('drum-picker')).toBeVisible();
     await expect(page.getByText('TEMPO · 190 BPM')).toBeVisible();
     const layers = page.getByTestId('drum-layers');
     await expect(layers.getByText(/Bomb drops/)).toBeVisible();
@@ -46,8 +47,7 @@ test.describe('drums groovebox', () => {
     await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' }).click();
     await page.getByTestId('drum-picker-summary').click();
     await page.getByTestId('drum-genres').getByText('Trap & Drill').click();
-    await expect(page.getByTestId('drum-variations').getByText('Drill')).toBeVisible();
-    await page.getByTestId('drum-picker-close').click();
+    await page.getByTestId('drum-variations').getByText('Drill').click();
 
     await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'learn' }).click();
     await expect(page.getByTestId('drum-maschine')).toContainText('808');

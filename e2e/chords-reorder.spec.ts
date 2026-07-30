@@ -9,6 +9,13 @@ async function loadProgression(page: Page): Promise<Locator> {
   await page.getByTestId('ws-picker-summary').click();
   await page.getByTestId('ws-picker').getByRole('button', { name: /^Blues & Shuffle\s+\d+$/ }).click();
   await page.getByTestId('ws-picker').getByText('12-Bar Blues').click();
+  // On desktop the shelf expands in place and stays open. Collapse it and
+  // settle the scroll before measuring: these tests drag by coordinate, and a
+  // page that changes height between the two boundingBox() calls moves the
+  // strip out from under them.
+  await page.getByTestId('ws-picker-summary').click();
+  await expect(page.getByTestId('ws-picker')).toBeHidden();
+  await page.evaluate(() => window.scrollTo(0, 0));
   const cells = page.locator('[data-chip]');
   await expect(cells.first()).toBeVisible();
   return cells;

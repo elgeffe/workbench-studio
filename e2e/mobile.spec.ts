@@ -39,7 +39,7 @@ test.describe('mobile layout', () => {
     await expect(page.getByTestId('metronome-transport')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'bass' }).click();
-    await expect(page.getByText('BUILD YOUR OWN', { exact: false })).toBeVisible();
+    await expect(page.getByTestId('bass-line')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'learn' }).click();
     await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();

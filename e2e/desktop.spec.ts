@@ -38,7 +38,7 @@ test.describe('desktop layout', () => {
     await expect(page.getByTestId('metronome-transport')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'bass' }).click();
-    await expect(page.getByText('BUILD YOUR OWN', { exact: false })).toBeVisible();
+    await expect(page.getByTestId('bass-line')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'learn' }).click();
     await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();
@@ -57,14 +57,15 @@ test.describe('desktop layout', () => {
   test('chords: loading a starting point fills the progression', async ({ page }) => {
     await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'chords' }).click();
     await expect(page.getByText(/Empty — load a starting point/)).toBeVisible();
-    // the starting-point shelves open in a modal so they don't bury the strip
+    // the starting-point shelves stay behind a summary bar so they don't bury
+    // the strip; on desktop they expand in place
     await page.getByTestId('ws-picker-summary').click();
     const picker = page.getByTestId('ws-picker');
     await expect(picker).toBeVisible();
     await picker.getByRole('button', { name: /^Blues & Shuffle\s+\d+$/ }).click();
     await picker.getByText('12-Bar Blues').click();
-    // picking a progression closes the picker behind you
-    await expect(picker).toBeHidden();
+    // expanded in place it stays open, so the next one is one tap away
+    await expect(picker).toBeVisible();
     await expect(page.getByText(/Empty — load a starting point/)).toBeHidden();
     // the blues progression places I7 chords into the strip
     await expect(page.getByText('I7').first()).toBeVisible();

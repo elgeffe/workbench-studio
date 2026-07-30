@@ -159,6 +159,21 @@ input[type='range'] { accent-color: var(--accent); }
 .pkey-black { position: absolute; top: 0; height: 60%; border-radius: 0 0 3px 3px; z-index: 3; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-family: var(--mono); font-weight: 700; font-size: 6px; cursor: pointer; }
 .pkey-dot { position: absolute; left: 50%; transform: translateX(-50%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; border: 2px solid #fff5e6; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
 
+/* ---------- the genre picker, expanded in place (desktop) ----------
+   Continues the summary bar rather than floating over the page: the bar drops
+   its bottom border and its lower corners while this is open, so the two read
+   as one control. Capped and scrollable so an eight-shelf list can't push the
+   instrument off the bottom of a short window. */
+.wb-picker-panel {
+  background: #f9f2e2;
+  border: 1px solid var(--line);
+  border-top: 1px dashed var(--line2);
+  border-radius: 0 0 9px 9px;
+  padding: 12px 13px;
+  max-height: min(58vh, 460px);
+  overflow-y: auto;
+}
+
 /* ---------- modal (the genre pickers) ----------
    Sits above the header (z 50) and the mobile dock bar (z 60). The card is
    capped to the dynamic viewport and scrolls internally, so an eight-shelf
