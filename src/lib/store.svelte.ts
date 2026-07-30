@@ -5,7 +5,7 @@
 
 import { INT, SUF, MAJOR, CIRCLE, SCALES, type Chord, type ScaleId } from './engine/constants';
 import { mod12, spell, cname, gI, gMidis, chordMidis, diatonicList, jChVoiced } from './engine/theory';
-import { patternDefs, type ChordDef } from './engine/data';
+import { patternDefs, progsIn, type ChordDef } from './engine/data';
 import { type Diagram } from './engine/fretpatterns';
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
 import {
@@ -308,6 +308,32 @@ export class WorkbenchStore {
   togglePicker(id: PickerId): void { this.picker = this.picker === id ? null : id; }
 
   setWsGenre(id: string): void { this.wsGenre = id; }
+
+  /**
+   * Load a whole style: the genre's first drum groove, its first progression
+   * and its first bassline, all at once.
+   *
+   * The three libraries already shelve off one taxonomy (engine/genres.ts), so
+   * "disco" means the same thing to the drum machine, the progression shelf and
+   * the bass grooves — which makes assembling a starting point by hand three
+   * trips through three pickers for a result the data could have given you in
+   * one tap. Anything a genre happens not to carry is left alone rather than
+   * cleared, so a partial style tops up what you have instead of emptying it.
+   */
+  setStyle(genreId: string): void {
+    const tpl = drumTemplates().find((t) => t.genre === genreId);
+    if (tpl) this.setDrumTpl(tpl.id);
+
+    const prog = progsIn(genreId)[0];
+    if (prog) this.setProgression(prog.chords, prog.name);
+    this.wsGenre = genreId;
+
+    const groove = bassPatternsIn(genreId)[0];
+    if (groove) this.loadBassGroove(groove.id);
+    this.bassGenre = genreId;
+
+    this.closePicker();
+  }
   /** How long each change holds: half a bar (2 beats) or a full bar (4). */
   setChordSlot(v: ChordSlot): void { this.chordSlot = v; }
   /**

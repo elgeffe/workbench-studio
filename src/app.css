@@ -129,6 +129,19 @@ input[type='range'] { accent-color: var(--accent); }
 .wb-tempo-num { font-size: 14px; font-weight: 700; color: var(--parch2); width: 26px; text-align: right; }
 .wb-tempo-unit { font-size: 8px; letter-spacing: .1em; color: #9c8460; }
 
+/* ---------- "load the whole style" ----------
+   Sits at the top of a genre shelf. Dashed rather than solid: it is an offer,
+   not the shelf's primary action, and it replaces all three parts. */
+.wb-loadall {
+  display: flex; align-items: center; gap: 9px;
+  border: 1.5px dashed var(--accent); border-radius: 8px;
+  background: #fbeede; padding: 9px 12px; margin-bottom: 12px;
+}
+.wb-loadall:active { background: #f7e4db; }
+.wb-loadall-glyph { flex: none; font-size: 13px; color: var(--accent); }
+.wb-loadall-text { font-size: 9px; letter-spacing: .1em; color: #8a4a2c; line-height: 1.4; }
+.wb-loadall-text b { color: var(--accent); }
+
 /* ---------- the mixer ---------- */
 .wb-mixer { display: flex; align-items: center; gap: 5px; flex: none; }
 .wb-mixstrip {

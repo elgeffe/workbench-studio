@@ -136,9 +136,14 @@ automatically; the live URL appears in the workflow's `deploy` job summary.
 ## The tabs
 
 The chrome carries what every tab shares: the **transport** (one PLAY, one tempo, driving
-drums, chords and bass on a single clock), the **key/scale** picker behind one button, and
-the master sound toggle. On a phone the transport moves down to the dock bar above the tab
-bar, where a thumb can reach it.
+drums, chords and bass on a single clock), the **mixer** (mute or solo each of the three
+parts — it gates audio only, so a muted part keeps its playhead and its place in the loop),
+the **key/scale** picker behind one button, and the master sound toggle. On a phone the
+transport rides the dock bar above the tabs, where a thumb can reach it, and the mixer and
+tempo slider live in the dock panel.
+
+Any genre's shelf offers **load the whole style** — one tap fills drums, chords and bass
+from the same genre, since all three libraries shelve off one taxonomy.
 
 - **Circle** — circle of fifths/fourths (major or minor view) with the scale and mode
   selector inline, diatonic chords for the current key/scale, substitutions and a
@@ -158,7 +163,7 @@ bar, where a thumb can reach it.
   per-progression settings.
 - **Bass** — one line, which is yours: a 16-step grid of *degrees*, so it transposes itself
   through every change. The 119-groove library across 31 genres loads into it as a starting
-  point rather than replacing it. MIX mutes the chords or the bass to study either alone.
+  point rather than replacing it. Use the chrome's mixer to solo it and study it alone.
 - **Metronome** — a full practice metronome (ported from the standalone Metrognome app):
   sample-accurate Web Audio click with tap tempo, time signatures, subdivisions and accents;
   tempo automation for rhythm drills (step trainer, smooth ramps by time or bars, gap-click

@@ -21,6 +21,8 @@
     blurb={v.drGenreBlurb}
     inline={store.isDesktop}
     compact={!store.isDesktop}
+    loadAllGenre={v.drGenreName}
+    onLoadAll={() => store.setStyle(v.drGenreId)}
     testid="drum-picker"
     genresTestid="drum-genres"
     itemsTestid="drum-variations"

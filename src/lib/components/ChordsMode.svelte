@@ -146,6 +146,8 @@
       itemsLabel="PROGRESSIONS · tap to load"
       inline={store.isDesktop}
       compact={!store.isDesktop}
+      loadAllGenre={v.wsGenreName}
+      onLoadAll={() => store.setStyle(store.wsGenre)}
       testid="ws-picker"
       onOpen={() => store.openPicker('progressions')}
       onClose={() => store.closePicker()}

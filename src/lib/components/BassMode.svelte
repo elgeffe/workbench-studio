@@ -48,6 +48,8 @@
       itemsLabel="BASSLINES · tap to load into your line"
       inline={store.isDesktop}
       compact={!store.isDesktop}
+      loadAllGenre={v.bassGenreName}
+      onLoadAll={() => store.setStyle(store.bassGenre)}
       testid="bass-picker"
       onOpen={() => store.openPicker('bass')}
       onClose={() => store.closePicker()}
