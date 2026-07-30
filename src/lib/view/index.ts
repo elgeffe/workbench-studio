@@ -7,7 +7,7 @@ import {
 } from '../engine/constants';
 import { spell, cname, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr, diatonicList, subsFor } from '../engine/theory';
 import { patternDefs, PAT_GROUPS } from '../engine/data';
-import type { WorkbenchStore, Mode } from '../store.svelte';
+import type { WorkbenchStore, Mode, Part } from '../store.svelte';
 import type { DiatonicView, LitInfo } from './types';
 import { buildCircle } from './circle';
 import { buildInstruments } from './instruments';
@@ -108,6 +108,20 @@ export function computeView(s: WorkbenchStore) {
     soundBg: s.soundOn ? 'rgba(216,168,111,.16)' : 'transparent', soundFg: s.soundOn ? '#e9c79b' : '#9c8460',
     // the key/scale picker, behind the studio bar's key button
     keyPickerOpen: s.picker === 'key',
+    // the mixer: one strip per part, dimmed when something else is soloed
+    mixer: ([['drums', 'DRUMS', '◉'], ['chords', 'CHORDS', '▦'], ['bass', 'BASS', '♪']] as Array<[Part, string, string]>).map(([id, label, icon]) => {
+      const on = s.audible(id), solo = s.soloPart === id;
+      return {
+        id, label, icon, on, solo,
+        // Muted reads as drained, not as a different button; soloed is the only
+        // thing that lights up, so one glance says what you are listening to.
+        bg: solo ? '#c2562e' : on ? 'rgba(216,168,111,.16)' : 'transparent',
+        fg: solo ? '#fff' : on ? '#e9c79b' : '#7a6448',
+        border: solo ? '#c2562e' : on ? 'rgba(216,168,111,.4)' : 'rgba(216,168,111,.18)',
+        soloFg: solo ? '#fff' : '#9c8460',
+      };
+    }),
+    soloOn: s.soloPart !== null,
     // mode flags
     isCircle: s.mode === 'circle', isDrums: s.mode === 'drums', isChords: s.mode === 'chords',
     isBass: s.mode === 'bass', isMetronome: s.mode === 'metronome', isLearn: s.mode === 'learn',

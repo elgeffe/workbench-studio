@@ -33,6 +33,8 @@ export type Mode = 'circle' | 'drums' | 'chords' | 'bass' | 'metronome' | 'learn
 export type LearnTab = 'theory' | 'rhythm' | 'bass' | 'patterns' | 'practice' | 'forms';
 /** The two drills inside Learn → Practice. */
 export type PracticeDrill = 'ear' | 'reading';
+/** The three parts of the band, each with its own tab and its own mixer strip. */
+export type Part = 'drums' | 'chords' | 'bass';
 /** How long one chord of the progression holds: half a bar (2 beats) or a full bar. */
 export type ChordSlot = 'half' | 'bar';
 
@@ -128,9 +130,13 @@ export class WorkbenchStore {
   // opened.
   bassSeedId = $state<string | null>(null);
   bassEdited = $state(false);
-  // Bass-style mix: mute either half of the groove to study the other.
-  bassChordsOn = $state(true);
-  bassOn = $state(true);
+  // ---- the mixer ----
+  // Three parts on one clock, so muting is a property of the band, not of any
+  // one tab: the two toggles this replaces were buried in the bass palette and
+  // could only be reached from there. Solo is a separate field rather than a
+  // pattern of mutes, so leaving solo restores exactly what you had muted.
+  partOn = $state<Record<Part, boolean>>({ drums: true, chords: true, bass: true });
+  soloPart = $state<Part | null>(null);
   patCat = $state('Scales');
   patId = $state('major');
   jazzCh = $state(0);
@@ -311,8 +317,28 @@ export class WorkbenchStore {
    * browsing the shelf must not overwrite what they have written.
    */
   setBassGenre(id: string): void { this.bassGenre = id; }
-  toggleBassChords(): void { this.bassChordsOn = !this.bassChordsOn; }
-  toggleBassOn(): void { this.bassOn = !this.bassOn; }
+
+  // ---- the mixer ----
+  /**
+   * Should this part be heard? Solo wins over the mute flags while it is set,
+   * and clears back to them — so soloing the drums to check a fill and then
+   * releasing it does not silently unmute the bass you had muted.
+   *
+   * This gates *audio only*. The transport keeps every part scheduled, so a
+   * muted drum grid still drives the playhead and the loop stays locked; you
+   * are turning a fader down, not stopping a machine.
+   */
+  audible(p: Part): boolean {
+    return this.soloPart ? this.soloPart === p : this.partOn[p];
+  }
+  togglePart(p: Part): void {
+    this.partOn = { ...this.partOn, [p]: !this.partOn[p] };
+    // Un-muting the part you are soloing means you wanted it on, not off.
+    if (this.soloPart === p && !this.partOn[p]) this.soloPart = null;
+  }
+  toggleSolo(p: Part): void {
+    this.soloPart = this.soloPart === p ? null : p;
+  }
   /** Load a library groove into the line as a starting point, and preview it. */
   loadBassGroove(id: string): void {
     const pat = BASS_PATTERNS.find((p) => p.id === id);
@@ -593,9 +619,9 @@ export class WorkbenchStore {
     const ch = chs[i];
     this.jzStep = i;
     this.activeChord = jChVoiced(ch, this.jzVoicing);
-    // Mix: the chord comp can be muted to hear the line alone (the chord still
-    // lights the instruments — only the sound is skipped).
-    if (this.bassChordsOn) this.playChord(jChVoiced(ch, this.jzVoicing), 0.02, at);
+    // A muted chord part still lights the instruments and still moves the
+    // progression on — only the sound is skipped.
+    if (this.audible('chords')) this.playChord(jChVoiced(ch, this.jzVoicing), 0.02, at);
     this.jIdx = i + 1;
   };
   /**
@@ -607,9 +633,9 @@ export class WorkbenchStore {
    */
   private barBass(at: number): void {
     // The bass is a part of the band now, not a mode of the chord workshop: the
-    // line plays whichever tab you happen to be looking at, and only the BASS
-    // mix toggle silences it.
-    if (!this.bassOn) return;
+    // line plays whichever tab you happen to be looking at, and only its mixer
+    // strip silences it.
+    if (!this.audible('bass')) return;
     const steps = this.lineSteps();
     const chs = this.jzChanges;
     if (!steps.length || !chs.length) return;
@@ -804,7 +830,9 @@ export class WorkbenchStore {
   // each bar, so edits, mutes and swing changes land on the next ONE.
   private drTick = (at: number): void => {
     const stepSec = this.barMs() / 16000;
-    if (this.soundOn) this.audio.playDrums(this.gridHits(this.drGrid, this.drSwing, stepSec), at);
+    // Muting the kit silences it without stopping it: the bar below is still
+    // laid out, so the playhead keeps sweeping the grid you are editing.
+    if (this.soundOn && this.audible('drums')) this.audio.playDrums(this.gridHits(this.drGrid, this.drSwing, stepSec), at);
     // The playhead follows when the bar is *heard*, not when it was scheduled:
     // it goes out to the speakers an output latency later, and lighting a step
     // the moment we queued it is exactly what put the ring in front of the kit.

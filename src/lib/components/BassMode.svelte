@@ -35,16 +35,6 @@
     {/if}
   </div>
 
-  <!-- The mix. PLAY and TEMPO are in the studio bar: one clock for all three
-       parts, reachable from whichever tab you are on. -->
-  <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:14px">
-    <span class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350">MIX</span>
-    <div style="display:flex;gap:3px;background:#ece0c6;border:1px solid #cbb792;border-radius:7px;padding:2px">
-      <div class="mono click" data-testid="mix-chords" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.mixChordsBg};color:{v.mixChordsFg}" role="button" tabindex="0" aria-pressed={v.mixChordsBg !== '#f6efe0'} onclick={() => store.toggleBassChords()} onkeydown={(e) => e.key === 'Enter' && store.toggleBassChords()}>♩ CHORDS</div>
-      <div class="mono click" data-testid="mix-bass" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.mixBassBg};color:{v.mixBassFg}" role="button" tabindex="0" aria-pressed={v.mixBassBg !== '#f6efe0'} onclick={() => store.toggleBassOn()} onkeydown={(e) => e.key === 'Enter' && store.toggleBassOn()}>♪ BASS</div>
-    </div>
-  </div>
-
   <!-- load a starting point into the line -->
   <div style="margin-bottom:14px">
     <GenrePicker

@@ -12,6 +12,7 @@
   // where a thumb can reach it. See App.svelte.
   import { useStore } from '../context';
   import KeyPicker from './KeyPicker.svelte';
+  import Mixer from './Mixer.svelte';
   const store = useStore();
   const v = $derived(store.view);
 </script>
@@ -36,6 +37,7 @@
           <span class="mono wb-tempo-num" data-testid="studio-bpm">{v.tempo}</span>
           <span class="mono wb-tempo-unit">BPM</span>
         </div>
+        <Mixer />
       </div>
     {/if}
 
