@@ -1,7 +1,6 @@
 <script lang="ts">
   import { provideStore } from './lib/context';
-  import Header from './lib/components/Header.svelte';
-  import ScaleStrip from './lib/components/ScaleStrip.svelte';
+  import StudioBar from './lib/components/StudioBar.svelte';
   import Instruments from './lib/components/Instruments.svelte';
   import CircleMode from './lib/components/CircleMode.svelte';
   import DrumsMode from './lib/components/DrumsMode.svelte';
@@ -27,10 +26,12 @@
   }
   function onKeyDown(e: KeyboardEvent) {
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
-    // Space starts/stops the practice metronome while its tab is open.
-    if (e.code === 'Space' && store.mode === 'metronome') {
+    // Space drives the transport — the practice click while its own tab is
+    // open, the studio's one clock everywhere else.
+    if (e.code === 'Space') {
       e.preventDefault();
-      store.met.toggle();
+      if (store.mode === 'metronome') store.met.toggle();
+      else store.togglePlay();
       return;
     }
     if (store.mode !== 'chords') return;
@@ -60,7 +61,7 @@
 
 <div class="wb-app">
   <div class="wb-shell">
-    <Header />
+    <StudioBar />
 
     <!-- desktop mode tabs -->
     {#if store.isDesktop}
@@ -76,8 +77,6 @@
         {/each}
       </div>
     {/if}
-
-    <ScaleStrip />
 
     <div class="wb-body">
       <div class="wb-content">
@@ -113,6 +112,13 @@
 <div class="wb-dockbar">
   {#if v.dockExpanded}
     <div class="wb-dock-panel" data-testid="dock-panel">
+      <!-- The tempo slider needs room a 44px bar hasn't got, so it rides in the
+           panel; the bar keeps the readout and the play button. -->
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
+        <span class="mono" style="flex:none;font-size:8px;letter-spacing:.12em;color:#8a7350">TEMPO</span>
+        <input type="range" min="50" max="180" value={v.tempo} aria-label="studio tempo" oninput={(e) => store.setTempo(+e.currentTarget.value)} style="flex:1" />
+        <span class="mono" style="flex:none;font-size:12px;font-weight:700;color:#2c261d;width:30px;text-align:right">{v.tempo}</span>
+      </div>
       <Instruments variant="dock" />
     </div>
   {/if}
@@ -123,7 +129,18 @@
       onclick={() => store.toggleDock()}
       onkeydown={(e) => e.key === 'Enter' && store.toggleDock()}
     >
-      <span class="mono wb-dock-eyebrow">SOUNDING</span>
+      <!-- The play button lives inside the bar but is not part of its tap
+           target: hitting PLAY must not also expand the dock. -->
+      <span
+        class="mono click wb-dock-play" data-testid="studio-play" role="button" tabindex="0" aria-label="play"
+        style="background:{v.jzPlayBg};box-shadow:0 3px 0 {v.jzPlayShadow}"
+        onclick={(e) => { e.stopPropagation(); store.togglePlay(); }}
+        onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.togglePlay(); } }}
+      >{v.transportGlyph}</span>
+      <span class="wb-dock-bpm">
+        <span class="mono wb-dock-bpm-num" data-testid="studio-bpm">{v.tempo}</span>
+        <span class="mono wb-dock-bpm-unit">BPM</span>
+      </span>
       <span class="wb-dock-name">{v.dockName}</span>
       <span class="mono wb-dock-notes">{v.dockNotes}</span>
       <span class="mono wb-dock-chev">{v.dockChevron}</span>

@@ -5,7 +5,7 @@ test.use({ viewport: { width: 1280, height: 900 } });
 test.describe('sight reading', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('The Workbench')).toBeVisible();
+    await expect(page.getByText('Workbench Studio')).toBeVisible();
     // Sight reading is Learn → Practice → Sight reading now.
     await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'learn' }).click();
     await page.getByTestId('learn-tabs').getByRole('tab', { name: 'practice' }).click();

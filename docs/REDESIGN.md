@@ -6,7 +6,8 @@ and hear them lock together. This document restructures the app around that real
 **tool tabs apply the theory, the Learn tab teaches it** — and redesigns the top chrome
 to serve a groovebox on desktop and on a phone.
 
-Status: agreed direction, not yet implemented. See [Phasing](#7-phasing).
+Status: phases 0–2 shipped (six-tab structure, the copy move, the rename, and the
+studio-bar chrome). Phases 3–5 outstanding. See [Phasing](#7-phasing).
 
 ---
 
@@ -222,15 +223,28 @@ Internal names (`WorkbenchStore`, the `.wb-*` class prefix) stay as they are.
 
 ## 7. Phasing
 
-| # | Work | Risk |
-|---|---|---|
-| 0 | Rename and strings | none |
-| 1 | Six-tab shell; split `WorkshopMode` into `ChordsMode` + `BassMode`; `LearnMode` absorbs ear / reading / patterns / jazz / classical. Pure relocation. | low, wide |
-| 2 | Studio bar and transport; key popover; delete `ScaleStrip`; mobile transport bar; drop per-tab tempo sliders | medium |
-| 3 | Part mixer and transport gating | **highest** |
-| 4 | Style-seeds-all | low |
-| 5 | Copy migration, prose trim, README | low |
-| 6 | e2e and unit updates; `check` / `test` / `test:e2e` | — |
+| # | Work | Risk | |
+|---|---|---|---|
+| 0 | Rename and strings | none | ✅ |
+| 1 | Six-tab shell; split `WorkshopMode` into `ChordsMode` + `BassMode`; `LearnMode` absorbs ear / reading / patterns / jazz / classical. Pure relocation. | low, wide | ✅ |
+| 2 | Studio bar and transport; key popover; delete `ScaleStrip`; mobile transport bar; drop per-tab tempo sliders | medium | ✅ |
+| 3 | Part mixer and transport gating | **highest** | |
+| 4 | Style-seeds-all | low | |
+| 5 | Copy migration, prose trim, README | low | ✅ |
+| 6 | e2e and unit updates; `check` / `test` / `test:e2e` | — | ✅ |
+
+Measured after phase 2: desktop chrome 166px → **114px**, mobile top chrome 147px →
+**54px**, and the transport — absent from the chrome entirely before — now reaches every
+tab. Two changes landed outside the original plan: the bassline became one line that the
+groove library loads into (rather than the library being an alternative to it), and the
+genre picker expands in place on desktop instead of opening as an overlay.
+
+Still open from the plan: the three-part mixer, style-seeds-everything, `+`-to-progression
+from the Circle tab, and the `?` deep-links (only Drums → Rhythm and Bass → Bass exist so
+far). One cosmetic inconsistency surfaced by putting the key name next to the key chips:
+the chips are spelled with `♭`/`♯` but `spell()` returns ASCII (`Eb`, `A#`), so the button
+reads "Eb Major" beside a chip reading "E♭". Fixing it means changing note spelling
+globally, which is its own change.
 
 ### Sharp edges
 

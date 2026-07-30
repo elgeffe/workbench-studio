@@ -1,7 +1,7 @@
 {
   "name": "workbench-studio",
   "version": "1.0.0",
-  "description": "The Workbench — an interactive music-theory studio (Circle of Fifths, progression Workshop, Ear training, Patterns, Learn). Unified adaptive desktop + mobile app.",
+  "description": "Workbench Studio — a music groovebox and theory studio (Circle of Fifths, Drums, Chords, Bass, Metronome, Learn). Unified adaptive desktop + mobile app.",
   "type": "module",
   "scripts": {
     "dev": "vite",

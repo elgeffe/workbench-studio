@@ -30,16 +30,12 @@
     onItem={(id) => store.setDrumTpl(id)}
   />
 
-  <!-- transport -->
+  <!-- Swing is the kit's own feel, so it stays here; PLAY and TEMPO belong to
+       the whole band and live in the studio bar. -->
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#f3ead4;border:1px solid #e0cfae;border-radius:10px;padding:11px 13px;margin:12px 0 12px">
-    <div class="mono click" data-testid="drums-play" style="flex:none;font-size:11px;letter-spacing:.06em;color:#fff;background:{v.drPlayBg};padding:12px 18px;border-radius:8px;box-shadow:0 4px 0 {v.drPlayShadow}" role="button" tabindex="0" onclick={() => store.toggleDrumPlay()} onkeydown={(e) => e.key === 'Enter' && store.toggleDrumPlay()}>{v.drPlayLabel}</div>
-    <div style="display:flex;flex-direction:column;gap:3px;min-width:130px">
-      <span class="mono" style="font-size:8px;letter-spacing:.12em;color:#8a7350">TEMPO · {v.drTempo} BPM</span>
-      <input type="range" min="60" max="180" value={v.drTempo} oninput={(e) => store.setDrTempo(+(e.currentTarget as HTMLInputElement).value)} />
-    </div>
-    <div style="display:flex;flex-direction:column;gap:3px;min-width:130px">
+    <div style="display:flex;flex-direction:column;gap:3px;flex:1 1 180px;min-width:150px">
       <span class="mono" style="font-size:8px;letter-spacing:.12em;color:#8a7350">SWING · {v.drSwing}% · {v.drSwingLabel}</span>
-      <input type="range" min="50" max="75" value={v.drSwing} oninput={(e) => store.setDrSwing(+(e.currentTarget as HTMLInputElement).value)} />
+      <input type="range" min="50" max="75" value={v.drSwing} aria-label="swing" oninput={(e) => store.setDrSwing(+(e.currentTarget as HTMLInputElement).value)} />
     </div>
     <div class="mono click" style="flex:none;font-size:9px;letter-spacing:.08em;color:#8a7350;border:1px solid #cbb792;border-radius:6px;padding:8px 11px" role="button" tabindex="0" onclick={() => store.clearDrums()} onkeydown={(e) => e.key === 'Enter' && store.clearDrums()}>✕ CLEAR</div>
   </div>

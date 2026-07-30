@@ -1,13 +1,18 @@
-# The Workbench — Ear & Theory
+# Workbench Studio
 
-An interactive music-theory studio: a circle-of-fifths explorer, a chord-progression
-workshop, ear training, sight reading, a pattern/scale library, and a jazz-harmony
-curriculum — with live bass, guitar and piano that light up the notes you're hearing.
+A groovebox with the theory attached. Pick a drum pattern, write a chord progression, put
+a bassline under it — all on one clock — and explore the keys, scales and harmony behind
+what you're building, with live bass, guitar and piano lighting up the notes you hear.
+
+Six tabs: **Circle** explores, **Drums** / **Chords** / **Bass** build over one shared
+transport, **Metronome** practises, and **Learn** teaches. The split is deliberate — the
+tool tabs apply the theory and stay uncluttered, while every piece of explanation, every
+teaching palette and every drill lives behind Learn. See `docs/REDESIGN.md`.
 
 This is a single **adaptive** app that presents a two-column desktop workspace (content +
-side instrument panel) and a stacked mobile experience (sticky header + horizontally
-scrolling strips + a fixed, expandable instrument dock and bottom tab bar) from one
-component tree. Both layouts have full feature parity.
+side instrument panel) and a stacked mobile experience (thin top bar + a fixed transport /
+instrument dock and bottom tab bar) from one component tree. Both layouts have full
+feature parity.
 
 ## Tech stack
 
@@ -50,11 +55,13 @@ src/
       types.ts         View-model shapes (chips, wedges, fret rows, piano keys)
       circle.ts        Circle-of-fifths wheel geometry and colouring
       instruments.ts   Fretboard + piano lighting and the jazz finger overlay
-      workshop.ts      Palettes, progression strip, explore panel, bass workbench
+      chords.ts        Progression strip, diatonic/colour palettes, chord inspector
+      bass.ts          The line, the groove shelf, the annotated library cards
       patterns.ts      Pattern library, chord shapes, fret-diagram tabs
       drums.ts         Groovebox grid, genre → pattern picker, layer stepper
-      picker.ts        Shelf/chip builders shared by all three genre pickers
-      learn.ts         Jazz curriculum, rhythm concepts, song-structure timelines
+      picker.ts        Shelf/chip builders shared by all the genre pickers
+      learn.ts         Jazz curriculum, the jazz/classical palettes, rhythm
+                       concepts, bassline moves, song-structure timelines
       practice.ts      Ear-training and sight-reading views
     metronome/         Practice metronome (ported from Metrognome): look-ahead
                        click engine, tempo/mute automation, mic tempo detection,
@@ -62,9 +69,14 @@ src/
     audio.ts           Web Audio synth engine (isolated from state)
     store.svelte.ts    Svelte 5 runes store: $state + actions + view = $derived(computeView)
     context.ts         provideStore()/useStore() context helpers
-    components/        Reusable UI: Header, ScaleStrip, CircleMode, WorkshopMode,
-                       DrumsMode, EarMode, ReadingMode, Staff, PatternsMode, LearnMode,
-                       Instruments, Fretboard, FretDiagram, Piano
+    components/        StudioBar (brand + transport + key), KeyPicker, GenrePicker,
+                       CircleMode, DrumsMode, ChordsMode, BassMode, MetronomeMode,
+                       LearnMode, EarMode, ReadingMode, Staff, Instruments,
+                       Fretboard, FretDiagram, Piano
+      parts/           Widgets used at two altitudes — bare in a tool tab, wrapped
+                       in teaching copy in Learn (ChordInspector)
+      learn/           The six Learn areas: Theory, Rhythm, Bass, Patterns,
+                       Practice, Forms
   App.svelte           Adaptive shell (desktop tabs + side panel / mobile dock + tab bar)
   main.ts              Mount entry
 ```
@@ -101,10 +113,10 @@ When a new version is deployed it downloads in the background and is used on the
 The layout is built for a standalone install on a notched phone. The viewport is
 `viewport-fit=cover` with a translucent status bar, so the page genuinely starts underneath
 the notch / Dynamic Island; `src/app.css` resolves `env(safe-area-inset-*)` into the
-`--sat/--sar/--sab/--sal` custom properties once, and the header, key strip, content, dock
-and modal sheet all pad themselves from those. Landscape on a phone puts the sounding bar
-and the tab bar on a single row (see the `--dock-h` variable), which is the difference
-between ~115px and ~50px of fixed bottom chrome on a 390pt-tall screen.
+`--sat/--sar/--sab/--sal` custom properties once, and the studio bar, content, dock and
+modal sheet all pad themselves from those. Landscape on a phone puts the transport bar and
+the tab bar on a single row (see the `--dock-h` variable), which is the difference between
+~106px and ~50px of fixed bottom chrome on a 390pt-tall screen.
 
 Every file in `public/` that shows the app's mark is generated by `npm run icons` from
 `scripts/make-icons.mjs` — edit the constants at the top of that script rather than the SVGs.
@@ -121,37 +133,41 @@ feature branch).
 Source** and select **GitHub Actions**. After that, each qualifying push deploys
 automatically; the live URL appears in the workflow's `deploy` job summary.
 
-## Modes
+## The tabs
 
-- **Circle** — circle of fifths/fourths (major or minor view), diatonic chords for the
-  current key/scale, with substitutions and a "why it works" readout.
-- **Workshop** — build progressions in Classic, Jazz, Classical or Bass palettes; explore any
-  placed chord (extensions, inversions, secondary dominants, ii–V insertion, tritone
-  subs); play them back with tempo/voicing control. Starting points come from the same
-  **genre → template** picker the groovebox uses: 119 progressions across the 31 genres.
-  The **BASS** palette adds 119 basslines over the same shelf — pick a genre and the
-  drum groove, the changes and the bass line all agree on what the style is. Each line is
-  16 degree tokens that transpose themselves through your progression, and you can seed
-  the build-your-own grid from any of them.
+The chrome carries what every tab shares: the **transport** (one PLAY, one tempo, driving
+drums, chords and bass on a single clock), the **key/scale** picker behind one button, and
+the master sound toggle. On a phone the transport moves down to the dock bar above the tab
+bar, where a thumb can reach it.
+
+- **Circle** — circle of fifths/fourths (major or minor view) with the scale and mode
+  selector inline, diatonic chords for the current key/scale, substitutions and a
+  "why it works" readout.
 - **Drums** — a 16-step groovebox with a dependent **genre → pattern** picker: 132 grooves
   across 31 genres (rock, metal, pop, disco, funk, soul, neo-soul, gospel, boom-bap, trap,
   electro, house, tech-house, techno, trance, D&B, jungle, garage, dubstep, breaks,
   hardstyle, hardcore, jazz, soul-jazz, jazz-funk, fusion, blues, Latin, Afrobeat, reggae,
-  reggaeton). Every
-  pattern is authored as ordered *layers*, so the LAYERS chips rebuild the groove one part
-  at a time and explain what each adds; each genre also carries a note on programming it in
-  a groovebox (swing, velocity, kit choices). The grid shows only the instruments the
-  pattern plays — add any of the 14 kit voices as a new row, or remove one. Cells are
-  editable (rest → hit → accent) and the transport is shared with the Workshop. The picker
-  itself lives behind a one-line summary bar and opens as a modal (a full-height sheet on a
-  phone), so the grid — not the genre shelves — owns the top of the page.
+  reggaeton). Every pattern is authored as ordered *layers*, so the LAYERS chips rebuild
+  the groove one part at a time. The grid shows only the instruments the pattern plays —
+  add any of the 14 kit voices as a new row, or remove one — and cells are editable
+  (rest → hit → accent). Swing lives here; tempo is the studio's.
+- **Chords** — build a progression from the diatonic and colour/borrowed palettes, or load
+  one of 119 starting points across the 31 genres. Drag to reorder. Select a placed chord
+  and the **inspector** offers every move on it: extensions, inversions, a leading V or
+  ii–V, and substitutions. Voicing (full/shell) and chord length (½ bar / 1 bar) are
+  per-progression settings.
+- **Bass** — one line, which is yours: a 16-step grid of *degrees*, so it transposes itself
+  through every change. The 119-groove library across 31 genres loads into it as a starting
+  point rather than replacing it. MIX mutes the chords or the bass to study either alone.
 - **Metronome** — a full practice metronome (ported from the standalone Metrognome app):
   sample-accurate Web Audio click with tap tempo, time signatures, subdivisions and accents;
   tempo automation for rhythm drills (step trainer, smooth ramps by time or bars, gap-click
   mute trainer); practice goals by bars or minutes with auto-stop; an on-device practice log;
-  and experimental microphone tempo-following. The click keeps running while you browse
-  other tabs, so you can practice against it anywhere in the studio.
-- **Ear** — interval, chord-quality, and progression recognition drills with scoring.
-- **Patterns** — scale, pentatonic, arpeggio, and genre-lick library lit on the instruments.
-- **Learn** — a five-chapter jazz-harmony walkthrough (extensions, shells, inversions,
-  borrowing, the ii–V–I) with playable examples.
+  and experimental microphone tempo-following. It runs on its own clock, with buttons to
+  copy tempo to and from the studio, and keeps ticking while you browse other tabs.
+- **Learn** — six areas: **Theory** (the jazz-harmony curriculum plus the jazz and classical
+  palettes, whose chips still place chords into your progression), **Rhythm** (how patterns
+  are built, with the anatomy of your loaded groove), **Bass** (the moves behind a line, and
+  the annotated groove library), **Patterns** (scales, pentatonics, arpeggios, licks, chord
+  shapes and fretboard diagrams), **Practice** (ear training and sight reading), and
+  **Forms** (song structures as proportional timelines).

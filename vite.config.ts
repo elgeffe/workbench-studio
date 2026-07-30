@@ -13,9 +13,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pwa-icon.svg', 'pwa-maskable.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'The Workbench — Ear & Theory',
+        name: 'Workbench Studio',
         short_name: 'Workbench',
-        description: 'An offline-ready interactive music theory and practice studio.',
+        description: 'An offline-ready groovebox and music-theory studio: circle of fifths, drums, chords, bass, metronome.',
         theme_color: '#2c2014',
         background_color: '#f3ead8',
         display: 'standalone',

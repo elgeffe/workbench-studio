@@ -11,7 +11,7 @@ test.describe('drums groovebox', () => {
 
   test('genre → pattern is a dependent selection', async ({ page }) => {
     // default is Rock / Straight 8ths at its authentic tempo
-    await expect(page.getByText('TEMPO · 104 BPM')).toBeVisible();
+    await expect(page.getByTestId('studio-bpm')).toHaveText('104');
     await page.getByTestId('drum-picker-summary').click();
     const variations = page.getByTestId('drum-variations');
     await expect(variations.getByText('Straight 8ths')).toBeVisible();
@@ -24,7 +24,7 @@ test.describe('drums groovebox', () => {
     await expect(variations.getByText('Medium swing')).toBeVisible();
     await expect(variations.getByText('Brushes ballad')).toBeVisible();
     await expect(variations.getByText('Straight 8ths')).toBeHidden();
-    await expect(page.getByText('TEMPO · 138 BPM')).toBeVisible();
+    await expect(page.getByTestId('studio-bpm')).toHaveText('138');
     await expect(page.getByText(/SWING · 66%/)).toBeVisible();
 
     // and picking another variation inside the genre re-tempos the transport.
@@ -32,7 +32,7 @@ test.describe('drums groovebox', () => {
     // a row shouldn't mean reopening it six times.
     await variations.getByText('Up-tempo bebop').click();
     await expect(page.getByTestId('drum-picker')).toBeVisible();
-    await expect(page.getByText('TEMPO · 190 BPM')).toBeVisible();
+    await expect(page.getByTestId('studio-bpm')).toHaveText('190');
     const layers = page.getByTestId('drum-layers');
     await expect(layers.getByText(/Bomb drops/)).toBeVisible();
   });
@@ -81,7 +81,7 @@ test.describe('drums groovebox', () => {
   });
 
   test('play toggles to stop and the playhead advances', async ({ page }) => {
-    const play = page.getByTestId('drums-play');
+    const play = page.getByTestId('studio-play');
     await play.click();
     await expect(play).toHaveText('■ STOP');
     await play.click();
