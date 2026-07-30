@@ -15,6 +15,10 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
   // the active key sits at 12 o'clock, and the 7 diatonic chords of that key
   // light up as one contiguous tinted block with roman numerals:
   // red = major chords, green = minor chords, blue = the diminished one.
+  // Each ring carries its own hue the whole way round — terracotta outside,
+  // green inside — so the two rings stay legible past the diatonic block
+  // instead of fading into one beige arc. Out-of-key wedges are the washed-out
+  // version of their ring's colour, which keeps the in-key block dominant.
   const cx = 180, cy = 180, rO = 158, rB = 110, rC = 68;
   const rMajName = 131, rMajNum = 149, rMinName = 88, rMinNum = 103;
   const pol = (r: number, deg: number): [number, number] => { const a = (deg - 90) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
@@ -41,9 +45,9 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     const mnPc = (pc + 9) % 12; // relative minor sharing this spoke
     // outer wedge — the major key
     const oNum = majNum[pc] || '';
-    let oFill = '#f3e8ce', oStroke = '#f1e7d3', oSw = '2', oName = '#8a7a5c', oNumC = '#8f3c1c';
+    let oFill = '#f7e2d1', oStroke = '#ecd2bd', oSw = '2', oName = '#a2704f', oNumC = '#8f3c1c';
     if (oNum === 'I') { oFill = '#c2562e'; oStroke = '#8f3c1c'; oSw = '3'; oName = '#fff'; oNumC = '#ffd9c6'; }
-    else if (oNum) { oFill = '#eec49f'; oName = '#8f3c1c'; }
+    else if (oNum) { oFill = '#eec49f'; oStroke = '#e0ab7e'; oName = '#8f3c1c'; }
     const onp = pct(pol(rMajName, c)), oup = pct(pol(rMajNum, c));
     wedges.push({
       d: band(rO, rB, a0, a1), fill: oFill, stroke: oStroke, strokeW: oSw,
@@ -52,10 +56,10 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     });
     // inner wedge — its relative minor
     const iNum = minNum[mnPc] || '';
-    let iFill = '#ebdfc1', iStroke = '#f1e7d3', iSw = '2', iName = '#95835f', iNumC = '#2d5c48';
+    let iFill = '#dcebe1', iStroke = '#c9dfd2', iSw = '2', iName = '#5f7d6d', iNumC = '#2d5c48';
     if (iNum === 'i') { iFill = '#3f6b5f'; iStroke = '#2d5045'; iSw = '3'; iName = '#fff'; iNumC = '#cdeeda'; }
-    else if (iNum.includes('°')) { iFill = '#ccdbe9'; iName = '#46617c'; iNumC = '#46617c'; }
-    else if (iNum) { iFill = '#c8dfd0'; iName = '#2d5c48'; }
+    else if (iNum.includes('°')) { iFill = '#ccdbe9'; iStroke = '#a9c3da'; iName = '#46617c'; iNumC = '#46617c'; }
+    else if (iNum) { iFill = '#bcd8c8'; iStroke = '#a3c4b1'; iName = '#2d5c48'; }
     const inp = pct(pol(rMinName, c)), iup = pct(pol(rMinNum, c));
     wedges.push({
       d: band(rB, rC, a0, a1), fill: iFill, stroke: iStroke, strokeW: iSw,
