@@ -57,7 +57,7 @@ export function buildDrums(s: WorkbenchStore) {
   return {
     drFamilies, drVariations,
     drPickerOpen: s.picker === 'drums',
-    drGenreName: drGenre.name, drGenreBlurb: drGenre.blurb, drGenreMaschine: drGenre.maschine,
+    drGenreId: drGenre.id, drGenreName: drGenre.name, drGenreBlurb: drGenre.blurb, drGenreMaschine: drGenre.maschine,
     drTplName: drTpl.name, drTip: drTpl.tip,
     drPatternCount: DR_TPLS.length, drGenreCount: DRUM_GENRES.length,
     drRows, drAddable, drCount, drLayers, drLayerWhy, drEmpty,

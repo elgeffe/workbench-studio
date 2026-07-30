@@ -59,9 +59,5 @@ export function buildBass(s: WorkbenchStore) {
     bassGenreTotal: new Set(BASS_PATTERNS.map((p) => p.genre)).size,
     bassLineCells, bassLineEmpty, bassLineName,
     bassPickerOpen: s.picker === 'bass',
-    // The part mix, which is what the two toggles have always been — they just
-    // used to be buried in the bass palette and gated on the style switch.
-    mixChordsBg: s.bassChordsOn ? '#3f6b5f' : '#f6efe0', mixChordsFg: s.bassChordsOn ? '#fff' : '#5c4a30',
-    mixBassBg: s.bassOn ? '#3f6b5f' : '#f6efe0', mixBassFg: s.bassOn ? '#fff' : '#5c4a30',
   };
 }

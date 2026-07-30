@@ -6,8 +6,9 @@ and hear them lock together. This document restructures the app around that real
 **tool tabs apply the theory, the Learn tab teaches it** — and redesigns the top chrome
 to serve a groovebox on desktop and on a phone.
 
-Status: phases 0–2 shipped (six-tab structure, the copy move, the rename, and the
-studio-bar chrome). Phases 3–5 outstanding. See [Phasing](#7-phasing).
+Status: shipped. Six-tab structure, the copy move, the rename, the studio-bar chrome, the
+three-part mixer and style-seeds-everything are all in. See [Phasing](#7-phasing) for what
+each phase covered and [Open questions](#8-open-questions) for what is left.
 
 ---
 
@@ -228,23 +229,24 @@ Internal names (`WorkbenchStore`, the `.wb-*` class prefix) stay as they are.
 | 0 | Rename and strings | none | ✅ |
 | 1 | Six-tab shell; split `WorkshopMode` into `ChordsMode` + `BassMode`; `LearnMode` absorbs ear / reading / patterns / jazz / classical. Pure relocation. | low, wide | ✅ |
 | 2 | Studio bar and transport; key popover; delete `ScaleStrip`; mobile transport bar; drop per-tab tempo sliders | medium | ✅ |
-| 3 | Part mixer and transport gating | **highest** | |
-| 4 | Style-seeds-all | low | |
+| 3 | Part mixer and transport gating | **highest** | ✅ |
+| 4 | Style-seeds-all | low | ✅ |
 | 5 | Copy migration, prose trim, README | low | ✅ |
 | 6 | e2e and unit updates; `check` / `test` / `test:e2e` | — | ✅ |
 
 Measured after phase 2: desktop chrome 166px → **114px**, mobile top chrome 147px →
 **54px**, and the transport — absent from the chrome entirely before — now reaches every
-tab. Two changes landed outside the original plan: the bassline became one line that the
-groove library loads into (rather than the library being an alternative to it), and the
-genre picker expands in place on desktop instead of opening as an overlay.
+tab.
 
-Still open from the plan: the three-part mixer, style-seeds-everything, `+`-to-progression
-from the Circle tab, and the `?` deep-links (only Drums → Rhythm and Bass → Bass exist so
-far). One cosmetic inconsistency surfaced by putting the key name next to the key chips:
-the chips are spelled with `♭`/`♯` but `spell()` returns ASCII (`Eb`, `A#`), so the button
-reads "Eb Major" beside a chip reading "E♭". Fixing it means changing note spelling
-globally, which is its own change.
+Two changes landed outside the original plan. The bassline became one line that the groove
+library loads into, rather than the library being a set of alternatives to it; and the
+genre picker expands in place on desktop instead of opening as an overlay, staying open
+while you browse.
+
+Phase 3 kept its own promise narrowly: the mixer gates **audio only**. A muted part is
+still scheduled every bar, so the playhead keeps sweeping a silenced grid and un-muting
+drops the part back in on the next bar. `e2e/mixer.spec.ts` watches the audio clock to
+hold that line.
 
 ### Sharp edges
 
@@ -271,6 +273,13 @@ globally, which is its own change.
 reference you want *while* playing, not a lesson you read once. It works as a Learn
 subtab; if it starts to feel buried, the honest fix is a seventh tab, not deeper nesting.
 
-**Space is slightly ambiguous** once the transport is global — the groovebox everywhere,
-the click on the Metronome tab. That is the least surprising split available, but it is
-a split.
+**Space is slightly ambiguous** — the groovebox everywhere, the click on the Metronome
+tab. That is the least surprising split available, but it is a split.
+
+**Note spelling is inconsistent.** The key chips are spelled with `♭`/`♯` but `spell()`
+returns ASCII (`Eb`, `A#`), so the key button reads "Eb Major" beside a chip reading "E♭".
+It predates this work but the chrome put the two next to each other. Fixing it means
+changing spelling across the theory engine and its tests.
+
+**Still unbuilt from the plan:** `+`-to-progression from the Circle tab, and the `?`
+deep-links into Learn (only Drums → Rhythm and Bass → Bass exist so far).

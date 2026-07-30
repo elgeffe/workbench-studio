@@ -129,6 +129,46 @@ input[type='range'] { accent-color: var(--accent); }
 .wb-tempo-num { font-size: 14px; font-weight: 700; color: var(--parch2); width: 26px; text-align: right; }
 .wb-tempo-unit { font-size: 8px; letter-spacing: .1em; color: #9c8460; }
 
+/* ---------- "load the whole style" ----------
+   Sits at the top of a genre shelf. Dashed rather than solid: it is an offer,
+   not the shelf's primary action, and it replaces all three parts. */
+.wb-loadall {
+  display: flex; align-items: center; gap: 9px;
+  border: 1.5px dashed var(--accent); border-radius: 8px;
+  background: #fbeede; padding: 9px 12px; margin-bottom: 12px;
+}
+.wb-loadall:active { background: #f7e4db; }
+.wb-loadall-glyph { flex: none; font-size: 13px; color: var(--accent); }
+.wb-loadall-text { font-size: 9px; letter-spacing: .1em; color: #8a4a2c; line-height: 1.4; }
+.wb-loadall-text b { color: var(--accent); }
+
+/* ---------- the mixer ---------- */
+.wb-mixer { display: flex; align-items: center; gap: 5px; flex: none; }
+.wb-mixstrip {
+  display: flex; align-items: stretch; gap: 0;
+  border: 1px solid; border-radius: 7px; overflow: hidden;
+}
+.wb-mixname {
+  display: flex; align-items: center;
+  font-size: 9px; letter-spacing: .1em; padding: 8px 9px; white-space: nowrap;
+}
+.wb-mixsolo {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; letter-spacing: .04em; width: 20px;
+  border-left: 1px solid;
+}
+/* In the phone's dock panel there is a full row to work with, so the strips
+   grow to fill it and stay a comfortable target. The names stay spelled out:
+   three icons alone were a guessing game, and 390pt has room for the words. */
+.wb-mixer-compact { width: 100%; }
+.wb-mixer-compact .wb-mixstrip { flex: 1 1 0; min-width: 0; }
+.wb-mixer-compact .wb-mixname {
+  flex: 1; min-width: 0; justify-content: center;
+  font-size: 9px; letter-spacing: .06em; padding: 11px 4px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.wb-mixer-compact .wb-mixsolo { width: 30px; }
+
 /* ---------- the key button + its popover ---------- */
 .wb-keybtn {
   display: flex; align-items: center; gap: 9px;
@@ -319,6 +359,13 @@ input[type='range'] { accent-color: var(--accent); }
   max-height: calc(100dvh - var(--dock-h));
   overflow-y: auto;
   padding: 14px calc(14px + var(--sar)) 10px calc(14px + var(--sal));
+}
+
+/* The mixer sits on the dark ground the dock panel doesn't have, so it gets
+   its own strip inside the panel. */
+.wb-dock-mixer {
+  background: linear-gradient(var(--dark2), var(--dark));
+  border-radius: 8px; padding: 7px 8px; margin-bottom: 13px;
 }
 
 /* The two bars are grouped so landscape can lay them out side by side. */

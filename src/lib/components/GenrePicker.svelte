@@ -27,6 +27,9 @@
     blurb?: string;       // what defines the selected genre
     inline?: boolean;     // expand in place (desktop) rather than over the page
     compact?: boolean;    // tighten the chips on a narrow screen
+    /** Load the whole style — drums, chords and bass — from the open genre. */
+    onLoadAll?: () => void;
+    loadAllGenre?: string; // which genre that would be, for the label
     testid: string;
     genresTestid?: string;
     itemsTestid?: string;
@@ -37,7 +40,8 @@
   }
   let {
     open, label, summaryGenre, summaryItem, hint, shelves, items, itemsLabel,
-    blurb, inline = false, compact = false, testid, genresTestid, itemsTestid,
+    blurb, inline = false, compact = false, onLoadAll, loadAllGenre = '',
+    testid, genresTestid, itemsTestid,
     onOpen, onClose, onGenre, onItem,
   }: Props = $props();
 
@@ -51,6 +55,22 @@
 </script>
 
 {#snippet shelf()}
+  <!-- Assembling a style by hand is three trips through three pickers for
+       something the shared taxonomy can hand you in one tap. It sits above the
+       shelf rather than beside a chip because it replaces all three parts —
+       worth reading before you press it. -->
+  {#if onLoadAll}
+    <div
+      class="click wb-loadall" data-testid="{testid}-loadall" role="button" tabindex="0"
+      aria-label="load the whole {loadAllGenre} style into drums, chords and bass"
+      onclick={() => onLoadAll()}
+      onkeydown={(e) => e.key === 'Enter' && onLoadAll()}
+    >
+      <span class="mono wb-loadall-glyph">⟳</span>
+      <span class="mono wb-loadall-text">LOAD THE WHOLE <b>{loadAllGenre}</b> STYLE — DRUMS · CHORDS · BASS</span>
+    </div>
+  {/if}
+
   <!-- step 1: the genre, shelved by family -->
   <div data-testid={genresTestid || testid + '-genres'}>
     {#each shelves as fam (fam.name)}

@@ -2,6 +2,7 @@
   import { provideStore } from './lib/context';
   import StudioBar from './lib/components/StudioBar.svelte';
   import Instruments from './lib/components/Instruments.svelte';
+  import Mixer from './lib/components/Mixer.svelte';
   import CircleMode from './lib/components/CircleMode.svelte';
   import DrumsMode from './lib/components/DrumsMode.svelte';
   import ChordsMode from './lib/components/ChordsMode.svelte';
@@ -112,13 +113,15 @@
 <div class="wb-dockbar">
   {#if v.dockExpanded}
     <div class="wb-dock-panel" data-testid="dock-panel">
-      <!-- The tempo slider needs room a 44px bar hasn't got, so it rides in the
-           panel; the bar keeps the readout and the play button. -->
-      <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
+      <!-- The tempo slider and the mixer need room a 44px bar hasn't got, so
+           they ride in the panel; the bar keeps the readout and the play
+           button. -->
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
         <span class="mono" style="flex:none;font-size:8px;letter-spacing:.12em;color:#8a7350">TEMPO</span>
         <input type="range" min="50" max="180" value={v.tempo} aria-label="studio tempo" oninput={(e) => store.setTempo(+e.currentTarget.value)} style="flex:1" />
         <span class="mono" style="flex:none;font-size:12px;font-weight:700;color:#2c261d;width:30px;text-align:right">{v.tempo}</span>
       </div>
+      <div class="wb-dock-mixer"><Mixer compact /></div>
       <Instruments variant="dock" />
     </div>
   {/if}
