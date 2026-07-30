@@ -6,7 +6,10 @@ test.describe('sight reading', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await expect(page.getByText('The Workbench')).toBeVisible();
-    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'reading' }).click();
+    // Sight reading is Learn → Practice → Sight reading now.
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'learn' }).click();
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'practice' }).click();
+    await page.getByTestId('practice-drills').getByRole('tab', { name: 'reading' }).click();
     await expect(page.getByTestId('reading-staff')).toBeVisible();
   });
 

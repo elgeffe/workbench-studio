@@ -26,9 +26,13 @@ import { MetronomeStore } from './metronome/store.svelte';
 import { computeView } from './view';
 import type { Wedge } from './view/types';
 
-export type Mode = 'circle' | 'workshop' | 'drums' | 'metronome' | 'ear' | 'reading' | 'patterns' | 'jazz';
-export type LearnTab = 'harmony' | 'rhythm' | 'bass' | 'form';
-export type WsStyle = 'classic' | 'jazz' | 'classical' | 'bass';
+// The six studio tabs. Circle explores, Drums / Chords / Bass build over one
+// shared transport, Metronome practises, and Learn teaches — every piece of
+// theory copy and every teaching palette lives behind that last tab.
+export type Mode = 'circle' | 'drums' | 'chords' | 'bass' | 'metronome' | 'learn';
+export type LearnTab = 'theory' | 'rhythm' | 'bass' | 'patterns' | 'practice' | 'forms';
+/** The two drills inside Learn → Practice. */
+export type PracticeDrill = 'ear' | 'reading';
 /** How long one chord of the progression holds: half a bar (2 beats) or a full bar. */
 export type ChordSlot = 'half' | 'bar';
 
@@ -95,13 +99,17 @@ export class WorkbenchStore {
   rdStreak = $state(0);
   rdMsg = $state('');
 
-  // Workshop starting points and bass grooves are both shelved on the studio's
-  // shared genre taxonomy (engine/genres.ts) — the same one the drum machine
-  // uses — so each is held as a genre id rather than a list index.
+  // Progression starting points and bass grooves are both shelved on the
+  // studio's shared genre taxonomy (engine/genres.ts) — the same one the drum
+  // machine uses — so each is held as a genre id rather than a list index.
   wsGenre = $state('rock');
   wsProgName = $state(''); // the starting point currently loaded, for the picker summary
   bassGenre = $state('disco');
-  bassPatId = $state<string | null>('discopump');
+  // No line until one is chosen. The bass used to sound only inside its own
+  // corner of the workshop, so a default groove there was harmless; now that it
+  // is a part of the band it would play on the first PLAY, from a tab the user
+  // has never opened. The Bass tab opens on a blank slate instead.
+  bassPatId = $state<string | null>(null);
   // The user's hand-built groove: 16 cells (one 16th each), null = a rest. Its
   // id in the pattern list is the special 'custom'. Step lengths are computed
   // (each note sustains to the next), so a cell only holds its degree or ghost.
@@ -112,7 +120,6 @@ export class WorkbenchStore {
   patCat = $state('Scales');
   patId = $state('major');
   jazzCh = $state(0);
-  wsStyle = $state<WsStyle>('classic');
   fingerOn = $state(true);
   jzInv = $state(0);
 
@@ -143,7 +150,8 @@ export class WorkbenchStore {
   drStep = $state(-1);
   drSwing = $state(50);
 
-  learnTab = $state<LearnTab>('harmony');
+  learnTab = $state<LearnTab>('theory');
+  practiceDrill = $state<PracticeDrill>('ear');
 
   dockOpen = $state(false);
   circleView = $state<'maj' | 'min'>('maj');
@@ -164,6 +172,25 @@ export class WorkbenchStore {
 
   // ---- derived view-model (pure render step, lives in lib/view) ----
   view = $derived.by(() => computeView(this));
+
+  /**
+   * Is the sight-reading drill the thing on screen? It now sits three levels
+   * down (Learn → Practice → Reading), and several behaviours key off it —
+   * instrument taps double as the answer, and generating a target clears the
+   * lighting so nothing gives the answer away. One helper, so those sites stay
+   * readable instead of repeating a three-term conditional.
+   */
+  get readingOpen(): boolean {
+    return this.mode === 'learn' && this.learnTab === 'practice' && this.practiceDrill === 'reading';
+  }
+  /** Likewise for the ear drill, which owns the Practice tab's other half. */
+  get earOpen(): boolean {
+    return this.mode === 'learn' && this.learnTab === 'practice' && this.practiceDrill === 'ear';
+  }
+  /** The pattern library, which lights the scale on the instruments. */
+  get patternsOpen(): boolean {
+    return this.mode === 'learn' && this.learnTab === 'patterns';
+  }
 
   // ---- non-reactive ----
   private audio = new AudioEngine();
@@ -261,11 +288,6 @@ export class WorkbenchStore {
   togglePicker(id: PickerId): void { this.picker = this.picker === id ? null : id; }
 
   setWsGenre(id: string): void { this.wsGenre = id; }
-  setWsStyle(s: WsStyle): void {
-    // Nothing about the clock changes with the style: the transport ticks every
-    // half bar, and how long a chord holds is `chordSlot`, which the user owns.
-    this.wsStyle = s;
-  }
   /** How long each change holds: half a bar (2 beats) or a full bar (4). */
   setChordSlot(v: ChordSlot): void { this.chordSlot = v; }
   /** Pick a bass genre: loads its first groove (the picker is genre → groove). */
@@ -425,7 +447,7 @@ export class WorkbenchStore {
   // which key owns the sound, so a stray key-up doesn't cut a later press.
   private kbActive = -1;
   kbHold(deg: number): void {
-    if (this.mode !== 'workshop') return;
+    if (this.mode !== 'chords') return;
     const dia = diatonicList(this.tonicPc, this.scale, this.ext);
     if (!dia.length) return;
     const src = dia[Math.min(deg, dia.length - 1)]; // K (deg 7) reuses the tonic
@@ -565,9 +587,9 @@ export class WorkbenchStore {
     const ch = chs[i];
     this.jzStep = i;
     this.activeChord = jChVoiced(ch, this.jzVoicing);
-    // Bass-style mix: the chord comp can be muted to hear the line alone
-    // (the chord still lights the instruments — only the sound is skipped).
-    if (this.wsStyle !== 'bass' || this.bassChordsOn) this.playChord(jChVoiced(ch, this.jzVoicing), 0.02, at);
+    // Mix: the chord comp can be muted to hear the line alone (the chord still
+    // lights the instruments — only the sound is skipped).
+    if (this.bassChordsOn) this.playChord(jChVoiced(ch, this.jzVoicing), 0.02, at);
     this.jIdx = i + 1;
   };
   /**
@@ -578,7 +600,10 @@ export class WorkbenchStore {
    * Rebuilt every bar, so groove swaps and chord edits land on the next ONE.
    */
   private barBass(at: number): void {
-    if (this.wsStyle !== 'bass' || !this.bassOn || !this.bassPatId) return;
+    // The bass is a part of the band now, not a mode of the chord workshop: a
+    // loaded line plays whichever tab you happen to be looking at, and only the
+    // BASS mix toggle silences it.
+    if (!this.bassOn || !this.bassPatId) return;
     const steps = this.activeBassSteps();
     const chs = this.jzChanges;
     if (!steps || !chs.length) return;
@@ -825,6 +850,21 @@ export class WorkbenchStore {
 
   // ---- learn: rhythm theory ----
   setLearnTab(t: LearnTab): void { this.learnTab = t; }
+  /**
+   * The `?` on a tool surface: jump to the Learn area that explains it. This is
+   * the connective tissue for moving the prose out of the tool tabs — the copy
+   * is one tap away rather than permanently in the way.
+   */
+  openLearn(t: LearnTab): void {
+    this.learnTab = t;
+    this.mode = 'learn';
+  }
+  setPracticeDrill(d: PracticeDrill): void {
+    this.practiceDrill = d;
+    // Reading clears the lighting so the staff can't be answered by looking at
+    // the fretboards; leaving the drill should not leave them dark.
+    if (d === 'reading') this.genReading();
+  }
   /** Play a rhythm concept's one-bar demo at its own tempo and feel. */
   playRhythmDemo(id: string): void {
     const c = RHYTHM_CONCEPTS.find((x) => x.id === id);
@@ -904,7 +944,7 @@ export class WorkbenchStore {
     this.rdHits = [];
     this.rdMsg = '';
     // Clear the instrument lighting so nothing gives the answer away.
-    if (this.mode === 'reading') this.activeChord = null;
+    if (this.readingOpen) this.activeChord = null;
   }
   setRdLevel(l: ReadLevel): void { this.rdLevel = l; this.genReading(); }
   setRdClef(c: ReadClefSetting): void { this.rdClef = c; this.genReading(); }
@@ -939,7 +979,7 @@ export class WorkbenchStore {
   }
   private readingTapPc(pc: number): void {
     const t = this.rdTarget;
-    if (this.mode !== 'reading' || this.rdAnswerMode !== 'play' || this.rdRevealed || !t) return;
+    if (!this.readingOpen || this.rdAnswerMode !== 'play' || this.rdRevealed || !t) return;
     pc = mod12(pc);
     if (!t.pcs.includes(pc)) { this.revealReading(false, pc); return; }
     if (this.rdHits.includes(pc)) return; // already found — no penalty

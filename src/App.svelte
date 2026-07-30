@@ -4,12 +4,10 @@
   import ScaleStrip from './lib/components/ScaleStrip.svelte';
   import Instruments from './lib/components/Instruments.svelte';
   import CircleMode from './lib/components/CircleMode.svelte';
-  import WorkshopMode from './lib/components/WorkshopMode.svelte';
   import DrumsMode from './lib/components/DrumsMode.svelte';
+  import ChordsMode from './lib/components/ChordsMode.svelte';
+  import BassMode from './lib/components/BassMode.svelte';
   import MetronomeMode from './lib/components/MetronomeMode.svelte';
-  import EarMode from './lib/components/EarMode.svelte';
-  import ReadingMode from './lib/components/ReadingMode.svelte';
-  import PatternsMode from './lib/components/PatternsMode.svelte';
   import LearnMode from './lib/components/LearnMode.svelte';
 
   const store = provideStore();
@@ -35,7 +33,7 @@
       store.met.toggle();
       return;
     }
-    if (store.mode !== 'workshop') return;
+    if (store.mode !== 'chords') return;
     const deg = CHORD_KEYS[e.key.toLowerCase()];
     if (deg !== undefined) store.kbHold(deg);
   }
@@ -85,19 +83,15 @@
       <div class="wb-content">
         {#if v.isCircle}
           <CircleMode />
-        {:else if v.isWorkshop}
-          <WorkshopMode />
         {:else if v.isDrums}
           <DrumsMode />
+        {:else if v.isChords}
+          <ChordsMode />
+        {:else if v.isBass}
+          <BassMode />
         {:else if v.isMetronome}
           <MetronomeMode />
-        {:else if v.isEar}
-          <EarMode />
-        {:else if v.isReading}
-          <ReadingMode />
-        {:else if v.isPatterns}
-          <PatternsMode />
-        {:else if v.isJazz}
+        {:else if v.isLearn}
           <LearnMode />
         {/if}
       </div>

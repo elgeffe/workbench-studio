@@ -26,7 +26,9 @@ export function buildInstruments(s: WorkbenchStore, { root, litSet, chordSet, dr
   const frets13 = Array.from({ length: frets }, (_, f) => ({ m: [3, 5, 7, 9].includes(f) ? String(f) : f === 12 ? '12' : '' }));
 
   const roleColor = (r: string) => (({ R: '#c2562e', '3': '#3f6b5f', b3: '#3f6b5f', '7': '#b07d23', '5': '#97a59c', b5: '#97a59c', '9': '#7a5ea8', '11': '#7a5ea8', '13': '#7a5ea8' } as Record<string, string>)[r] || '#c2562e');
-  const showFingerToggle = s.mode === 'workshop' && s.wsStyle === 'jazz';
+  // The finger overlay belongs to the jazz-harmony lesson, which is where the
+  // voicings it draws are being taught.
+  const showFingerToggle = s.mode === 'learn' && s.learnTab === 'theory';
   const overlayOn = showFingerToggle && s.fingerOn && !!ac;
   const pianoMark: Record<number, { color: string; finger: string }> = {};
   if (overlayOn && ac) {

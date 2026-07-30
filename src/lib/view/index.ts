@@ -3,15 +3,16 @@
 // mutates state or touches audio.
 import {
   INT, SCALES, FNCOLOR, FNTINT, FNNAME, FNWHY, KEYSIG,
-  type ScaleId,
+  type Chord, type ScaleId,
 } from '../engine/constants';
-import { spell, cname, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr, diatonicList } from '../engine/theory';
+import { spell, cname, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr, diatonicList, subsFor } from '../engine/theory';
 import { patternDefs, PAT_GROUPS } from '../engine/data';
 import type { WorkbenchStore, Mode } from '../store.svelte';
 import type { DiatonicView, LitInfo } from './types';
 import { buildCircle } from './circle';
 import { buildInstruments } from './instruments';
-import { buildWorkshop } from './workshop';
+import { buildChords } from './chords';
+import { buildBass } from './bass';
 import { buildPatterns } from './patterns';
 import { buildDrums } from './drums';
 import { buildLearn } from './learn';
@@ -23,7 +24,7 @@ function litInfo(s: WorkbenchStore): LitInfo {
   // Only the pattern-library groups drive scale lighting; the Chord Shapes
   // and fret-diagram tabs are chord/diagram-driven, so they fall through to
   // the active-chord lighting below.
-  if (s.mode === 'patterns' && PAT_GROUPS.includes(s.patCat)) {
+  if (s.patternsOpen && PAT_GROUPS.includes(s.patCat)) {
     const ints = activePat.int || activePat.scaleInt || [];
     const lit = ints.map((i) => (t + i) % 12);
     const litSet = new Set(lit);
@@ -64,13 +65,18 @@ export function computeView(s: WorkbenchStore) {
     };
   });
 
-  // active readout
+  // active readout — the chord the instruments are lighting, spelled out, with
+  // the substitutions the Circle offers for it.
   let acNotes: Array<{ name: string; deg: string; bd: string }> = [];
   if (ac) {
     const ps = gPcs(ac);
     const labels = ac.degLabels || ['R', '3', '5', '7', '9', '11', '13'];
     acNotes = ps.map((p, i) => ({ name: spell(p, t), deg: labels[i] || '', bd: i === 0 ? '#c2562e' : '#3f6b5f' }));
   }
+  const subs = ac ? subsFor(ac, t).map((sub) => {
+    const ch = { rootPc: sub.rootPc, intervals: sub.intervals, name: sub.name, roman: sub.roman, fn: sub.fn } as Chord;
+    return { name: sub.name, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], notes: gPcs(ch).map((p) => spell(p, t)), ch };
+  }) : [];
 
   const patterns = buildPatterns(s, lit.activePat);
   const inst = buildInstruments(s, lit);
@@ -96,7 +102,8 @@ export function computeView(s: WorkbenchStore) {
     soundLabelShort: s.soundOn ? '♪ ON' : '✕ MUTE',
     soundBg: s.soundOn ? 'rgba(216,168,111,.16)' : 'transparent', soundFg: s.soundOn ? '#e9c79b' : '#9c8460',
     // mode flags
-    isCircle: s.mode === 'circle', isWorkshop: s.mode === 'workshop', isDrums: s.mode === 'drums', isMetronome: s.mode === 'metronome', isEar: s.mode === 'ear', isReading: s.mode === 'reading', isPatterns: s.mode === 'patterns', isJazz: s.mode === 'jazz',
+    isCircle: s.mode === 'circle', isDrums: s.mode === 'drums', isChords: s.mode === 'chords',
+    isBass: s.mode === 'bass', isMetronome: s.mode === 'metronome', isLearn: s.mode === 'learn',
     ringAnim: s.jzPlaying ? 'spin 8s linear infinite' : 'none',
     // circle
     wedges, circleLabel, circleHint, diatonic,
@@ -107,16 +114,11 @@ export function computeView(s: WorkbenchStore) {
     hasActive: !!ac, noActive: !ac,
     acName: ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '', acRoman: ac ? ac.roman || '' : '',
     acFnName: ac ? FNNAME[ac.fn || 'T'] : '', acFnColor: ac ? FNCOLOR[ac.fn || 'T'] : '#3f6b5f',
-    acNotes, acWhy: ac ? FNWHY[ac.fn || 'T'] : '',
-    // workshop (genres, palettes, progression strip, explore, bass workbench)
-    ...buildWorkshop(s),
-    wsStyleClassic: s.wsStyle === 'classic', wsStyleJazz: s.wsStyle === 'jazz', wsStyleClassical: s.wsStyle === 'classical', wsStyleBass: s.wsStyle === 'bass',
-    styClassicBg: s.wsStyle === 'classic' ? '#c2562e' : 'transparent', styClassicFg: s.wsStyle === 'classic' ? '#fff' : '#5c4a30',
-    styJazzBg: s.wsStyle === 'jazz' ? '#c2562e' : 'transparent', styJazzFg: s.wsStyle === 'jazz' ? '#fff' : '#5c4a30',
-    styClassicalBg: s.wsStyle === 'classical' ? '#c2562e' : 'transparent', styClassicalFg: s.wsStyle === 'classical' ? '#fff' : '#5c4a30',
-    styBassBg: s.wsStyle === 'bass' ? '#c2562e' : 'transparent', styBassFg: s.wsStyle === 'bass' ? '#fff' : '#5c4a30',
-    mixChordsBg: s.bassChordsOn ? '#3f6b5f' : '#f6efe0', mixChordsFg: s.bassChordsOn ? '#fff' : '#5c4a30',
-    mixBassBg: s.bassOn ? '#3f6b5f' : '#f6efe0', mixBassFg: s.bassOn ? '#fff' : '#5c4a30',
+    acNotes, acWhy: ac ? FNWHY[ac.fn || 'T'] : '', subs,
+    // chords (genres, palettes, progression strip, inspector)
+    ...buildChords(s),
+    // bass (grooves, the 16-step editor, the part mix)
+    ...buildBass(s),
     jzPlayLabel: transportOn ? '■ STOP' : '▶ PLAY', jzPlayBg: transportOn ? '#9a3f1f' : '#c2562e', jzPlayShadow: transportOn ? '#6e2c12' : '#9a3f1f',
     vFullBg: s.jzVoicing === 'full' ? '#3f6b5f' : '#f6efe0', vFullFg: s.jzVoicing === 'full' ? '#fff' : '#5c4a30',
     vShellBg: s.jzVoicing === 'shell' ? '#3f6b5f' : '#f6efe0', vShellFg: s.jzVoicing === 'shell' ? '#fff' : '#5c4a30',
@@ -139,14 +141,15 @@ export function computeView(s: WorkbenchStore) {
     ...buildReading(s),
     // dock / instruments
     dockExpanded: s.dockOpen, dockChevron: s.dockOpen ? '▼ HIDE' : '▲ SHOW',
-    dockName: s.mode === 'patterns' && patterns.patLibTab ? spell(t, t) + ' ' + lit.activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
-    dockNotes: s.mode === 'patterns' && patterns.patLibTab ? patterns.patNotes + '   ·   over ' + patterns.view.patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
+    dockName: s.patternsOpen && patterns.patLibTab ? spell(t, t) + ' ' + lit.activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
+    dockNotes: s.patternsOpen && patterns.patLibTab ? patterns.patNotes + '   ·   over ' + patterns.view.patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
     ...inst,
     fingerBg: s.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: s.fingerOn ? '#fff' : '#5c4a30',
-    // mobile tab bar
-    mtabs: ([['circle', '⟳', 'CIRCLE'], ['workshop', '▦', 'BUILD'], ['drums', '◉', 'DRUMS'], ['metronome', '◳', 'METRO'], ['ear', '♪', 'EAR'], ['reading', '𝄞', 'READ'], ['patterns', '▤', 'PATTERNS'], ['jazz', '♭', 'LEARN']] as Array<[Mode, string, string]>).map(([id, icon, label]) => ({ id, icon, label, fg: s.mode === id ? '#f1e7d3' : '#8a7350', bg: s.mode === id ? 'rgba(194,86,46,.32)' : 'transparent' })),
-    // desktop top tabs
-    tabs: ([['circle', '⟳ Circle'], ['workshop', '▦ Workshop'], ['drums', '◉ Drums'], ['metronome', '◳ Metronome'], ['ear', '♪ Ear'], ['reading', '𝄞 Reading'], ['patterns', '▤ Patterns'], ['jazz', '♭ Learn']] as Array<[Mode, string]>).map(([id, label]) => ({ id, label, fg: s.mode === id ? '#c2562e' : '#8a7350', bd: s.mode === id ? '#c2562e' : 'transparent' })),
+    // The six tabs, in the order the studio is meant to be used: explore the
+    // key, lay a beat, write the changes, put a line under them, practise,
+    // learn why any of it works. Six labels fit a 390pt phone at full size.
+    mtabs: ([['circle', '⟳', 'CIRCLE'], ['drums', '◉', 'DRUMS'], ['chords', '▦', 'CHORDS'], ['bass', '♪', 'BASS'], ['metronome', '◳', 'METRO'], ['learn', '♭', 'LEARN']] as Array<[Mode, string, string]>).map(([id, icon, label]) => ({ id, icon, label, fg: s.mode === id ? '#f1e7d3' : '#8a7350', bg: s.mode === id ? 'rgba(194,86,46,.32)' : 'transparent' })),
+    tabs: ([['circle', '⟳ Circle'], ['drums', '◉ Drums'], ['chords', '▦ Chords'], ['bass', '♪ Bass'], ['metronome', '◳ Metronome'], ['learn', '♭ Learn']] as Array<[Mode, string]>).map(([id, label]) => ({ id, label, fg: s.mode === id ? '#c2562e' : '#8a7350', bd: s.mode === id ? '#c2562e' : 'transparent' })),
   };
 }
 

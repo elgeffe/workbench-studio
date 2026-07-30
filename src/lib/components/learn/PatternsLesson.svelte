@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { useStore } from '../context';
-  import FretDiagram from './FretDiagram.svelte';
+  import { useStore } from '../../context';
+  import FretDiagram from '../FretDiagram.svelte';
   const store = useStore();
   const v = $derived(store.view);
 </script>

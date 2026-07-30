@@ -2,17 +2,20 @@ import { test, expect } from '@playwright/test';
 
 test.use({ viewport: { width: 1280, height: 900 } });
 
-// The Workshop's chord length is a setting of its own. It used to be a hidden
-// consequence of the style — BASS gave every chord a full bar — which read as
-// the tempo halving the moment you switched to it.
-test.describe('workshop: chord length vs tempo', () => {
+// Chord length is a setting of its own. It used to be a hidden consequence of
+// the Workshop's style switch — BASS gave every chord a full bar — which read
+// as the tempo halving the moment you switched to it. That switch is gone (bass
+// is its own tab), so the guard is now that moving between the two tabs leaves
+// both the clock and the harmonic rhythm alone.
+test.describe('chords: chord length vs tempo', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'workshop' }).click();
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'chords' }).click();
     await expect(page.getByText('Your progression')).toBeVisible();
   });
 
-  test('switching to BASS leaves the chord length and the tempo alone', async ({ page }) => {
+  test('moving to the Bass tab and back leaves the chord length and the tempo alone', async ({ page }) => {
+    const tabs = page.getByTestId('desktop-tabs');
     const half = page.getByTestId('slot-half');
     const bar = page.getByTestId('slot-bar');
     await expect(half).toHaveAttribute('aria-pressed', 'true');
@@ -20,16 +23,15 @@ test.describe('workshop: chord length vs tempo', () => {
 
     const tempo = await page.locator('input[type=range]').first().inputValue();
 
-    await page.getByText('BASS', { exact: true }).click();
-    await expect(page.getByText('THE BASSLINE · follows each chord as the loop plays')).toBeVisible();
-    // the style switch changed neither the clock nor the harmonic rhythm
+    await tabs.getByRole('tab', { name: 'bass' }).click();
+    await expect(page.getByText('BUILD YOUR OWN', { exact: false })).toBeVisible();
+    // the bass tab rides the same clock and doesn't touch it
+    expect(await page.locator('input[type=range]').first().inputValue()).toBe(tempo);
+
+    await tabs.getByRole('tab', { name: 'chords' }).click();
     await expect(half).toHaveAttribute('aria-pressed', 'true');
     await expect(bar).toHaveAttribute('aria-pressed', 'false');
     expect(await page.locator('input[type=range]').first().inputValue()).toBe(tempo);
-
-    // and going back to CLASSIC leaves it alone too
-    await page.getByText('CLASSIC', { exact: true }).click();
-    await expect(half).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('the chord length is switchable and says what it means in beats', async ({ page }) => {

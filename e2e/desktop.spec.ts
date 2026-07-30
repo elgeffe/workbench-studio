@@ -28,7 +28,7 @@ test.describe('desktop layout', () => {
 
   test('navigates every mode via the top tabs', async ({ page }) => {
     const tabs = page.getByTestId('desktop-tabs');
-    await tabs.getByRole('tab', { name: 'workshop' }).click();
+    await tabs.getByRole('tab', { name: 'chords' }).click();
     await expect(page.getByText('Your progression')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'drums' }).click();
@@ -37,21 +37,25 @@ test.describe('desktop layout', () => {
     await tabs.getByRole('tab', { name: 'metronome' }).click();
     await expect(page.getByTestId('metronome-transport')).toBeVisible();
 
-    await tabs.getByRole('tab', { name: 'ear' }).click();
+    await tabs.getByRole('tab', { name: 'bass' }).click();
+    await expect(page.getByText('BUILD YOUR OWN', { exact: false })).toBeVisible();
+
+    await tabs.getByRole('tab', { name: 'learn' }).click();
+    await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();
+
+    // the drills and the pattern library are subtabs of Learn now
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'practice' }).click();
     await expect(page.getByText('TAP TO PLAY · LISTEN')).toBeVisible();
 
-    await tabs.getByRole('tab', { name: 'patterns' }).click();
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'patterns' }).click();
     await expect(page.getByText('FORMULA')).toBeVisible();
-
-    await tabs.getByRole('tab', { name: 'jazz' }).click();
-    await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'circle' }).click();
     await expect(page.getByText('CIRCLE OF 5THS')).toBeVisible();
   });
 
-  test('workshop: loading a starting point fills the progression', async ({ page }) => {
-    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'workshop' }).click();
+  test('chords: loading a starting point fills the progression', async ({ page }) => {
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'chords' }).click();
     await expect(page.getByText(/Empty — load a starting point/)).toBeVisible();
     // the starting-point shelves open in a modal so they don't bury the strip
     await page.getByTestId('ws-picker-summary').click();
