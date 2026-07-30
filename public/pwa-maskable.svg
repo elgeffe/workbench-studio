@@ -10,8 +10,8 @@
       <stop offset="1" stop-color="#e9d8b5"/>
     </radialGradient>
   </defs>
-  <rect width="512" height="512" rx="113" fill="url(#ground)"/>
-  <g>
+  <rect width="512" height="512" rx="0" fill="url(#ground)"/>
+  <g transform="translate(256 256) scale(0.78) translate(-256 -256)">
     <g fill="#d2a84b">
       <path d="M315.4 88.2A178 178 0 0 1 371.6 120.6L335.2 163.2A122 122 0 0 0 296.7 141.0Z"/>
       <path d="M391.4 140.4A178 178 0 0 1 423.8 196.6L371.0 215.3A122 122 0 0 0 348.8 176.8Z"/>

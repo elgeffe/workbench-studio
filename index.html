@@ -9,6 +9,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>The Workbench — Ear &amp; Theory</title>
     <link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml" />
+    <!-- iOS ignores SVG icons for "Add to Home Screen" and invents a
+         placeholder instead, so the home-screen mark has to be a PNG. -->
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
+    <link rel="mask-icon" href="%BASE_URL%favicon.svg" color="#c2562e" />
   </head>
   <body>
     <div id="app"></div>

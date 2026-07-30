@@ -16,7 +16,9 @@ test('rapid drum-machine taps do not trigger page zoom', async ({ page }) => {
     .toBe('manipulation');
 
   await page.getByTestId('mobile-tabs').getByRole('tab', { name: 'drums' }).tap();
-  const cell = page.getByRole('button', { name: 'kick step 1' });
+  // `exact` matters here: accessible-name matching is a substring by default,
+  // so "kick step 1" also picks up steps 10 through 16.
+  const cell = page.getByRole('button', { name: 'kick step 1', exact: true });
   await cell.tap();
   await cell.tap();
 

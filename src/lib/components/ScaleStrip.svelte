@@ -4,9 +4,9 @@
   const v = $derived(store.view);
 </script>
 
-<div style="background:#efe3c9;border-bottom:1px solid #ddccac;padding:8px 18px">
+<div class="wb-strip">
   <!-- KEY picker -->
-  <div style="display:flex;align-items:center;gap:12px">
+  <div class="wb-strip-row">
     <div class="mono" style="font-size:9px;letter-spacing:.18em;color:#8a7350;flex:none;width:44px">KEY</div>
     <div style="display:flex;gap:4px;overflow-x:auto;flex:1 1 auto;align-items:center">
       {#each v.keyChips as k (k.pc)}
@@ -16,7 +16,7 @@
   </div>
 
   <!-- SCALE picker: four everyday scales, then the modes -->
-  <div style="display:flex;align-items:center;gap:12px;margin-top:7px">
+  <div class="wb-strip-row">
     <div class="mono" style="font-size:9px;letter-spacing:.18em;color:#8a7350;flex:none;width:44px">SCALE</div>
     <div style="display:flex;gap:5px;overflow-x:auto;flex:1 1 auto;align-items:center">
       {#each v.scalePrimary as m (m.id)}

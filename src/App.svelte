@@ -114,40 +114,39 @@
 
 <!-- mobile fixed dock + tab bar -->
 {#if !store.isDesktop}
+<!-- Sizes, safe-area padding and the landscape one-row layout all live in
+     app.css so a media query can reach them. -->
 <div class="wb-dockbar">
   {#if v.dockExpanded}
-    <!-- Cap = full dynamic viewport minus the dock bar + tab bar (~108px +
-         safe area), so the whole panel is visible without inner scrolling;
-         overflow stays as a fallback for very short (landscape) screens. -->
-    <div data-testid="dock-panel" style="background:linear-gradient(#efe3ca,#e9dcc0);border-top:1px solid #cbb792;box-shadow:0 -12px 30px -14px rgba(60,40,16,.4);max-height:calc(100dvh - 108px - env(safe-area-inset-bottom));overflow-y:auto;padding:14px 14px 10px">
+    <div class="wb-dock-panel" data-testid="dock-panel">
       <Instruments variant="dock" />
     </div>
   {/if}
-  <div
-    class="click" data-testid="dock-bar"
-    style="display:flex;align-items:center;gap:10px;background:linear-gradient(#3a2c1d,#2c2014);color:#f1e7d3;padding:10px 16px;border-top:2px solid #c2562e"
-    role="button" tabindex="0"
-    onclick={() => store.toggleDock()}
-    onkeydown={(e) => e.key === 'Enter' && store.toggleDock()}
-  >
-    <span class="mono" style="font-size:8px;letter-spacing:.16em;color:#d8a86f;flex:none">SOUNDING</span>
-    <span style="font-size:17px;font-weight:700;line-height:1;white-space:nowrap">{v.dockName}</span>
-    <span class="mono" style="font-size:9px;color:#cba47a;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{v.dockNotes}</span>
-    <span class="mono" style="font-size:11px;color:#d8a86f;flex:none">{v.dockChevron}</span>
-  </div>
-  <div data-testid="mobile-tabs" style="display:flex;background:#241a10;padding:6px 4px calc(6px + env(safe-area-inset-bottom))">
-    {#each v.mtabs as tb (tb.id)}
-      <div
-        class="click"
-        style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;border-radius:8px;background:{tb.bg}"
-        role="tab" tabindex="0" aria-label={tb.id} aria-selected={store.mode === tb.id}
-        onclick={() => store.setMode(tb.id)}
-        onkeydown={(e) => e.key === 'Enter' && store.setMode(tb.id)}
-      >
-        <span style="font-size:17px;line-height:1;color:{tb.fg}">{tb.icon}</span>
-        <span class="mono" style="font-size:8px;letter-spacing:.08em;color:{tb.fg}">{tb.label}</span>
-      </div>
-    {/each}
+  <div class="wb-dock-rows">
+    <div
+      class="click wb-dock-bar" data-testid="dock-bar"
+      role="button" tabindex="0"
+      onclick={() => store.toggleDock()}
+      onkeydown={(e) => e.key === 'Enter' && store.toggleDock()}
+    >
+      <span class="mono wb-dock-eyebrow">SOUNDING</span>
+      <span class="wb-dock-name">{v.dockName}</span>
+      <span class="mono wb-dock-notes">{v.dockNotes}</span>
+      <span class="mono wb-dock-chev">{v.dockChevron}</span>
+    </div>
+    <div class="wb-mtabs" data-testid="mobile-tabs">
+      {#each v.mtabs as tb (tb.id)}
+        <div
+          class="click wb-mtab" style="background:{tb.bg}"
+          role="tab" tabindex="0" aria-label={tb.id} aria-selected={store.mode === tb.id}
+          onclick={() => store.setMode(tb.id)}
+          onkeydown={(e) => e.key === 'Enter' && store.setMode(tb.id)}
+        >
+          <span class="wb-mtab-icon" style="color:{tb.fg}">{tb.icon}</span>
+          <span class="mono wb-mtab-label" style="color:{tb.fg}">{tb.label}</span>
+        </div>
+      {/each}
+    </div>
   </div>
 </div>
 {/if}
