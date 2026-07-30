@@ -74,8 +74,7 @@
         <span class="mono" style="font-size:9px;letter-spacing:.16em;color:#8a7350">{label}</span>
         <span style="flex:1"></span>
         <span
-          class="mono click" data-testid="{testid}-close" role="button" tabindex="0" aria-label="close picker"
-          style="font-size:11px;letter-spacing:.08em;color:#7a6b50;border:1px solid #cbb792;border-radius:6px;padding:6px 11px"
+          class="wb-modal-close" data-testid="{testid}-close" role="button" tabindex="0" aria-label="close picker"
           onclick={onClose} onkeydown={(e) => e.key === 'Enter' && onClose()}
         >✕ CLOSE</span>
       </div>

@@ -4,6 +4,7 @@ import {
   drumTemplates, drumGenres, drumVoice, inKitOrder, composeGrid, emptyGrid,
   swingDelaySteps, stepAtElapsed, templateVoices, voicesInGrid, RHYTHM_CONCEPTS,
 } from './drums';
+import type { DrumSynthLayer } from './drums';
 
 const voiceIds = new Set(DRUM_VOICES.map((v) => v.id));
 
@@ -23,7 +24,9 @@ describe('the kit', () => {
   it('every instrument declares a playable synth recipe', () => {
     DRUM_VOICES.forEach((v) => {
       expect(v.synth.length, v.id).toBeGreaterThan(0);
-      v.synth.forEach((l) => {
+      // DRUM_VOICES is `as const`, so a layer that omits the optional `at`
+      // has no such property in its literal type — widen to read it.
+      v.synth.forEach((l: DrumSynthLayer) => {
         expect(l.dur).toBeGreaterThan(0);
         expect(l.amp).toBeGreaterThan(0);
         expect(l.amp).toBeLessThanOrEqual(1);

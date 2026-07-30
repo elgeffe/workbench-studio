@@ -4,16 +4,18 @@
   const v = $derived(store.view);
 </script>
 
-<div class="wb-header" style="position:sticky;top:0;z-index:50;background:linear-gradient(#3a2c1d,#2c2014);color:#f1e7d3;border-bottom:3px solid #c2562e">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:12px 18px">
+<!-- Layout lives in app.css: the bar pads itself clear of the notch / Dynamic
+     Island, and landscape trims its vertical padding. -->
+<div class="wb-header">
+  <div class="wb-header-row">
     <!-- brand -->
     <div style="display:flex;align-items:center;gap:12px;min-width:0">
-      <div style="width:36px;height:36px;border-radius:50%;border:2px solid #c2562e;display:flex;align-items:center;justify-content:center;flex:none;background:radial-gradient(circle at 38% 32%, #4a3826, #241a10)">
+      <div class="wb-brand-mark">
         <div style="width:9px;height:9px;border-radius:50%;background:#c2562e"></div>
       </div>
       <div style="min-width:0">
-        <div class="mono" style="font-size:9px;letter-spacing:.26em;color:#d8a86f;text-transform:uppercase">Ear &amp; Theory</div>
-        <div style="font-size:20px;line-height:1.05;font-weight:600;letter-spacing:.01em">The Workbench</div>
+        <div class="mono wb-brand-eyebrow">Ear &amp; Theory</div>
+        <div class="wb-brand-title">The Workbench</div>
       </div>
     </div>
 

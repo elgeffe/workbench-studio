@@ -11,7 +11,7 @@ export default defineConfig({
     svelte(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'pwa-icon.svg'],
+      includeAssets: ['favicon.svg', 'pwa-icon.svg', 'pwa-maskable.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'The Workbench — Ear & Theory',
         short_name: 'Workbench',
@@ -22,13 +22,15 @@ export default defineConfig({
         orientation: 'any',
         start_url: '.',
         scope: '.',
+        // The SVG scales for browsers that take it; the PNGs are what iOS and
+        // Android home screens actually install. `maskable` is a separate
+        // entry rather than a second purpose on the same file — a rounded
+        // square declared maskable gets its own corners cropped off again.
         icons: [
-          {
-            src: 'pwa-icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
-          },
+          { src: 'pwa-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -36,7 +38,7 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true,
         navigateFallback: 'index.html',
-        globPatterns: ['**/*.{js,css,html,ico,svg,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,svg,png,woff,woff2}'],
       },
       devOptions: { enabled: false },
     }),

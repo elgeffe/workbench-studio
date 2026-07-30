@@ -23,6 +23,21 @@
   --mono: 'Space Mono', ui-monospace, monospace;
   --serif: 'Newsreader Variable', Georgia, serif;
   --bp: 980px;
+
+  /* iOS safe areas, resolved once so every rule reads the same four values
+     (and a test can override them to fake a notched device). The viewport is
+     `viewport-fit=cover` with a translucent status bar, so in a standalone
+     PWA the page really does start underneath the notch / Dynamic Island:
+     portrait puts the inset on top, landscape moves it to left and right. */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+
+  /* Total height of the fixed mobile chrome (sounding bar + tab bar), home
+     indicator included. The content's bottom padding and the dock panel's
+     cap both derive from it so the three can never drift apart. */
+  --dock-h: calc(108px + var(--sab));
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -73,12 +88,48 @@ input[type='range'] { accent-color: var(--accent); }
 .only-mobile { display: none; }
 .only-desktop { display: block; }
 
+/* ---------- header ---------- */
+.wb-header {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(var(--dark2), var(--dark));
+  color: var(--parch2);
+  border-bottom: 3px solid var(--accent);
+  /* Pad the bar itself out from under the status bar rather than the row
+     inside it, so the dark gradient still paints behind the island. */
+  padding-top: var(--sat);
+}
+.wb-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  padding: 12px calc(18px + var(--sar)) 12px calc(18px + var(--sal));
+}
+.wb-brand-eyebrow { font-size: 9px; letter-spacing: .26em; color: var(--gold); text-transform: uppercase; }
+.wb-brand-title { font-size: 20px; line-height: 1.05; font-weight: 600; letter-spacing: .01em; }
+.wb-brand-mark {
+  width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent);
+  display: flex; align-items: center; justify-content: center; flex: none;
+  background: radial-gradient(circle at 38% 32%, #4a3826, #241a10);
+}
+
+/* ---------- key / scale strip ---------- */
+.wb-strip {
+  background: var(--panel); border-bottom: 1px solid var(--line);
+  padding: 8px calc(18px + var(--sar)) 8px calc(18px + var(--sal));
+}
+.wb-strip-row { display: flex; align-items: center; gap: 12px; }
+.wb-strip-row + .wb-strip-row { margin-top: 7px; }
+
 /* ---------- mobile layout (below breakpoint) ---------- */
 @media (max-width: 980px) {
   .wb-app { padding: 0; }
   .wb-shell { max-width: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; min-height: 100dvh; }
   .wb-body { display: block; }
-  .wb-content { padding: 16px 14px; border-right: 0; padding-bottom: 190px; }
+  .wb-content {
+    border-right: 0;
+    /* the extra 82px is scroll cushion: the last control in a mode still
+       clears the dock bar once you have scrolled to the bottom */
+    padding: 16px calc(14px + var(--sar)) calc(var(--dock-h) + 82px) calc(14px + var(--sal));
+  }
   .wb-side { display: none; }
   .only-mobile { display: block; }
   .only-desktop { display: none; }
@@ -129,17 +180,127 @@ input[type='range'] { accent-color: var(--accent); }
 }
 .wb-modal-head {
   flex: none; display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px; border-bottom: 1px solid var(--line);
-  background: #efe3c9;
+  padding: 8px calc(14px + var(--sar)) 8px calc(14px + var(--sal));
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
 }
 .wb-modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px; }
+
+/* Closing is the only way out of the sheet on a phone, so the control is a
+   full 44px target — the old 11px chip was about 24px tall and easy to miss. */
+.wb-modal-close {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; padding: 0 13px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+  color: #7a6b50; background: var(--parch);
+  border: 1px solid #cbb792; border-radius: 8px;
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+.wb-modal-close:active { background: #e7d9bf; }
 
 @media (max-width: 980px) {
   /* full-height sheet on a phone — the shelves need every pixel */
   .wb-modal-back { padding: 0; align-items: stretch; }
-  .wb-modal { max-width: none; max-height: 100dvh; border-radius: 0; border: 0; }
-  .wb-modal-body { padding: 12px 12px calc(20px + env(safe-area-inset-bottom)); }
+  .wb-modal {
+    max-width: none; max-height: 100dvh; border-radius: 0; border: 0;
+    /* Edge-to-edge means the sheet runs under the translucent status bar.
+       Reserve that strip on the card and paint it dark, so the white status
+       glyphs stay legible and the head's controls stay tappable below it. */
+    background: var(--dark);
+    padding-top: var(--sat);
+  }
+  .wb-modal-body {
+    background: linear-gradient(var(--parch), var(--parch2));
+    padding: 12px calc(12px + var(--sar)) calc(20px + var(--sab)) calc(12px + var(--sal));
+  }
 }
 
-/* fixed mobile dock + tab bar */
+/* ---------- fixed mobile dock + tab bar ---------- */
 .wb-dockbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: flex; flex-direction: column; }
+
+.wb-dock-panel {
+  background: linear-gradient(#efe3ca, #e9dcc0);
+  border-top: 1px solid #cbb792;
+  box-shadow: 0 -12px 30px -14px rgba(60, 40, 16, .4);
+  /* Cap at the dynamic viewport minus the bars below, so the whole panel is
+     visible without inner scrolling; overflow stays as a short-screen fallback. */
+  max-height: calc(100dvh - var(--dock-h));
+  overflow-y: auto;
+  padding: 14px calc(14px + var(--sar)) 10px calc(14px + var(--sal));
+}
+
+/* The two bars are grouped so landscape can lay them out side by side. */
+.wb-dock-rows { display: flex; flex-direction: column; min-width: 0; }
+
+.wb-dock-bar {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  background: linear-gradient(var(--dark2), var(--dark)); color: var(--parch2);
+  padding: 10px calc(16px + var(--sar)) 10px calc(16px + var(--sal));
+  border-top: 2px solid var(--accent);
+}
+.wb-dock-eyebrow { flex: none; font-size: 8px; letter-spacing: .16em; color: var(--gold); }
+.wb-dock-name { min-width: 0; font-size: 17px; font-weight: 700; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wb-dock-notes { flex: 1; min-width: 0; font-size: 9px; color: #cba47a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wb-dock-chev { flex: none; font-size: 11px; color: var(--gold); }
+
+.wb-mtabs {
+  display: flex; min-width: 0; background: #241a10;
+  padding: 6px calc(4px + var(--sar)) calc(6px + var(--sab)) calc(4px + var(--sal));
+}
+.wb-mtab {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 8px 0 6px; border-radius: 8px;
+}
+.wb-mtab-icon { font-size: 17px; line-height: 1; }
+.wb-mtab-label { font-size: 8px; letter-spacing: .08em; white-space: nowrap; }
+
+/* Eight tabs across a 390pt phone leave ~48pt each, which the widest label
+   ("PATTERNS") overran at 8px — it bled past the last tab's edge. */
+@media (max-width: 430px) {
+  .wb-mtab { overflow: hidden; }
+  .wb-mtab-label { font-size: 7px; letter-spacing: .01em; }
+}
+
+/* ---------- phone in landscape ----------
+   A 390pt-tall viewport cannot spare ~110px of bottom chrome, so the sounding
+   bar and the tab bar share a single row and the top chrome tightens with it.
+   That takes the fixed furniture from about 110px down to about 50px. */
+@media (max-width: 980px) and (orientation: landscape) and (max-height: 520px) {
+  :root { --dock-h: calc(50px + var(--sab)); }
+
+  .wb-content { padding-top: 12px; padding-bottom: calc(var(--dock-h) + 20px); }
+
+  .wb-header-row { padding-top: 7px; padding-bottom: 7px; gap: 10px; }
+  .wb-brand-eyebrow { display: none; }
+  .wb-brand-title { font-size: 17px; }
+  .wb-brand-mark { width: 30px; height: 30px; }
+  .wb-strip { padding-top: 6px; padding-bottom: 6px; }
+  .wb-strip-row + .wb-strip-row { margin-top: 5px; }
+
+  .wb-dock-rows { flex-direction: row; align-items: stretch; }
+  .wb-dock-bar {
+    flex: 0 1 auto; max-width: 30%; gap: 7px;
+    padding: 5px 9px 5px calc(9px + var(--sal));
+  }
+  .wb-dock-name { flex: 1 1 auto; font-size: 14px; }
+  /* no room for the note list once the bar is a third of a row wide */
+  .wb-dock-notes { display: none; }
+
+  .wb-mtabs {
+    flex: 1 1 auto;
+    border-top: 2px solid var(--accent);
+    padding: 3px calc(3px + var(--sar)) calc(3px + var(--sab)) 3px;
+  }
+  .wb-mtab { flex-direction: row; gap: 5px; padding: 4px 2px; border-radius: 7px; }
+  .wb-mtab-icon { font-size: 14px; }
+  .wb-mtab-label { font-size: 7.5px; letter-spacing: .03em; }
+}
+
+/* Narrow landscape (smaller phones) cannot fit eight labelled tabs on a row —
+   drop to icons only and give them back the vertical room as touch target. */
+@media (max-width: 760px) and (orientation: landscape) and (max-height: 520px) {
+  .wb-dock-bar { max-width: 38%; }
+  .wb-mtab-label { display: none; }
+  .wb-mtab { padding: 7px 2px; }
+}
