@@ -410,20 +410,14 @@ export class WorkbenchStore {
     this.activeChord = ch;
     this.playChord(ch, 0.02);
   }
-  // Press-and-hold: select the chord and sustain it for as long as the pointer
-  // stays down (great on touch — press to hear, hold to let it ring).
-  private holding = false;
-  holdChord(ch: Chord): void {
-    const c: Chord = { rootPc: ch.rootPc, intervals: gI(ch), name: ch.name || cname(ch.rootPc, ch.quality || 'maj', this.tonicPc), roman: ch.roman || '', fn: ch.fn || 'T' };
-    const voiced = jChVoiced(c, this.jzVoicing);
-    this.activeChord = voiced;
-    if (this.soundOn && !this.jzPlaying) { this.audio.holdMidis(gMidis(voiced), 0.02); this.holding = true; }
-  }
-  releaseChord(): void {
-    if (!this.holding) return;
-    this.holding = false;
-    this.audio.releaseHeld();
-  }
+  // Chord cards are one-shot taps, not press-and-hold. A pointer-held chord
+  // sustains at a fixed level with no decay, so several stacked voices sit hot
+  // into the tonal low-pass and the master clamp for as long as the finger is
+  // down — that is what made the circle-of-fifths chords sound harsh. A tap
+  // plays the plucked envelope, which decays and stays clean. Sustained voices
+  // (holdMidis/releaseHeld) are still used by the computer-keyboard chords
+  // below, where one monophonic chord at a time is the whole point.
+  //
   // Computer-keyboard chords: A S D F G H J play the seven diatonic chords of
   // the current key in order, K the tonic an octave up. Press-and-hold sustains
   // the chord for as long as the key is down. Monophonic — a new key releases

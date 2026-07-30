@@ -21,16 +21,10 @@ test('first chord press plays only the chord, not the queued ear-training exerci
   await page.goto('/');
   await expect(page.getByText('CIRCLE OF 5THS')).toBeVisible();
 
-  // Press-and-hold the first diatonic chord (I / C) for well past the point where
+  // Tap the first diatonic chord (I / C), then wait well past the point where
   // the boot ear-training interval (root, then +520ms, then +1100ms) would sound.
-  const card = page.getByRole('button', { name: 'I C', exact: false }).first();
-  const box = await card.boundingBox();
-  if (!box) throw new Error('chord card not found');
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(1400);
-  await page.mouse.up();
-  await page.waitForTimeout(200);
+  await page.getByRole('button', { name: 'I C', exact: false }).first().click();
+  await page.waitForTimeout(1600);
 
   const osc = await page.evaluate(() => (window as unknown as { __osc: Array<{ at: number }> }).__osc);
   expect(osc.length).toBeGreaterThan(0);

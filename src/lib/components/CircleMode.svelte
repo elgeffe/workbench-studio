@@ -61,7 +61,7 @@
       <div class="caption" style="font-size:13px;margin-bottom:10px;max-width:340px">{v.extCaption}</div>
       <div class="dia-grid" style="margin-bottom:14px">
         {#each v.diatonic as c, i (i)}
-          <div class="click" style="border-radius:6px;border:1.5px solid {c.border};background:{c.bg};padding:9px 4px 8px;text-align:center;box-shadow:{c.shadow};touch-action:manipulation;user-select:none" role="button" tabindex="0" onpointerdown={() => store.holdChord(c)} onpointerup={() => store.releaseChord()} onpointerleave={() => store.releaseChord()} onpointercancel={() => store.releaseChord()} onkeydown={(e) => e.key === 'Enter' && store.previewChord(c)}>
+          <div class="click" style="border-radius:6px;border:1.5px solid {c.border};background:{c.bg};padding:9px 4px 8px;text-align:center;box-shadow:{c.shadow}" role="button" tabindex="0" onclick={() => store.previewChord(c)} onkeydown={(e) => e.key === 'Enter' && store.previewChord(c)}>
             <div class="mono" style="font-size:10px;color:{c.fnColor};letter-spacing:.04em">{c.roman}</div>
             <div style="font-size:15px;font-weight:600;color:#2c261d;line-height:1.05;margin-top:2px;white-space:nowrap">{c.name}</div>
             <div style="height:3px;border-radius:2px;margin-top:6px;background:{c.fnColor}"></div>
@@ -104,7 +104,7 @@
         <div class="mono" style="font-size:10px;letter-spacing:.14em;color:#8a7350;margin-bottom:9px">SUBSTITUTIONS · swap {v.acName} for…</div>
         <div style="display:flex;flex-wrap:wrap;gap:9px">
           {#each v.subs as s, i (i)}
-            <div class="click" style="flex:1 1 210px;min-width:200px;max-width:330px;border:1px solid #e0cfae;background:#f9f3e4;border-radius:8px;padding:11px 13px;touch-action:manipulation;user-select:none" role="button" tabindex="0" onpointerdown={() => store.holdChord(s.ch)} onpointerup={() => store.releaseChord()} onpointerleave={() => store.releaseChord()} onpointercancel={() => store.releaseChord()} onkeydown={(e) => e.key === 'Enter' && store.hitChord(s.ch)}>
+            <div class="click" style="flex:1 1 210px;min-width:200px;max-width:330px;border:1px solid #e0cfae;background:#f9f3e4;border-radius:8px;padding:11px 13px" role="button" tabindex="0" onclick={() => store.hitChord(s.ch)} onkeydown={(e) => e.key === 'Enter' && store.hitChord(s.ch)}>
               <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
                 <span style="font-size:19px;font-weight:700;color:#2c261d;line-height:1">{s.name}</span>
                 <span class="mono" style="font-size:8px;letter-spacing:.06em;color:#fff;background:{s.fnColor};padding:3px 7px;border-radius:9px;white-space:nowrap">{s.tag}</span>
@@ -120,7 +120,7 @@
         </div>
       </div>
     {:else}
-      <div class="caption" style="font-size:15px;color:#9c8460">Tap a key on the wheel to set the tonic, then press and hold any chord to sustain it and see it light up across your instruments.</div>
+      <div class="caption" style="font-size:15px;color:#9c8460">Tap a key on the wheel to set the tonic, then tap any chord to hear it and see it light up across your instruments.</div>
     {/if}
   </div>
 </div>
