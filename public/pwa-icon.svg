@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">The Workbench</title>
+  <rect width="512" height="512" rx="112" fill="#2c2014"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#d2a84b" stroke-width="24"/>
+  <path d="M176 144v224m0-144h104a64 64 0 0 1 0 128H176m104-128a64 64 0 0 1 0-128H176" fill="none" stroke="#f3ead8" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

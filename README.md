@@ -16,6 +16,7 @@ component tree. Both layouts have full feature parity.
 - **[Vitest](https://vitest.dev)** for engine unit tests
 - **[Playwright](https://playwright.dev)** for end-to-end tests (desktop + mobile viewports)
 - **Web Audio API** synth — no audio assets, everything is generated
+- **Installable PWA** with a precached app shell for complete offline use after the first load
 
 ## Architecture
 
@@ -85,6 +86,14 @@ npm run check      # svelte-check type checking
 npm test           # Vitest unit tests
 npm run test:e2e   # Playwright end-to-end tests
 ```
+
+## Offline use
+
+The production build includes a web app manifest and service worker. Visit the deployed app
+once while online, then use your browser's **Install app** or **Add to Home Screen** action.
+The complete application is precached (including its locally generated interface and icons),
+so every studio mode and the Web Audio instruments remain available without a connection.
+When a new version is deployed it downloads in the background and is used on the next visit.
 
 ## Deployment (GitHub Pages)
 
