@@ -15,10 +15,8 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
   // the active key sits at 12 o'clock, and the 7 diatonic chords of that key
   // light up as one contiguous tinted block with roman numerals:
   // red = major chords, green = minor chords, blue = the diminished one.
-  // Each ring carries its own hue the whole way round — terracotta outside,
-  // green inside — so the two rings stay legible past the diatonic block
-  // instead of fading into one beige arc. Out-of-key wedges are the washed-out
-  // version of their ring's colour, which keeps the in-key block dominant.
+  // Colour is reserved for the key: everything outside the arc stays the plain
+  // parchment of the wheel, so the seven spokes carry all of the emphasis.
   const cx = 180, cy = 180, rO = 158, rB = 110, rC = 68;
   const rMajName = 131, rMinName = 88;
   // Numerals sit a fixed distance *above* their name rather than one step
@@ -66,7 +64,7 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     const mnPc = (pc + 9) % 12; // relative minor sharing this spoke
     // outer wedge — the major key
     const oNum = majNum[pc] || '';
-    let oFill = '#f7e2d1', oStroke = '#ecd2bd', oSw = '2', oName = '#a2704f', oNumC = '#8f3c1c';
+    let oFill = '#f3e8ce', oStroke = '#f1e7d3', oSw = '2', oName = '#8a7a5c', oNumC = '#8f3c1c';
     if (oNum === 'I' && !isMinView) { oFill = '#c2562e'; oStroke = '#8f3c1c'; oSw = '3'; oName = '#fff'; oNumC = '#ffd9c6'; }
     else if (oNum === 'vii°') { oFill = '#ccdbe9'; oStroke = '#a9c3da'; oName = '#46617c'; oNumC = '#46617c'; }
     else if (quality(oNum) === 'min' && oNum) { oFill = '#bcd8c8'; oStroke = '#a3c4b1'; oName = '#2d5c48'; oNumC = '#2d5c48'; }
@@ -80,7 +78,7 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     });
     // inner wedge — its relative minor
     const iNum = minNum[mnPc] || '';
-    let iFill = '#dcebe1', iStroke = '#c9dfd2', iSw = '2', iName = '#5f7d6d', iNumC = '#2d5c48';
+    let iFill = '#ebdfc1', iStroke = '#f1e7d3', iSw = '2', iName = '#95835f', iNumC = '#2d5c48';
     if (iNum === 'i' && isMinView) { iFill = '#3f6b5f'; iStroke = '#2d5045'; iSw = '3'; iName = '#fff'; iNumC = '#cdeeda'; }
     else if (iNum.includes('°')) { iFill = '#ccdbe9'; iStroke = '#a9c3da'; iName = '#46617c'; iNumC = '#46617c'; }
     else if (quality(iNum) === 'maj' && iNum) { iFill = '#eec49f'; iStroke = '#e0ab7e'; iName = '#8f3c1c'; iNumC = '#8f3c1c'; }

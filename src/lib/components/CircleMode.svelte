@@ -59,9 +59,7 @@
       <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#c2562e;display:inline-block"></span>MAJOR</div>
       <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#3f6b5f;display:inline-block"></span>MINOR</div>
       <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#7d9ab8;display:inline-block"></span>DIMINISHED</div>
-      <!-- Split chip: outside-key wedges are now the faded version of whichever
-           ring they sit in, so the swatch shows both washes rather than beige. -->
-      <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:linear-gradient(135deg,#f7e2d1 50%,#dcebe1 50%);border:1px solid #cbb792;display:inline-block"></span>OUTSIDE KEY</div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#ede1c3;border:1px solid #cbb792;display:inline-block"></span>OUTSIDE KEY</div>
     </div>
     </div>
 
