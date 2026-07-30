@@ -15,9 +15,11 @@
 
 {#snippet body()}
   <div class="mono" style="font-size:9px;letter-spacing:.18em;color:#8a7350;margin-bottom:7px">KEY</div>
-  <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">
+  <div class="wb-keygrid">
     {#each v.keyChips as k (k.pc)}
-      <div class="serif click" style="flex:0 0 auto;min-width:38px;text-align:center;font-size:14px;font-weight:600;padding:7px 10px;border-radius:8px;border:1px solid {k.border};background:{k.bg};color:{k.fg}" role="button" tabindex="0" aria-label={k.label} aria-pressed={k.active} onclick={() => store.setTonicKey(k.pc)} onkeydown={(e) => e.key === 'Enter' && store.setTonicKey(k.pc)}>{k.label}</div>
+      <div class="wb-keychip click" style="border-color:{k.border};background:{k.bg};color:{k.fg}" role="button" tabindex="0" aria-label={k.label} aria-pressed={k.active} title="{k.label} — {k.char}" onclick={() => store.setTonicKey(k.pc)} onkeydown={(e) => e.key === 'Enter' && store.setTonicKey(k.pc)}>
+        <span class="wb-keychip-l">{k.note}{#if k.acc}<span class="wb-keychip-a">{k.acc}</span>{/if}</span>
+      </div>
     {/each}
   </div>
 
@@ -35,7 +37,10 @@
   </div>
 
   <div style="border-top:1px solid #e0cfae;padding-top:10px">
-    <div class="mono" style="font-size:9px;letter-spacing:.08em;color:#7a6b50;margin-bottom:4px">{v.scaleNotes}{#if v.keySig} · {v.keySig}{/if}</div>
+    <div class="mono" style="font-size:9px;letter-spacing:.08em;color:#7a6b50;margin-bottom:6px">{v.scaleNotes}{#if v.keySig} · {v.keySig}{/if}</div>
+    <!-- Two captions: what the key colours the music like, then what the scale
+         does. Key first — it is the choice made one row above. -->
+    <div class="caption" style="font-size:12.5px;color:#7a6b50;line-height:1.45;margin-bottom:5px"><span class="serif" style="font-style:normal;font-weight:600;color:#5c4a30">{v.keyCharName}</span> — {v.keyChar}</div>
     <div class="caption" style="font-size:13px;color:#5c4a30;line-height:1.45">{v.scaleCaption}</div>
   </div>
 {/snippet}

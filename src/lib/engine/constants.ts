@@ -68,6 +68,33 @@ export const FNWHY: Record<Fn, string> = {
 export const KEYSIG: Record<number, string> = {
   0: 'no ♯/♭', 7: '1 ♯', 2: '2 ♯', 9: '3 ♯', 4: '4 ♯', 11: '5 ♯', 6: '6 ♯/♭', 1: '5 ♭', 8: '4 ♭', 3: '3 ♭', 10: '2 ♭', 5: '1 ♭',
 };
+// The chromatic keys in their usual spelling, letter and accidental kept
+// apart: the picker centres the letter and hangs the ♭/♯ off it, so every
+// chip puts its letter on the same centre line.
+export const KEYLABEL: Array<[string, string]> = [
+  ['C', ''], ['D', '♭'], ['D', ''], ['E', '♭'], ['E', ''], ['F', ''],
+  ['F', '♯'], ['G', ''], ['A', '♭'], ['A', ''], ['B', '♭'], ['B', ''],
+];
+
+// What each key *feels* like. In equal temperament every key holds the same
+// intervals, so this is register, instrument resonance and a couple of
+// centuries of habit rather than acoustics — but players hear it, and it is
+// half the reason a tune gets moved up or down a step.
+export const KEYCHAR: string[] = [
+  'Plain daylight — nothing sharpened, nothing flattened. Neutral and grounded, which is why it reads as home.',
+  'Velvet. Nearly all black keys under the hand, and horns sit low and soft — the intimate ballad key.',
+  'Bright and triumphant. Open D and A strings ring underneath it, so guitars, fiddles and violins sound their loudest here.',
+  'Broad and heroic — the brass and big-band key. Noble, a little weighty, built for horns rather than strings.',
+  'Electric. Guitar’s most open key, the low E droning under everything: raw, cutting, and loud.',
+  'Soft and pastoral. Rounded and calm with a wistful edge — warmth without any glare.',
+  'Iridescent and far from home. Equidistant from every other key, so it never quite settles — shimmering and slightly alien.',
+  'Friendly and outdoors. Folk’s home key: open strings, easy to sing, nothing showy about it.',
+  'Plush and veiled. Soft-focus and dreamlike, the key lush slow harmony keeps returning to.',
+  'Confident and ringing. Bright without the harshness of E — lifted, but still warm underneath.',
+  'Round and mellow — the horn key, and jazz’s home ground. Full-bodied, relaxed, easy on the ear.',
+  'Keen and dramatic. Brilliant and tense, hard-driving, and rare enough that it always sounds deliberate.',
+];
+
 export const INTNAME: Record<number, string> = {
   1: 'm2', 2: 'M2', 3: 'm3', 4: 'M3', 5: 'P4', 6: 'Tritone', 7: 'P5', 8: 'm6', 9: 'M6', 10: 'm7', 11: 'M7', 12: 'Octave',
 };

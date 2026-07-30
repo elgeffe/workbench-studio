@@ -2,7 +2,7 @@
 // from per-mode builders. Components read `store.view.*` — nothing here
 // mutates state or touches audio.
 import {
-  INT, SCALES, FNCOLOR, FNTINT, FNNAME, FNWHY, KEYSIG,
+  INT, SCALES, FNCOLOR, FNTINT, FNNAME, FNWHY, KEYSIG, KEYLABEL, KEYCHAR,
   type Chord, type ScaleId,
 } from '../engine/constants';
 import { spell, cname, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr, diatonicList, subsFor } from '../engine/theory';
@@ -90,8 +90,13 @@ export function computeView(s: WorkbenchStore) {
     centerKey: s.circleView === 'min' ? spell(t, t) + 'm' : spell(t, t),
     scaleNotes: scaleNotesStr(t, s.scale), scaleCaption: SCALES[s.scale].char,
     modeList: (Object.keys(SCALES) as ScaleId[]).map(scaleChip),
+    // the tonic's own character — the "colour" of the key, above the scale's
+    keyCharName: KEYLABEL[t].join(''), keyChar: KEYCHAR[t],
     // direct key picker — chromatic, labelled with each key's usual spelling
-    keyChips: ([[0, 'C'], [1, 'D♭'], [2, 'D'], [3, 'E♭'], [4, 'E'], [5, 'F'], [6, 'F♯'], [7, 'G'], [8, 'A♭'], [9, 'A'], [10, 'B♭'], [11, 'B']] as Array<[number, string]>).map(([pc, label]) => ({ pc, label, active: t === pc, bg: t === pc ? '#c2562e' : '#f1e6cf', fg: t === pc ? '#fff' : '#5c4a30', border: t === pc ? '#c2562e' : '#d8c7a8' })),
+    keyChips: KEYLABEL.map(([note, acc], pc) => ({
+      pc, note, acc, label: note + acc, char: KEYCHAR[pc], active: t === pc,
+      bg: t === pc ? '#c2562e' : '#f1e6cf', fg: t === pc ? '#fff' : '#5c4a30', border: t === pc ? '#c2562e' : '#d8c7a8',
+    })),
     // scale-type picker split into the four everyday scales + the modes
     scalePrimary: (['ionian', 'aeolian', 'harmonic', 'melodic'] as ScaleId[]).map(scaleChip),
     scaleModes: (['dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian'] as ScaleId[]).map(scaleChip),
