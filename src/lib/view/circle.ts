@@ -20,7 +20,12 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
   // instead of fading into one beige arc. Out-of-key wedges are the washed-out
   // version of their ring's colour, which keeps the in-key block dominant.
   const cx = 180, cy = 180, rO = 158, rB = 110, rC = 68;
-  const rMajName = 131, rMajNum = 149, rMinName = 88, rMinNum = 103;
+  const rMajName = 131, rMinName = 88;
+  // Numerals sit a fixed distance *above* their name rather than one step
+  // further out along the spoke. Radial placement reads fine at 12 o'clock but
+  // puts the numeral beside the name out at 3 and 9 o'clock, where it collides
+  // with it — and now that a key spans seven spokes, both rings reach there.
+  const numRise = 13, numRiseMin = 11;
   const pol = (r: number, deg: number): [number, number] => { const a = (deg - 90) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
   const band = (r1: number, r0: number, a0: number, a1: number): string => {
     const p1 = pol(r1, a0), p2 = pol(r1, a1), p3 = pol(r0, a1), p4 = pol(r0, a0);
@@ -30,15 +35,31 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
   const activeMajPc = isMinView ? (t + 3) % 12 : t;
   const tonicIdx = order.indexOf(activeMajPc);
   const M = activeMajPc;
-  // Where each roman numeral lands: outer ring keyed by major root pc,
-  // inner ring keyed by minor root pc. Same 7 wedges in both views —
-  // only the numerals (and which wedge is "home") change.
-  const majNum: Record<number, string> = isMinView
-    ? { [M]: 'III', [(t + 8) % 12]: 'VI', [(t + 10) % 12]: 'VII' }
-    : { [M]: 'I', [(M + 5) % 12]: 'IV', [(M + 7) % 12]: 'V' };
-  const minNum: Record<number, string> = isMinView
-    ? { [t]: 'i', [(t + 5) % 12]: 'iv', [(t + 7) % 12]: 'v', [(t + 2) % 12]: 'ii°' }
-    : { [(M + 9) % 12]: 'vi', [(M + 2) % 12]: 'ii', [(M + 4) % 12]: 'iii', [(M + 11) % 12]: 'vii°' };
+  const m = (M + 9) % 12; // the relative minor of this wheel's major key
+  // Outer ring: all seven degrees of M major, each sitting on its own root.
+  // On a circle of fifths those seven roots are seven *adjacent* spokes —
+  // IV I V ii vi iii vii° — so a key reads as one unbroken arc. The minor
+  // degrees belong out here on their roots too; hiding them a ring in left
+  // the whole ii/iii/vi/vii° side of the wheel blank.
+  const majNum: Record<number, string> = {
+    [(M + 5) % 12]: 'IV', [M]: 'I', [(M + 7) % 12]: 'V',
+    [(M + 2) % 12]: 'ii', [(M + 9) % 12]: 'vi', [(M + 4) % 12]: 'iii', [(M + 11) % 12]: 'vii°',
+  };
+  // Inner ring: the same seven notes read from the relative minor and numbered
+  // in its terms, so the two rings are two readings of one key rather than one
+  // reading split in half. Also seven adjacent spokes, sitting three steps
+  // anticlockwise of the outer arc — which is why the two arcs stagger.
+  // The numeral names the chord built on that wedge's root within the relative
+  // minor, not the quality of the minor key printed on the wedge: III·VI·VII
+  // are major triads (red) even though the wedge itself reads "cm", "fm", "gm".
+  const minNum: Record<number, string> = {
+    [m]: 'i', [(m + 2) % 12]: 'II°', [(m + 3) % 12]: 'III', [(m + 5) % 12]: 'iv',
+    [(m + 7) % 12]: 'v', [(m + 8) % 12]: 'VI', [(m + 10) % 12]: 'VII',
+  };
+  // A numeral already carries its chord quality: uppercase major, lowercase
+  // minor, ° diminished. That is what picks the wedge colour.
+  const quality = (n: string): 'maj' | 'min' | 'dim' =>
+    n.includes('°') ? 'dim' : n === n.toUpperCase() ? 'maj' : 'min';
   const wedges: Wedge[] = [];
   order.forEach((pc, i) => {
     const c = (i - tonicIdx) * 30, a0 = c - 15, a1 = c + 15;
@@ -46,9 +67,12 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     // outer wedge — the major key
     const oNum = majNum[pc] || '';
     let oFill = '#f7e2d1', oStroke = '#ecd2bd', oSw = '2', oName = '#a2704f', oNumC = '#8f3c1c';
-    if (oNum === 'I') { oFill = '#c2562e'; oStroke = '#8f3c1c'; oSw = '3'; oName = '#fff'; oNumC = '#ffd9c6'; }
+    if (oNum === 'I' && !isMinView) { oFill = '#c2562e'; oStroke = '#8f3c1c'; oSw = '3'; oName = '#fff'; oNumC = '#ffd9c6'; }
+    else if (oNum === 'vii°') { oFill = '#ccdbe9'; oStroke = '#a9c3da'; oName = '#46617c'; oNumC = '#46617c'; }
+    else if (quality(oNum) === 'min' && oNum) { oFill = '#bcd8c8'; oStroke = '#a3c4b1'; oName = '#2d5c48'; oNumC = '#2d5c48'; }
     else if (oNum) { oFill = '#eec49f'; oStroke = '#e0ab7e'; oName = '#8f3c1c'; }
-    const onp = pct(pol(rMajName, c)), oup = pct(pol(rMajNum, c));
+    const op = pol(rMajName, c);
+    const onp = pct(op), oup = pct([op[0], op[1] - numRise]);
     wedges.push({
       d: band(rO, rB, a0, a1), fill: oFill, stroke: oStroke, strokeW: oSw,
       name: spell(pc, t), numeral: oNum, nameColor: oName, numColor: oNumC, nameSize: '18px',
@@ -57,10 +81,12 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     // inner wedge — its relative minor
     const iNum = minNum[mnPc] || '';
     let iFill = '#dcebe1', iStroke = '#c9dfd2', iSw = '2', iName = '#5f7d6d', iNumC = '#2d5c48';
-    if (iNum === 'i') { iFill = '#3f6b5f'; iStroke = '#2d5045'; iSw = '3'; iName = '#fff'; iNumC = '#cdeeda'; }
+    if (iNum === 'i' && isMinView) { iFill = '#3f6b5f'; iStroke = '#2d5045'; iSw = '3'; iName = '#fff'; iNumC = '#cdeeda'; }
     else if (iNum.includes('°')) { iFill = '#ccdbe9'; iStroke = '#a9c3da'; iName = '#46617c'; iNumC = '#46617c'; }
+    else if (quality(iNum) === 'maj' && iNum) { iFill = '#eec49f'; iStroke = '#e0ab7e'; iName = '#8f3c1c'; iNumC = '#8f3c1c'; }
     else if (iNum) { iFill = '#bcd8c8'; iStroke = '#a3c4b1'; iName = '#2d5c48'; }
-    const inp = pct(pol(rMinName, c)), iup = pct(pol(rMinNum, c));
+    const ip = pol(rMinName, c);
+    const inp = pct(ip), iup = pct([ip[0], ip[1] - numRiseMin]);
     wedges.push({
       d: band(rB, rC, a0, a1), fill: iFill, stroke: iStroke, strokeW: iSw,
       name: spell(mnPc, t).toLowerCase() + 'm', numeral: iNum, nameColor: iName, numColor: iNumC, nameSize: '12.5px',
@@ -72,7 +98,7 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     ? 'Clockwise now moves up a fourth (down a fifth) — the direction progressions resolve: V→I→IV…'
     : 'Clockwise moves up a fifth and adds one sharp; neighbours share 6 of 7 notes.';
   const famHint = isMinView
-    ? `The tinted block is every chord in ${spell(t, t)} minor: i·iv·v minor (green), III·VI·VII major (red), ii° diminished (blue).`
-    : `The tinted block is every chord in ${spell(t, t)} major: I·IV·V major (red), ii·iii·vi minor (green), vii° diminished (blue).`;
+    ? `Seven adjacent spokes are one key. The inner ring numbers them for ${spell(t, t)} minor — i·iv·v minor (green), III·VI·VII major (red), II° diminished (blue) — and the outer ring reads the same seven from its relative major, ${spell(M, t)}.`
+    : `Seven adjacent spokes are one key. The outer ring numbers them for ${spell(t, t)} major — I·IV·V major (red), ii·iii·vi minor (green), vii° diminished (blue) — and the inner ring reads the same seven from its relative minor, ${spell(m, t)} minor.`;
   return { wedges, circleLabel, circleHint: dirHint + ' ' + famHint };
 }
