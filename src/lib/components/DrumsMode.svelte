@@ -6,10 +6,7 @@
 </script>
 
 <div>
-  <div style="margin-bottom:11px">
-    <div class="eyebrow" style="margin-bottom:3px">Drums · groovebox</div>
-    <div class="caption" style="font-size:13px;max-width:560px">{v.drPatternCount} grooves across {v.drGenreCount} genres — open the picker to choose one. Press play, then peel it apart: the LAYERS chips rebuild the groove one part at a time, the way a drummer would. Tap any cell to edit — rest → hit → <b>accent</b> — and drag the swing to bend the feel.</div>
-  </div>
+  <div class="eyebrow" style="margin-bottom:11px">Drums · groovebox</div>
 
   <!-- genre → pattern, behind a modal so the grid stays above the fold -->
   <GenrePicker
@@ -93,29 +90,17 @@
     <span>ROWS ARE THE INSTRUMENTS THIS PATTERN PLAYS · TAP A NAME TO PREVIEW · M = MUTE · × = REMOVE ROW</span>
   </div>
 
-  <!-- how the pattern is built -->
+  <!-- Building the groove up a part at a time is a tool, not a lesson, so the
+       LAYERS chips stay here; what each layer is *for* is in Learn → Rhythm. -->
   <div style="border-top:1px solid #ddccac;padding-top:14px">
-    <div style="display:flex;align-items:baseline;gap:11px;margin-bottom:6px;flex-wrap:wrap">
-      <span class="mono" style="font-size:9px;letter-spacing:.12em;color:#8a7350">{v.drGenreName} ·</span>
-      <span style="font-size:21px;font-weight:700;letter-spacing:-.01em">{v.drTplName}</span>
-      <span class="mono" style="font-size:8px;letter-spacing:.14em;color:#fff;background:#3f6b5f;padding:3px 8px;border-radius:9px">HOW IT'S BUILT</span>
+    <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px">
+      <span class="mono" style="font-size:8px;letter-spacing:.12em;color:#8a7350">LAYERS · REBUILD UP TO</span>
+      <div data-testid="drum-layers" style="display:flex;gap:6px;flex-wrap:wrap">
+        {#each v.drLayers as l (l.i)}
+          <div class="mono click" style="font-size:10px;letter-spacing:.04em;padding:8px 12px;border-radius:6px;border:1px solid {l.border};background:{l.bg};color:{l.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setDrLayers(l.i + 1)} onkeydown={(e) => e.key === 'Enter' && store.setDrLayers(l.i + 1)}>{l.i + 1} · {l.name}</div>
+        {/each}
+      </div>
+      <div class="mono click" style="flex:none;font-size:9px;letter-spacing:.06em;padding:6px 11px;border-radius:6px;border:1px solid #cbb792;color:#7a6b50" role="button" tabindex="0" aria-label="how this groove is built" onclick={() => store.openLearn('rhythm')} onkeydown={(e) => e.key === 'Enter' && store.openLearn('rhythm')}>? HOW IT'S BUILT</div>
     </div>
-    <div class="caption" style="font-size:14px;color:#5c4a30;line-height:1.5;max-width:560px;margin-bottom:11px">{v.drTip}</div>
-    <div class="mono" style="font-size:8px;letter-spacing:.12em;color:#8a7350;margin-bottom:6px">LAYERS — TAP TO REBUILD THE GROOVE UP TO THAT POINT</div>
-    <div data-testid="drum-layers" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">
-      {#each v.drLayers as l (l.i)}
-        <div class="mono click" style="font-size:10px;letter-spacing:.04em;padding:8px 12px;border-radius:6px;border:1px solid {l.border};background:{l.bg};color:{l.fg};white-space:nowrap" role="button" tabindex="0" onclick={() => store.setDrLayers(l.i + 1)} onkeydown={(e) => e.key === 'Enter' && store.setDrLayers(l.i + 1)}>{l.i + 1} · {l.name}</div>
-      {/each}
-    </div>
-    <div style="display:flex;gap:10px;background:#efe2c8;border-left:3px solid #3f6b5f;border-radius:0 8px 8px 0;padding:12px 14px;max-width:560px">
-      <span class="mono" style="font-size:11px;color:#3f6b5f;flex:none">★</span>
-      <span class="caption" style="font-size:14px;color:#4a3d29;line-height:1.5">{v.drLayerWhy}</span>
-    </div>
-    <!-- how to translate the grid into a groovebox / DAW -->
-    <div data-testid="drum-maschine" style="display:flex;gap:10px;background:#f3ead4;border:1px solid #e0cfae;border-radius:8px;padding:12px 14px;max-width:620px;margin-top:12px">
-      <span class="mono" style="font-size:8px;letter-spacing:.14em;color:#fff;background:#c2562e;padding:3px 7px;border-radius:9px;height:fit-content;flex:none">IN THE BOX</span>
-      <span class="caption" style="font-size:13.5px;color:#4a3d29;line-height:1.5">{v.drGenreMaschine}</span>
-    </div>
-    <div class="caption" style="font-size:12.5px;color:#8a7350;margin-top:12px;max-width:560px">Want the theory behind these patterns — backbeat, clave, swing, ghost notes? It's all in <b>Learn → Rhythm &amp; Drums</b>. And ▶ PLAY here is the same transport as the Workshop's: if a progression is loaded, the chords lock to this beat — one band, one clock, one tempo.</div>
   </div>
 </div>

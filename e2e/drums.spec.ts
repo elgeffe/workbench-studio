@@ -36,12 +36,20 @@ test.describe('drums groovebox', () => {
     await expect(layers.getByText(/Bomb drops/)).toBeVisible();
   });
 
-  test('every genre carries its own programming note', async ({ page }) => {
+  // The programming note is explanation, so it reads in Learn → Rhythm now —
+  // but it still describes whichever genre the groovebox has loaded.
+  test('every genre carries its own programming note, over in Learn', async ({ page }) => {
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'learn' }).click();
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'rhythm' }).click();
     await expect(page.getByTestId('drum-maschine')).toContainText(/velocity|swing|pads?/i);
+
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' }).click();
     await page.getByTestId('drum-picker-summary').click();
     await page.getByTestId('drum-genres').getByText('Trap & Drill').click();
     await expect(page.getByTestId('drum-variations').getByText('Drill')).toBeVisible();
     await page.getByTestId('drum-picker-close').click();
+
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'learn' }).click();
     await expect(page.getByTestId('drum-maschine')).toContainText('808');
   });
 
@@ -60,11 +68,16 @@ test.describe('drums groovebox', () => {
   });
 
   test('layer chips rebuild the groove up to that point', async ({ page }) => {
-    // Rock / Straight 8ths: layer 1 explanation vs layer 2's
+    // Rock / Straight 8ths: the backbeat arrives with layer 2, so the snare on
+    // beat 2 is empty at layer 1 and a hit at layer 2. (What each layer is
+    // *for* is explained in Learn → Rhythm, not here.)
+    const backbeat = page.getByRole('button', { name: 'snare step 5', exact: true });
+    const bg = () => backbeat.evaluate((el) => getComputedStyle(el).backgroundColor);
+
     await page.getByTestId('drum-layers').getByText(/Kick on 1 & 3/).click();
-    await expect(page.getByText(/lays the foundation on the strong beats/)).toBeVisible();
+    const atLayer1 = await bg();
     await page.getByTestId('drum-layers').getByText(/Backbeat snare/).click();
-    await expect(page.getByText(/where an audience claps/)).toBeVisible();
+    expect(await bg()).not.toBe(atLayer1);
   });
 
   test('play toggles to stop and the playhead advances', async ({ page }) => {
@@ -123,23 +136,28 @@ test.describe('drums groovebox', () => {
 test.describe('learn: rhythm & drums tab', () => {
   test('shows the rhythm theory concepts alongside the harmony curriculum', async ({ page }) => {
     await page.goto('/');
-    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'jazz' }).click();
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'learn' }).click();
     // harmony curriculum is the default
     await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();
-    await page.getByTestId('learn-tabs').getByText('Rhythm & Drums').click();
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'rhythm' }).click();
     await expect(page.getByText('The Backbeat', { exact: true })).toBeVisible();
     await expect(page.getByText('The Clave — a Timeline', { exact: true })).toBeVisible();
     await expect(page.getByText('Swing & Shuffle', { exact: true })).toBeVisible();
+    // the anatomy of the loaded groove moved here with the rest of the prose
+    await page.getByTestId('learn-drum-layers').getByText(/Kick on 1 & 3/).click();
+    await expect(page.getByText(/lays the foundation on the strong beats/)).toBeVisible();
+    await page.getByTestId('learn-drum-layers').getByText(/Backbeat snare/).click();
+    await expect(page.getByText(/where an audience claps/)).toBeVisible();
     // bassline tricks live in their own tab
-    await page.getByTestId('learn-tabs').getByText('Bass', { exact: true }).click();
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'bass' }).click();
     await expect(page.getByText('Tricks of the trade')).toBeVisible();
     await expect(page.getByText('BASSLINE MOVES', { exact: true })).toBeVisible();
     // song structures tab peaks in the long-form fusion card
-    await page.getByTestId('learn-tabs').getByText('Song Structures').click();
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'forms' }).click();
     await expect(page.getByText('The Long Form · Bitches Brew')).toBeVisible();
     await expect(page.getByText('Verse–Chorus', { exact: true })).toBeVisible();
     // and back
-    await page.getByTestId('learn-tabs').getByText('Harmony & Jazz').click();
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'theory' }).click();
     await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();
     await expect(page.getByText('Tricks of the trade')).toBeHidden();
   });

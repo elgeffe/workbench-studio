@@ -29,7 +29,7 @@ test.describe('mobile layout', () => {
 
   test('navigates modes via the bottom tab bar', async ({ page }) => {
     const tabs = page.getByTestId('mobile-tabs');
-    await tabs.getByRole('tab', { name: 'workshop' }).click();
+    await tabs.getByRole('tab', { name: 'chords' }).click();
     await expect(page.getByText('Your progression')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'drums' }).click();
@@ -38,14 +38,14 @@ test.describe('mobile layout', () => {
     await tabs.getByRole('tab', { name: 'metronome' }).click();
     await expect(page.getByTestId('metronome-transport')).toBeVisible();
 
-    await tabs.getByRole('tab', { name: 'ear' }).click();
-    await expect(page.getByText('TAP TO PLAY · LISTEN')).toBeVisible();
+    await tabs.getByRole('tab', { name: 'bass' }).click();
+    await expect(page.getByText('BUILD YOUR OWN', { exact: false })).toBeVisible();
 
-    await tabs.getByRole('tab', { name: 'patterns' }).click();
-    await expect(page.getByText('FORMULA')).toBeVisible();
-
-    await tabs.getByRole('tab', { name: 'jazz' }).click();
+    await tabs.getByRole('tab', { name: 'learn' }).click();
     await expect(page.getByText('Eight building blocks of jazz & groove harmony')).toBeVisible();
+
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'patterns' }).click();
+    await expect(page.getByText('FORMULA')).toBeVisible();
 
     await tabs.getByRole('tab', { name: 'circle' }).click();
     await expect(page.getByText('CIRCLE OF 5THS')).toBeVisible();

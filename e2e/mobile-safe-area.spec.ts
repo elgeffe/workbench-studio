@@ -99,7 +99,8 @@ test.describe('phone in landscape', () => {
     );
     expect(Math.max(...overflow)).toBeLessThanOrEqual(0);
 
-    await page.getByTestId('mobile-tabs').getByRole('tab', { name: 'patterns' }).click();
+    await page.getByTestId('mobile-tabs').getByRole('tab', { name: 'learn' }).click();
+    await page.getByTestId('learn-tabs').getByRole('tab', { name: 'patterns' }).click();
     await expect(page.getByText('FORMULA')).toBeVisible();
   });
 });
