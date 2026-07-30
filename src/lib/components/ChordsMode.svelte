@@ -152,6 +152,7 @@
       shelves={v.wsShelves}
       items={v.wsPatternChips}
       itemsLabel="PROGRESSIONS · tap to load"
+      inline={store.isDesktop}
       compact={!store.isDesktop}
       testid="ws-picker"
       onOpen={() => store.openPicker('progressions')}

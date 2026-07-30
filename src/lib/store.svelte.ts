@@ -105,15 +105,25 @@ export class WorkbenchStore {
   wsGenre = $state('rock');
   wsProgName = $state(''); // the starting point currently loaded, for the picker summary
   bassGenre = $state('disco');
-  // No line until one is chosen. The bass used to sound only inside its own
-  // corner of the workshop, so a default groove there was harmless; now that it
-  // is a part of the band it would play on the first PLAY, from a tab the user
-  // has never opened. The Bass tab opens on a blank slate instead.
-  bassPatId = $state<string | null>(null);
-  // The user's hand-built groove: 16 cells (one 16th each), null = a rest. Its
-  // id in the pattern list is the special 'custom'. Step lengths are computed
-  // (each note sustains to the next), so a cell only holds its degree or ghost.
-  bassCustom = $state<Array<{ d?: DegTok; g?: boolean } | null>>(Array(16).fill(null));
+  // THE bassline — there is one, and it is the user's. 16 cells (one 16th
+  // each), null = a rest; step lengths are computed (each note sustains to the
+  // next), so a cell only carries its degree or a ghost flag.
+  //
+  // The 119-groove library is a shelf of starting points that load *into* this,
+  // not a set of alternatives to it. That is the whole model: you always have
+  // one line, and a library groove is just a fast way to fill it in before you
+  // start moving notes around.
+  bassLine = $state<Array<{ d?: DegTok; g?: boolean } | null>>(Array(16).fill(null));
+  // Which groove it came from, and whether it has been touched since — enough
+  // for the picker summary to say "Octave Pump · edited" rather than lying
+  // about which library pattern is loaded.
+  //
+  // It starts empty. The bass used to sound only inside its own corner of the
+  // workshop, so a default groove there was harmless; now that it is a part of
+  // the band it would play on the first PLAY from a tab the user has never
+  // opened.
+  bassSeedId = $state<string | null>(null);
+  bassEdited = $state(false);
   // Bass-style mix: mute either half of the groove to study the other.
   bassChordsOn = $state(true);
   bassOn = $state(true);
@@ -290,37 +300,37 @@ export class WorkbenchStore {
   setWsGenre(id: string): void { this.wsGenre = id; }
   /** How long each change holds: half a bar (2 beats) or a full bar (4). */
   setChordSlot(v: ChordSlot): void { this.chordSlot = v; }
-  /** Pick a bass genre: loads its first groove (the picker is genre → groove). */
-  setBassGenre(id: string): void {
-    this.bassGenre = id;
-    const first = bassPatternsIn(id)[0];
-    if (first) this.setBassPat(first.id);
-  }
+  /**
+   * Pick a bass genre — which only swaps the shelf you are browsing. It used to
+   * load the genre's first groove too, which was harmless when a library
+   * pattern *was* the bassline. Now that grooves load into the user's line,
+   * browsing the shelf must not overwrite what they have written.
+   */
+  setBassGenre(id: string): void { this.bassGenre = id; }
   toggleBassChords(): void { this.bassChordsOn = !this.bassChordsOn; }
   toggleBassOn(): void { this.bassOn = !this.bassOn; }
-  setBassPat(id: string | null): void {
-    this.bassPatId = id;
-    // Keep the picker's shelf pointing at whatever is actually loaded, so a
-    // groove chosen from anywhere (seed chip, deep link) reopens on its genre.
-    if (id && id !== 'custom') this.bassGenre = bassGenreOf(id);
-    // Solo one-bar preview so you hear the groove before committing; a live
-    // loop just picks the new pattern up on its next bar instead.
-    if (id && !this.jzPlaying) {
-      const steps = this.activeBassSteps();
-      if (steps) this.playBassBar(steps);
-    }
+  /** Load a library groove into the line as a starting point, and preview it. */
+  loadBassGroove(id: string): void {
+    const pat = BASS_PATTERNS.find((p) => p.id === id);
+    if (!pat) return;
+    const arr: Array<{ d?: DegTok; g?: boolean } | null> = Array(16).fill(null);
+    pat.steps.forEach((st) => { if (st.s >= 0 && st.s < 16) arr[st.s] = st.g ? { g: true } : { d: st.d }; });
+    this.bassLine = arr;
+    this.bassSeedId = id;
+    this.bassEdited = false;
+    // Keep the shelf pointing at what is actually loaded, so the picker reopens
+    // on the groove's own genre however you got there.
+    this.bassGenre = bassGenreOf(id);
+    // Solo one-bar preview so you hear it before committing; a live loop just
+    // picks the new line up on its next bar instead.
+    if (!this.jzPlaying) { const s = this.lineSteps(); if (s.length) this.playBassBar(s); }
   }
-  // The groove the loop and previews should play: the user's custom line when
-  // 'custom' is selected, otherwise the chosen library pattern.
-  private activeBassSteps(): BassStep[] | null {
-    if (this.bassPatId === 'custom') { const s = this.customSteps(); return s.length ? s : null; }
-    const pat = BASS_PATTERNS.find((p) => p.id === this.bassPatId);
-    return pat ? pat.steps : null;
-  }
-  // Turn the 16-cell editor grid into playable steps: each note sustains up to
-  // the next filled cell (a fat, legato line), capped at a quarter note.
-  private customSteps(): BassStep[] {
-    const cells = this.bassCustom;
+  /**
+   * The line as playable steps: each note sustains up to the next filled cell
+   * (a fat, legato line), capped at a quarter note.
+   */
+  private lineSteps(): BassStep[] {
+    const cells = this.bassLine;
     const idxs = cells.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
     return idxs.map((i, k) => {
       const cell = cells[i]!;
@@ -331,15 +341,15 @@ export class WorkbenchStore {
   }
   /** Cycle a grid cell: rest → R → 3 → 5 → ♭7 → octave → ghost → rest. */
   cycleBassCell(i: number): void {
-    if (i < 0 || i >= this.bassCustom.length) return;
+    if (i < 0 || i >= this.bassLine.length) return;
     const order: Array<DegTok | 'ghost' | null> = [null, 'R', '3', '5', 'b7', 'O', 'ghost'];
-    const cur = this.bassCustom[i];
+    const cur = this.bassLine[i];
     const key: DegTok | 'ghost' | null = cur ? (cur.g ? 'ghost' : cur.d ?? null) : null;
     const nextKey = order[(order.indexOf(key) + 1) % order.length];
-    const arr = this.bassCustom.slice();
+    const arr = this.bassLine.slice();
     arr[i] = nextKey === null ? null : nextKey === 'ghost' ? { g: true } : { d: nextKey };
-    this.bassCustom = arr;
-    this.bassPatId = 'custom'; // editing makes the custom line the active groove
+    this.bassLine = arr;
+    this.bassEdited = true;
     // Give immediate feedback: sound just the edited step over the current chord.
     if (nextKey && !this.jzPlaying) {
       const { ch, next } = this.bassContext();
@@ -347,18 +357,10 @@ export class WorkbenchStore {
       else this.playMidis([resolveBassStep(nextKey, ch, next, this.tonicPc)], 0.32);
     }
   }
-  /** Copy a library groove into the editable grid as a starting point. */
-  seedBassCustom(id: string): void {
-    const pat = BASS_PATTERNS.find((p) => p.id === id);
-    const arr: Array<{ d?: DegTok; g?: boolean } | null> = Array(16).fill(null);
-    if (pat) pat.steps.forEach((st) => { if (st.s >= 0 && st.s < 16) arr[st.s] = st.g ? { g: true } : { d: st.d }; });
-    this.bassCustom = arr;
-    this.bassPatId = 'custom';
-    if (!this.jzPlaying) { const s = this.customSteps(); if (s.length) this.playBassBar(s); }
-  }
-  clearBassCustom(): void {
-    this.bassCustom = Array(16).fill(null);
-    this.bassPatId = 'custom';
+  clearBassLine(): void {
+    this.bassLine = Array(16).fill(null);
+    this.bassSeedId = null;
+    this.bassEdited = false;
   }
   // The chord (and the one after) the bass should currently resolve against.
   private bassContext(): { ch: Chord; next: Chord } {
@@ -600,13 +602,13 @@ export class WorkbenchStore {
    * Rebuilt every bar, so groove swaps and chord edits land on the next ONE.
    */
   private barBass(at: number): void {
-    // The bass is a part of the band now, not a mode of the chord workshop: a
-    // loaded line plays whichever tab you happen to be looking at, and only the
-    // BASS mix toggle silences it.
-    if (!this.bassOn || !this.bassPatId) return;
-    const steps = this.activeBassSteps();
+    // The bass is a part of the band now, not a mode of the chord workshop: the
+    // line plays whichever tab you happen to be looking at, and only the BASS
+    // mix toggle silences it.
+    if (!this.bassOn) return;
+    const steps = this.lineSteps();
     const chs = this.jzChanges;
-    if (!steps || !chs.length) return;
+    if (!steps.length || !chs.length) return;
     const first = this.jzStep >= 0 ? this.jzStep : 0;
     const half = this.chordSlot === 'half';
     this.scheduleBassSteps(steps, at, (s) => {

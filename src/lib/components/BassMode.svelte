@@ -1,12 +1,15 @@
 <script lang="ts">
-  // The bass tab. It used to be the fourth style of the chord workshop, two
-  // levels down, and it only sounded while you were looking at it. It is a
-  // part of the band now — a loaded line plays from wherever you are, and the
-  // MIX toggles are what silence it.
+  // The bass tab: one line, which is yours.
   //
-  // A bassline resolves its degree tokens against the changes, so the
-  // progression is shown here read-only: you need to see what the line is
-  // walking through without leaving the tab to check.
+  // The library used to sit here as a row of selectable cards, so "the
+  // bassline" was either a library pattern *or* your grid — two things
+  // competing for the same job. Now there is one line and the library loads
+  // into it. The annotated grooves, which are reference rather than tool, read
+  // in Learn → Bass.
+  //
+  // A line resolves its degree tokens against the changes, so the progression
+  // is shown read-only: you need to see what you are walking through without
+  // leaving the tab to check.
   import { useStore } from '../context';
   import GenrePicker from './GenrePicker.svelte';
   const store = useStore();
@@ -49,70 +52,51 @@
     </div>
   </div>
 
-  <!-- genre → groove -->
-  <div style="margin-bottom:12px">
+  <!-- load a starting point into the line -->
+  <div style="margin-bottom:14px">
     <GenrePicker
       open={v.bassPickerOpen}
-      label="GROOVE"
+      label="START FROM"
       summaryGenre={v.bassGenreName}
-      summaryItem={v.bassActiveName}
+      summaryItem={v.bassLineName}
       hint="{v.bassCount} basslines · {v.bassGenreTotal} genres"
       shelves={v.bassShelves}
       items={v.bassGenreChips}
-      itemsLabel="BASSLINES"
+      itemsLabel="BASSLINES · tap to load into your line"
+      inline={store.isDesktop}
       compact={!store.isDesktop}
       testid="bass-picker"
       onOpen={() => store.openPicker('bass')}
       onClose={() => store.closePicker()}
       onGenre={(id) => store.setBassGenre(id)}
-      onItem={(id) => store.setBassPat(id)}
+      onItem={(id) => store.loadBassGroove(id)}
     />
   </div>
 
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-    {#each v.bassPats as p (p.id)}
-      <div class="click" style="flex:1 1 290px;min-width:270px;max-width:440px;border:1.5px solid {p.border};background:{p.bg};box-shadow:{p.shadow};border-radius:9px;padding:11px 12px" role="button" tabindex="0" onclick={() => store.setBassPat(p.id)} onkeydown={(e) => e.key === 'Enter' && store.setBassPat(p.id)}>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px">
-          <span style="font-size:16px;font-weight:700;color:#2c261d">{p.name}</span>
-          <span class="mono" style="font-size:7.5px;letter-spacing:.05em;color:#fff;background:#5c4a30;padding:3px 7px;border-radius:9px;white-space:nowrap">{p.tag}</span>
-        </div>
-        <div style="display:flex;gap:2px;margin:8px 0 7px">
-          {#each p.cells as c, s (s)}
-            <div class="mono" style="flex:1;height:22px;border-radius:3px;background:{c.bg};color:{c.fg};font-size:8px;line-height:22px;text-align:center;overflow:hidden;margin-left:{s > 0 && s % 4 === 0 ? '4px' : '0'}">{c.label}</div>
-          {/each}
-        </div>
-        <div class="caption" style="font-size:12px;color:#6b5a3e">{p.tip}</div>
-      </div>
-    {/each}
-  </div>
-
-  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px">
-    {#each v.bassLegend as l (l.name)}
-      <span style="display:inline-flex;align-items:center;gap:5px">
-        <span style="width:10px;height:10px;border-radius:3px;background:{l.color};flex:none"></span>
-        <span class="mono" style="font-size:9px;letter-spacing:.05em;color:#7a6b50">{l.name}</span>
-      </span>
-    {/each}
-  </div>
-
-  <!-- BUILD YOUR OWN — a 16-step grid you edit by hand -->
-  <div class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64;margin-bottom:6px">BUILD YOUR OWN · tap a step to cycle its note · plays live in the loop</div>
-  <div class="click" style="border:1.5px solid {v.bassCustomSelected ? '#c2562e' : '#e0cfae'};background:{v.bassCustomSelected ? '#fbeede' : '#fbf6ea'};box-shadow:{v.bassCustomSelected ? '0 0 0 2px #c2562e' : 'none'};border-radius:9px;padding:11px 12px;margin-bottom:14px" role="button" tabindex="0" onclick={() => store.setBassPat('custom')} onkeydown={(e) => e.key === 'Enter' && store.setBassPat('custom')}>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-      <span style="font-size:16px;font-weight:700;color:#2c261d">Your line{#if v.bassCustomSelected} <span class="mono" style="font-size:8px;letter-spacing:.06em;color:#fff;background:#c2562e;padding:3px 7px;border-radius:9px;vertical-align:middle">ACTIVE</span>{/if}</span>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span class="mono" style="font-size:8px;letter-spacing:.08em;color:#8a7350">SEED</span>
-        {#each v.bassSeedChips as sc (sc.id)}
-          <div class="mono click" style="font-size:9px;letter-spacing:.02em;padding:5px 9px;border-radius:6px;border:1px solid #cbb792;background:#f6efe0;color:#5c4a30;white-space:nowrap" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.seedBassCustom(sc.id); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.seedBassCustom(sc.id); } }}>{sc.name}</div>
-        {/each}
-        <div class="mono click" style="font-size:9px;letter-spacing:.04em;padding:5px 9px;border-radius:6px;border:1px solid #cbb792;color:#7a6b50;white-space:nowrap" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.clearBassCustom(); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.clearBassCustom(); } }}>CLEAR</div>
-      </div>
+  <!-- THE line -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+    <span class="mono" style="font-size:9px;letter-spacing:.12em;color:#a08a64">YOUR LINE · tap a step to cycle its note · plays live in the loop</span>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="mono click" style="font-size:9px;letter-spacing:.06em;padding:6px 11px;border-radius:6px;border:1px solid #cbb792;color:#7a6b50;white-space:nowrap" role="button" tabindex="0" aria-label="the moves behind a bassline" onclick={() => store.openLearn('bass')} onkeydown={(e) => e.key === 'Enter' && store.openLearn('bass')}>? THE MOVES</div>
+      <div class="mono click" data-testid="bass-clear" style="font-size:9px;letter-spacing:.06em;padding:6px 11px;border-radius:6px;border:1px solid #cbb792;color:#7a6b50;white-space:nowrap" role="button" tabindex="0" onclick={() => store.clearBassLine()} onkeydown={(e) => e.key === 'Enter' && store.clearBassLine()}>CLEAR</div>
     </div>
-    <div style="display:flex;gap:2px">
-      {#each v.bassCustomCells as c, s (s)}
-        <div class="mono click" style="flex:1;height:34px;border-radius:3px;background:{c.bg};color:{c.fg};font-size:10px;line-height:34px;text-align:center;overflow:hidden;margin-left:{s > 0 && s % 4 === 0 ? '4px' : '0'};box-shadow:{c.label ? 'inset 0 -2px 0 rgba(0,0,0,.12)' : 'none'}" role="button" tabindex="0" aria-label={'step ' + (s + 1)} onclick={(e) => { e.stopPropagation(); store.cycleBassCell(s); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.cycleBassCell(s); } }}>{c.label}</div>
+  </div>
+  <div data-testid="bass-line" style="border:1.5px solid #e0cfae;background:#fbf6ea;border-radius:9px;padding:12px">
+    <div style="display:flex;gap:3px">
+      {#each v.bassLineCells as c, s (s)}
+        <div class="mono click" style="flex:1;height:44px;border-radius:4px;background:{c.bg};color:{c.fg};font-size:12px;line-height:44px;text-align:center;overflow:hidden;margin-left:{s > 0 && s % 4 === 0 ? '5px' : '0'};box-shadow:{c.label ? 'inset 0 -2px 0 rgba(0,0,0,.12)' : 'none'}" role="button" tabindex="0" aria-label={'step ' + (s + 1)} onclick={() => store.cycleBassCell(s)} onkeydown={(e) => e.key === 'Enter' && store.cycleBassCell(s)}>{c.label}</div>
       {/each}
     </div>
-    <div class="caption" style="font-size:11.5px;color:#6b5a3e;margin-top:8px">Tap a step to cycle <b>rest → R → 3 → 5 → ♭7 → 8 → ×</b> (ghost). Seed from a groove above, then tweak.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:11px">
+      {#each v.bassLegend as l (l.name)}
+        <span style="display:inline-flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;border-radius:3px;background:{l.color};flex:none"></span>
+          <span class="mono" style="font-size:9px;letter-spacing:.05em;color:#7a6b50">{l.name}</span>
+        </span>
+      {/each}
+    </div>
+    {#if v.bassLineEmpty}
+      <div class="caption" style="font-size:12.5px;color:#9a8763;margin-top:9px">Empty — load a groove above to start from, or tap steps to write one. Each cell holds a <b>degree</b>, so the line transposes itself through every change.</div>
+    {/if}
   </div>
 </div>

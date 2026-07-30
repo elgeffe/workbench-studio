@@ -8,7 +8,7 @@
 <div>
   <div class="eyebrow" style="margin-bottom:11px">Drums · groovebox</div>
 
-  <!-- genre → pattern, behind a modal so the grid stays above the fold -->
+  <!-- genre → pattern, behind a summary bar so the grid stays above the fold -->
   <GenrePicker
     open={v.drPickerOpen}
     label="GROOVE"
@@ -19,6 +19,7 @@
     items={v.drVariations}
     itemsLabel="PATTERNS"
     blurb={v.drGenreBlurb}
+    inline={store.isDesktop}
     compact={!store.isDesktop}
     testid="drum-picker"
     genresTestid="drum-genres"

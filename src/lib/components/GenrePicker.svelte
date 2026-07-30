@@ -4,8 +4,15 @@
   // The libraries behind it are large (31 genres across 8 families, with a
   // hundred-odd templates in each of drums, basslines and progressions), and
   // laying all of that on the page pushed the actual instrument below the fold.
-  // So the page keeps only a one-line summary of what is loaded, and the full
-  // two-level shelf opens over it in a modal that closes as soon as you pick.
+  // So the page keeps only a one-line summary of what is loaded, and the shelf
+  // opens on demand.
+  //
+  // *Where* it opens depends on the room available. On a desktop it expands in
+  // place, under the summary bar, and stays open while you browse: comparing
+  // genres and their templates is the whole errand, and an overlay that closes
+  // on every pick makes you reopen it each time. A phone has no such room —
+  // eight family rows would push the instrument off-screen — so there it stays
+  // a full-height sheet that closes behind your choice.
   import type { PickerChip, PickerShelf } from '../view/picker';
 
   interface Props {
@@ -18,6 +25,7 @@
     items: PickerChip[];
     itemsLabel: string;   // "PATTERNS" / "GROOVES" / "PROGRESSIONS"
     blurb?: string;       // what defines the selected genre
+    inline?: boolean;     // expand in place (desktop) rather than over the page
     compact?: boolean;    // tighten the chips on a narrow screen
     testid: string;
     genresTestid?: string;
@@ -29,17 +37,53 @@
   }
   let {
     open, label, summaryGenre, summaryItem, hint, shelves, items, itemsLabel,
-    blurb, compact = false, testid, genresTestid, itemsTestid,
+    blurb, inline = false, compact = false, testid, genresTestid, itemsTestid,
     onOpen, onClose, onGenre, onItem,
   }: Props = $props();
 
   const chipFont = $derived(compact ? '12px' : '13.5px');
   const chipPad = $derived(compact ? '4px 9px' : '6px 11px');
 
-  // Picking a template is the end of the errand — close behind it. Picking a
-  // genre only swaps the second row, so the modal stays open for the next tap.
-  function pickItem(id: string) { onItem(id); onClose(); }
+  // In a sheet, picking a template is the end of the errand — close behind it.
+  // Expanded in place it costs nothing to stay open, and keeping it there is
+  // what makes trying six grooves in a row quick.
+  function pickItem(id: string) { onItem(id); if (!inline) onClose(); }
 </script>
+
+{#snippet shelf()}
+  <!-- step 1: the genre, shelved by family -->
+  <div data-testid={genresTestid || testid + '-genres'}>
+    {#each shelves as fam (fam.name)}
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap">
+        <span class="mono" style="flex:none;width:92px;font-size:8px;letter-spacing:.12em;color:#8a7350;text-transform:uppercase">{fam.name}</span>
+        {#each fam.chips as c (c.id)}
+          <div
+            class="serif click" role="button" tabindex="0"
+            style="font-size:{chipFont};font-weight:{c.weight};padding:{chipPad};border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap"
+            onclick={() => onGenre(c.id)} onkeydown={(e) => e.key === 'Enter' && onGenre(c.id)}
+          >{c.name} <span class="mono" style="font-size:8px;color:#a08a64">{c.n}</span></div>
+        {/each}
+      </div>
+    {/each}
+  </div>
+
+  <!-- step 2: the templates inside the chosen genre -->
+  <div style="border-top:1px solid #e0cfae;margin-top:11px;padding-top:11px">
+    <div class="mono" style="font-size:8px;letter-spacing:.12em;color:#8a7350;margin-bottom:6px">{summaryGenre} · {itemsLabel}</div>
+    <div data-testid={itemsTestid || testid + '-items'} style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px">
+      {#each items as c (c.id)}
+        <div
+          class="serif click" role="button" tabindex="0"
+          style="font-size:{chipFont};font-weight:{c.weight};padding:{chipPad};border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap"
+          onclick={() => pickItem(c.id)} onkeydown={(e) => e.key === 'Enter' && pickItem(c.id)}
+        >{c.name}{#if c.meta} <span class="mono" style="font-size:8px;color:{c.fg === '#fff' ? '#e7d9ba' : '#a08a64'}">{c.meta}</span>{/if}</div>
+      {/each}
+    </div>
+    {#if blurb}
+      <div class="caption" style="font-size:13px;color:#5c4a30;line-height:1.5">{blurb}</div>
+    {/if}
+  </div>
+{/snippet}
 
 <svelte:window onkeydown={(e) => { if (open && e.key === 'Escape') onClose(); }} />
 
@@ -47,8 +91,9 @@
 <div
   class="click" data-testid="{testid}-summary" role="button" tabindex="0"
   aria-expanded={open} aria-label="{label} — {summaryGenre}, {summaryItem}. Change"
-  style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f3ead4;border:1px solid #e0cfae;border-radius:9px;padding:9px 12px"
-  onclick={onOpen} onkeydown={(e) => e.key === 'Enter' && onOpen()}
+  style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f3ead4;border:1px solid #e0cfae;border-radius:{inline && open ? '9px 9px 0 0' : '9px'};border-bottom-width:{inline && open ? '0' : '1px'};padding:9px 12px"
+  onclick={() => (inline && open ? onClose() : onOpen())}
+  onkeydown={(e) => e.key === 'Enter' && (inline && open ? onClose() : onOpen())}
 >
   <span class="mono" style="flex:none;font-size:8px;letter-spacing:.14em;color:#8a7350">{label}</span>
   <span class="mono" style="flex:none;font-size:9.5px;letter-spacing:.06em;color:#c2562e;text-transform:uppercase">{summaryGenre}</span>
@@ -56,10 +101,15 @@
   {#if hint}
     <span class="mono" style="flex:none;font-size:8px;letter-spacing:.08em;color:#a08a64">{hint}</span>
   {/if}
-  <span class="mono" style="flex:none;font-size:9px;letter-spacing:.1em;color:#fff;background:#3f6b5f;padding:5px 10px;border-radius:6px">CHANGE ▾</span>
+  <span class="mono" style="flex:none;font-size:9px;letter-spacing:.1em;color:#fff;background:#3f6b5f;padding:5px 10px;border-radius:6px">{inline && open ? 'HIDE ▴' : 'CHANGE ▾'}</span>
 </div>
 
-{#if open}
+{#if open && inline}
+  <!-- expanded in place: the shelf lives under the summary bar and stays put -->
+  <div class="wb-picker-panel" data-testid={testid}>
+    {@render shelf()}
+  </div>
+{:else if open}
   <!-- backdrop: a click anywhere outside the card dismisses -->
   <div
     class="wb-modal-back" role="presentation"
@@ -80,38 +130,7 @@
       </div>
 
       <div class="wb-modal-body">
-        <!-- step 1: the genre, shelved by family -->
-        <div data-testid={genresTestid || testid + '-genres'}>
-          {#each shelves as fam (fam.name)}
-            <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap">
-              <span class="mono" style="flex:none;width:92px;font-size:8px;letter-spacing:.12em;color:#8a7350;text-transform:uppercase">{fam.name}</span>
-              {#each fam.chips as c (c.id)}
-                <div
-                  class="serif click" role="button" tabindex="0"
-                  style="font-size:{chipFont};font-weight:{c.weight};padding:{chipPad};border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap"
-                  onclick={() => onGenre(c.id)} onkeydown={(e) => e.key === 'Enter' && onGenre(c.id)}
-                >{c.name} <span class="mono" style="font-size:8px;color:#a08a64">{c.n}</span></div>
-              {/each}
-            </div>
-          {/each}
-        </div>
-
-        <!-- step 2: the templates inside the chosen genre -->
-        <div style="border-top:1px solid #e0cfae;margin-top:11px;padding-top:11px">
-          <div class="mono" style="font-size:8px;letter-spacing:.12em;color:#8a7350;margin-bottom:6px">{summaryGenre} · {itemsLabel}</div>
-          <div data-testid={itemsTestid || testid + '-items'} style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px">
-            {#each items as c (c.id)}
-              <div
-                class="serif click" role="button" tabindex="0"
-                style="font-size:{chipFont};font-weight:{c.weight};padding:{chipPad};border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap"
-                onclick={() => pickItem(c.id)} onkeydown={(e) => e.key === 'Enter' && pickItem(c.id)}
-              >{c.name}{#if c.meta} <span class="mono" style="font-size:8px;color:{c.fg === '#fff' ? '#e7d9ba' : '#a08a64'}">{c.meta}</span>{/if}</div>
-            {/each}
-          </div>
-          {#if blurb}
-            <div class="caption" style="font-size:13px;color:#5c4a30;line-height:1.5">{blurb}</div>
-          {/if}
-        </div>
+        {@render shelf()}
       </div>
     </div>
   </div>
