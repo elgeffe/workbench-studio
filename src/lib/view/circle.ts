@@ -23,7 +23,10 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
   // further out along the spoke. Radial placement reads fine at 12 o'clock but
   // puts the numeral beside the name out at 3 and 9 o'clock, where it collides
   // with it — and now that a key spans seven spokes, both rings reach there.
-  const numRise = 13, numRiseMin = 11;
+  // The rise is centre-to-centre and both labels are centred on their point, so
+  // it has to clear half a name (18px outer, 12.5px inner) plus half a numeral
+  // before any daylight shows between them.
+  const numRise = 18, numRiseMin = 15;
   const pol = (r: number, deg: number): [number, number] => { const a = (deg - 90) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
   const band = (r1: number, r0: number, a0: number, a1: number): string => {
     const p1 = pol(r1, a0), p2 = pol(r1, a1), p3 = pol(r0, a1), p4 = pol(r0, a0);
