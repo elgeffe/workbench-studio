@@ -99,8 +99,10 @@ export function computeView(s: WorkbenchStore) {
     extLevelsLight: ([['triad', '3'], ['7', '7'], ['9', '9'], ['11', '11'], ['13', '13']] as Array<[string, string]>).map(([id, label]) => ({ id, label, bg: s.ext === id ? '#c2562e' : 'transparent', fg: s.ext === id ? '#fff' : '#8a7350' })),
     extCaption: ({ triad: 'Triads — root, 3rd, 5th. The skeleton of every chord.', '7': 'Add the 7th — color and forward motion. Where jazz harmony begins.', '9': 'Add the 9th (the 2nd, an octave up) — lush tension stacked over the 7th.', '11': 'Add the 11th (the 4th, an octave up). Natural 11 clashes with a major 3rd, so players raise it (♯11) or drop the 3rd — it sits naturally on minor chords.', '13': 'Add the 13th (the 6th, an octave up) — the tallest tertian stack. Notes get omitted (often the 5th, sometimes the 11) and voiced by feel.' } as Record<string, string>)[s.ext],
     soundLabel: s.soundOn ? '♪ SOUND' : '✕ MUTED',
-    soundLabelShort: s.soundOn ? '♪ ON' : '✕ MUTE',
+    soundLabelShort: s.soundOn ? '♪' : '✕',
     soundBg: s.soundOn ? 'rgba(216,168,111,.16)' : 'transparent', soundFg: s.soundOn ? '#e9c79b' : '#9c8460',
+    // the key/scale picker, behind the studio bar's key button
+    keyPickerOpen: s.picker === 'key',
     // mode flags
     isCircle: s.mode === 'circle', isDrums: s.mode === 'drums', isChords: s.mode === 'chords',
     isBass: s.mode === 'bass', isMetronome: s.mode === 'metronome', isLearn: s.mode === 'learn',
@@ -120,6 +122,8 @@ export function computeView(s: WorkbenchStore) {
     // bass (grooves, the 16-step editor, the part mix)
     ...buildBass(s),
     jzPlayLabel: transportOn ? '■ STOP' : '▶ PLAY', jzPlayBg: transportOn ? '#9a3f1f' : '#c2562e', jzPlayShadow: transportOn ? '#6e2c12' : '#9a3f1f',
+    // the phone's dock bar has room for the glyph alone
+    transportGlyph: transportOn ? '■' : '▶',
     vFullBg: s.jzVoicing === 'full' ? '#3f6b5f' : '#f6efe0', vFullFg: s.jzVoicing === 'full' ? '#fff' : '#5c4a30',
     vShellBg: s.jzVoicing === 'shell' ? '#3f6b5f' : '#f6efe0', vShellFg: s.jzVoicing === 'shell' ? '#fff' : '#5c4a30',
     slotHalfBg: s.chordSlot === 'half' ? '#3f6b5f' : '#f6efe0', slotHalfFg: s.chordSlot === 'half' ? '#fff' : '#5c4a30',

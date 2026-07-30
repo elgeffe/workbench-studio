@@ -5,7 +5,7 @@ test.use({ viewport: { width: 390, height: 844 } });
 test.describe('mobile layout', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('The Workbench')).toBeVisible();
+    await expect(page.getByText('Workbench Studio')).toBeVisible();
   });
 
   test('shows the bottom tab bar and hides the desktop chrome', async ({ page }) => {

@@ -65,7 +65,7 @@ function svg({ size, round = 0.22, scale = 1 }) {
     ? ''
     : ` transform="translate(${C} ${C}) scale(${scale}) translate(${-C} ${-C})"`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${size}" height="${size}" role="img" aria-labelledby="wb-icon-title">
-  <title id="wb-icon-title">The Workbench</title>
+  <title id="wb-icon-title">Workbench Studio</title>
   <defs>
     <radialGradient id="ground" cx="34%" cy="26%" r="86%">
       <stop offset="0" stop-color="${INK_HI}"/>

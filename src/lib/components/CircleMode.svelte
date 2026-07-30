@@ -5,6 +5,22 @@
 </script>
 
 <div>
+  <!-- The scale row lives here rather than in the chrome: choosing keys and
+       scales is what this tab is for, and the wheel below is already the key
+       picker. Everywhere else it is behind the studio bar's key button. -->
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+    <span class="mono" style="flex:none;font-size:9px;letter-spacing:.18em;color:#8a7350">SCALE</span>
+    {#each v.scalePrimary as m (m.id)}
+      <div class="mono click" style="font-size:10px;letter-spacing:.02em;padding:6px 11px;border-radius:14px;border:1px solid {m.border};background:{m.bg};color:{m.fg};white-space:nowrap" role="button" tabindex="0" aria-label={m.id} aria-pressed={store.scale === m.id} onclick={() => store.setScale(m.id)} onkeydown={(e) => e.key === 'Enter' && store.setScale(m.id)}>{m.name}</div>
+    {/each}
+    <span style="flex:none;width:1px;align-self:stretch;background:#d3c1a1;margin:2px 3px"></span>
+    <span class="mono" style="flex:none;font-size:8px;letter-spacing:.12em;color:#a08a64">MODES</span>
+    {#each v.scaleModes as m (m.id)}
+      <div class="mono click" style="font-size:10px;letter-spacing:.02em;padding:6px 11px;border-radius:14px;border:1px solid {m.border};background:{m.bg};color:{m.fg};white-space:nowrap" role="button" tabindex="0" aria-label={m.id} aria-pressed={store.scale === m.id} onclick={() => store.setScale(m.id)} onkeydown={(e) => e.key === 'Enter' && store.setScale(m.id)}>{m.name}</div>
+    {/each}
+    <span class="caption only-desktop" style="flex:1 1 200px;min-width:180px;font-size:13px;text-align:right">{v.scaleCaption}</span>
+  </div>
+
   <!-- direction + view toggles -->
   <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">
     <div style="display:flex;gap:2px;background:#ece0c6;border:1px solid #cbb792;border-radius:8px;padding:3px">

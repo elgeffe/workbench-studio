@@ -35,7 +35,7 @@ function barStarts(ev: Ev[]): number[] {
 async function startDrums(page: import('@playwright/test').Page) {
   await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' }).click();
   await expect(page.getByTestId('drum-grid')).toBeVisible();
-  await page.getByTestId('drums-play').click();
+  await page.getByTestId('studio-play').click();
 }
 
 test.describe('transport', () => {
@@ -89,7 +89,7 @@ test.describe('transport', () => {
     await page.goto('/');
     await startDrums(page);
     await page.waitForTimeout(1500); // mid-bar: the rest of it is already queued
-    await page.getByTestId('drums-play').click();
+    await page.getByTestId('studio-play').click();
 
     // Skip the first 250ms so the hit that had already started can decay, then
     // listen across what would have been the rest of the bar.

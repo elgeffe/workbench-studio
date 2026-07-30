@@ -5,7 +5,7 @@ test.use({ viewport: { width: 1280, height: 900 } });
 test.describe('metronome tab', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('The Workbench')).toBeVisible();
+    await expect(page.getByText('Workbench Studio')).toBeVisible();
     await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'metronome' }).click();
     await expect(page.getByTestId('metronome-transport')).toBeVisible();
   });
@@ -57,7 +57,7 @@ test.describe('metronome tab', () => {
     await expect(page.getByText('Studio tempo 132')).toBeVisible();
     // the drums groovebox shows the shared transport tempo
     await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' }).click();
-    await expect(page.getByText(/132 BPM/).first()).toBeVisible();
+    await expect(page.getByTestId('studio-bpm')).toHaveText('132');
   });
 
   test('goal by bars shows a target and progress readout', async ({ page }) => {

@@ -52,8 +52,12 @@ interface DrumBar {
   stepSec: number;
   swing: number;
 }
-/** The genre pickers that can be open: the drum machine, Workshop starting points, bass grooves. */
-export type PickerId = 'drums' | 'progressions' | 'bass';
+/**
+ * The one panel that can be open at a time: a genre shelf (drum machine,
+ * progression starting points, bass grooves) or the key/scale picker that the
+ * studio bar's key button opens.
+ */
+export type PickerId = 'drums' | 'progressions' | 'bass' | 'key';
 
 // Re-exported so components can keep importing view-model types from here.
 export type {

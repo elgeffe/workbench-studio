@@ -1,4 +1,4 @@
-# The Workbench — Prioritized Improvement Roadmap
+# Workbench Studio — Prioritized Improvement Roadmap
 
 A living backlog of proposed improvements, redesigns, and new features, ordered by
 expected impact vs. effort. Written 2026-07 alongside the store/view refactor.

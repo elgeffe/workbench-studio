@@ -102,9 +102,9 @@
     {/each}
   </div>
 
-  <!-- transport -->
+  <!-- Per-progression settings. PLAY and TEMPO are not here: they drive drums,
+       chords and bass together, so they live in the studio bar. -->
   <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-bottom:16px">
-    <div class="mono click" data-testid="chords-play" style="font-size:12px;letter-spacing:.06em;color:#fff;background:{v.jzPlayBg};padding:11px 20px;border-radius:7px;box-shadow:0 4px 0 {v.jzPlayShadow}" role="button" tabindex="0" onclick={() => store.toggleJazzPlay()} onkeydown={(e) => e.key === 'Enter' && store.toggleJazzPlay()}>{v.jzPlayLabel}</div>
     <div class="mono click" style="font-size:11px;letter-spacing:.06em;color:#7a6b50;border:1px solid #cbb792;padding:10px 14px;border-radius:7px" role="button" tabindex="0" onclick={() => store.jzClear()} onkeydown={(e) => e.key === 'Enter' && store.jzClear()}>CLEAR</div>
     <div style="display:flex;align-items:center;gap:7px">
       <span class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350">VOICING</span>
@@ -121,15 +121,7 @@
       </div>
       <span class="mono" style="font-size:9px;color:#a08a64;white-space:nowrap">{v.chordSlotHint}</span>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;flex:1 1 150px;min-width:140px">
-      <span class="mono" style="font-size:9px;color:#8a7350;letter-spacing:.08em">TEMPO</span>
-      <input type="range" min="50" max="170" value={v.tempo} oninput={(e) => store.setTempo(+e.currentTarget.value)} style="flex:1" />
-      <span class="mono" style="font-size:11px;color:#2c261d;width:34px;text-align:right">{v.tempo}</span>
-    </div>
   </div>
-  {#if !v.drEmpty}
-    <div class="mono" style="font-size:9px;letter-spacing:.06em;color:#a08a64;margin:-8px 0 14px">⟲ ONE CLOCK — ▶ PLAY runs the drum groove, these changes and the bassline together.</div>
-  {/if}
 
   {#if store.isDesktop}
     <div class="mono" style="font-size:9px;letter-spacing:.08em;color:#a08a64;margin:-6px 0 16px;display:flex;align-items:center;gap:6px">

@@ -5,7 +5,7 @@ test.use({ viewport: { width: 1280, height: 900 } });
 test.describe('desktop layout', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('The Workbench')).toBeVisible();
+    await expect(page.getByText('Workbench Studio')).toBeVisible();
   });
 
   test('shows the two-column workspace with the side instrument panel', async ({ page }) => {

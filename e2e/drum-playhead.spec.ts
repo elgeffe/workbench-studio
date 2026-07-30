@@ -15,7 +15,7 @@ async function ringCycle(page: import('@playwright/test').Page, outputLatency: n
   await page.goto('/');
   await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' }).click();
   await expect(page.getByTestId('drum-grid')).toBeVisible();
-  await page.getByTestId('drums-play').click();
+  await page.getByTestId('studio-play').click();
 
   return page.evaluate(() => new Promise<number[]>((resolve) => {
     const seen: number[] = [];

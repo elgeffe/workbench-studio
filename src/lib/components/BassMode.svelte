@@ -35,20 +35,13 @@
     {/if}
   </div>
 
-  <!-- transport + mix -->
-  <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;background:#f3ead4;border:1px solid #e0cfae;border-radius:10px;padding:11px 13px;margin-bottom:14px">
-    <div class="mono click" data-testid="bass-play" style="flex:none;font-size:12px;letter-spacing:.06em;color:#fff;background:{v.jzPlayBg};padding:11px 20px;border-radius:7px;box-shadow:0 4px 0 {v.jzPlayShadow}" role="button" tabindex="0" onclick={() => store.togglePlay()} onkeydown={(e) => e.key === 'Enter' && store.togglePlay()}>{v.jzPlayLabel}</div>
-    <div style="display:flex;align-items:center;gap:7px">
-      <span class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350">MIX</span>
-      <div style="display:flex;gap:3px;background:#ece0c6;border:1px solid #cbb792;border-radius:7px;padding:2px">
-        <div class="mono click" data-testid="mix-chords" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.mixChordsBg};color:{v.mixChordsFg}" role="button" tabindex="0" aria-pressed={v.mixChordsBg !== '#f6efe0'} onclick={() => store.toggleBassChords()} onkeydown={(e) => e.key === 'Enter' && store.toggleBassChords()}>♩ CHORDS</div>
-        <div class="mono click" data-testid="mix-bass" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.mixBassBg};color:{v.mixBassFg}" role="button" tabindex="0" aria-pressed={v.mixBassBg !== '#f6efe0'} onclick={() => store.toggleBassOn()} onkeydown={(e) => e.key === 'Enter' && store.toggleBassOn()}>♪ BASS</div>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;flex:1 1 150px;min-width:140px">
-      <span class="mono" style="font-size:9px;color:#8a7350;letter-spacing:.08em">TEMPO</span>
-      <input type="range" min="50" max="170" value={v.tempo} oninput={(e) => store.setTempo(+e.currentTarget.value)} style="flex:1" />
-      <span class="mono" style="font-size:11px;color:#2c261d;width:34px;text-align:right">{v.tempo}</span>
+  <!-- The mix. PLAY and TEMPO are in the studio bar: one clock for all three
+       parts, reachable from whichever tab you are on. -->
+  <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:14px">
+    <span class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350">MIX</span>
+    <div style="display:flex;gap:3px;background:#ece0c6;border:1px solid #cbb792;border-radius:7px;padding:2px">
+      <div class="mono click" data-testid="mix-chords" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.mixChordsBg};color:{v.mixChordsFg}" role="button" tabindex="0" aria-pressed={v.mixChordsBg !== '#f6efe0'} onclick={() => store.toggleBassChords()} onkeydown={(e) => e.key === 'Enter' && store.toggleBassChords()}>♩ CHORDS</div>
+      <div class="mono click" data-testid="mix-bass" style="font-size:9px;padding:6px 11px;border-radius:5px;background:{v.mixBassBg};color:{v.mixBassFg}" role="button" tabindex="0" aria-pressed={v.mixBassBg !== '#f6efe0'} onclick={() => store.toggleBassOn()} onkeydown={(e) => e.key === 'Enter' && store.toggleBassOn()}>♪ BASS</div>
     </div>
   </div>
 

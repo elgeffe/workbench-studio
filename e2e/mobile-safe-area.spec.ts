@@ -25,7 +25,7 @@ test.describe('notched phone in portrait', () => {
 
   test('keeps the header and tab bar clear of the status bar and home indicator', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('The Workbench')).toBeVisible();
+    await expect(page.getByText('Workbench Studio')).toBeVisible();
     await fakeInsets(page, PORTRAIT);
 
     // nothing in the header row may reach up into the Dynamic Island
@@ -66,7 +66,7 @@ test.describe('phone in landscape', () => {
 
   test('lays the sounding bar and tab bar on one row to save height', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('The Workbench')).toBeVisible();
+    await expect(page.getByText('Workbench Studio')).toBeVisible();
     await fakeInsets(page, LANDSCAPE);
 
     const bar = await box(page, '.wb-dock-bar');
