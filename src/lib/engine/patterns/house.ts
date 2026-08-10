@@ -92,6 +92,17 @@ export const HOUSE_PATTERNS: DrumTemplate[] = [
       { name: 'Sub stab', why: 'A low tom standing in for the sub-bass stab on the “e of 4” — in a real track this is the funk bassline poking through.', add: [{ v: 'sub', on: [13] }] },
     ],
   },
+  {
+    id: 'house-slapfunk', name: 'Slapfunk', genre: 'house', bpm: 128, swing: 56,
+    tip: 'The one house pattern here that is *not* four on the floor: kick only on 1 & 3, clap answering on 2 & 4, so the bar reads as a half-time boom-bap skeleton driven by a full 16th hat carpet. Open hats take the off-beats and the closed hats fill everything else — the drive comes from the top, not the bottom.',
+    layers: [
+      { name: 'Kick on 1 & 3', why: 'Two kicks a bar instead of four. Dropping beats 2 & 4 hands them to the clap and leaves the low end wide open for a slapping bassline.', add: [{ v: 'kick', on: [0, 8], acc: [0, 8] }] },
+      { name: 'Clap backbeat', why: 'Clap on 2 & 4 completes the pulse the kick gave up — together they still spell out four beats, but with two different sounds instead of one.', add: [{ v: 'clap', on: [4, 12], acc: [4, 12] }] },
+      { name: 'Off-beat open hats', why: 'An open hat on the “and” of every beat. This is the house see-saw, and with the kick missing on 2 & 4 it is doing more of the work than usual.', add: [{ v: 'ohat', on: [2, 6, 10, 14] }] },
+      { name: 'Driving 16th closed hats', why: 'Closed hats on the three 16ths the open hat leaves free, accented on each downbeat and soft on the “e” and “a”. That accent pattern is the whole groove — flat velocities turn it into a machine gun.', add: [{ v: 'chat', on: [0, 1, 3, 4, 5, 7, 8, 9, 11, 12, 13, 15], acc: [0, 4, 8, 12] }] },
+      { name: 'Ghost rimshots', why: 'Four rim ticks at roughly 30% velocity, one per beat but never on the same 16th twice — a wandering texture you feel rather than hear.', add: [{ v: 'rim', on: [3, 5, 10, 13] }] },
+    ],
+  },
 
   // ------------------------------------------------- tech-house & minimal ----
   {
