@@ -129,12 +129,23 @@ The two kinds of part are addressed differently, which is the thing to understan
   its twelve pads sitting in panel order (`.`, `0`, `⏎`, then 1–9), so a kit voice maps to a
   group and a pad and nothing more. The panel maps all fourteen voices; the defaults fill
   group A.
-- **Chords and bass address pitches.** They send real note numbers with a per-part channel
-  and octave transpose. On a sampler that means a melodic sound in **KEYS** mode, which is
-  what spreads one sample chromatically across the full range; on a keyboard or synth it
-  just plays. The bassline is already written in bass register (MIDI 24–47), so a real
-  instrument wants no transpose — the octave control is there for a sampler whose pad root
-  sits somewhere else.
+- **Chords and bass address pitches** — in one of two ways, chosen per part, because a
+  sampler hears a note number as one of two completely different things:
+  - **Chromatic** sends real note numbers with a channel and an octave transpose. Right for
+    a keyboard or synth, where it just plays; on a K.O. II it needs **KEYS** mode, which
+    spreads the selected pad's sample across the full range but takes the whole instrument —
+    drums cannot be sitting on pads at the same time. The bassline is already written in
+    bass register (MIDI 24–47), so a real instrument wants no transpose; the octave control
+    is for a sampler whose pad root sits somewhere else.
+  - **Group pads** folds the part into one octave and plays a group's twelve pads. Pressing
+    `KEYS` on a pad spreads its sample chromatically across that group, and a group *is*
+    twelve note numbers — so once it is set up that way, its pads are an octave of
+    semitones. **C IS** says which pad the root landed on. This is what lets a single
+    K.O. II play drums on group A and harmony on group C at once. The cost is the register:
+    twelve pads is twelve semitones, so a two-octave bassline comes back as one.
+
+  Which sample sits on those pads is chosen on the device. MIDI cannot assign one, and the
+  reverse-engineered sysex path that could is not something to attempt from a browser.
 
 Channel, transpose and **velocity** are all per part, for the same reason routing is: a
 sampled hit has to be loud enough to cut, and the same number on a weighted piano is a bang.

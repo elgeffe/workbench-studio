@@ -10,9 +10,9 @@
 
 import { MidiOut, PPQN, type MidiPortInfo } from './out';
 import {
-  DEFAULT_SETTINGS, MIDI_PARTS, clampChannel, clampOctave, clampVel,
-  padNote, sanitizeSettings, transposed, velocityFor,
-  type DrumMap, type MidiPart, type MidiSettings, type PadAddr,
+  DEFAULT_SETTINGS, MIDI_PARTS, clampChannel, clampOctave, clampPad, clampVel,
+  padNote, pitchToPadNote, sanitizeSettings, transposed, velocityFor,
+  type DrumMap, type MidiGroup, type MidiPart, type MidiSettings, type PadAddr, type PitchMode,
 } from './map';
 import type { DrumVoiceId } from '../engine/kit';
 
@@ -194,6 +194,24 @@ export class MidiStore {
     this.parts = { ...this.parts, [p]: { ...this.parts[p], octave: clampOctave(octave) } };
     this.save();
   }
+  /** Swap how a pitched part addresses the device — real pitches, or a group. */
+  setPartMode(p: MidiPart, mode: PitchMode): void {
+    // The two modes address entirely different notes, so anything still held
+    // under the old one would never be released.
+    this.panic();
+    this.parts = { ...this.parts, [p]: { ...this.parts[p], mode } };
+    this.save();
+  }
+  setPartGroup(p: MidiPart, group: MidiGroup): void {
+    this.panic();
+    this.parts = { ...this.parts, [p]: { ...this.parts[p], group } };
+    this.save();
+  }
+  setPartRootPad(p: MidiPart, rootPad: number): void {
+    this.panic();
+    this.parts = { ...this.parts, [p]: { ...this.parts[p], rootPad: clampPad(rootPad) } };
+    this.save();
+  }
   setClock(on: boolean): void {
     this.clockOn = on;
     this.save();
@@ -233,13 +251,22 @@ export class MidiStore {
     });
   }
 
-  /** A chord or a bass note, as real pitches, transposed by the part's octave. */
+  /**
+   * A chord or a bass note. In `keys` mode those go out as real pitches; in
+   * `pads` mode they fold onto the twelve pads of a group.
+   *
+   * Pad mode has to de-duplicate. A voicing that spans an octave — a root with
+   * its own octave on top, which is most of them — collapses to the same pitch
+   * class twice, and firing one pad twice in a sample-accurate instant chokes
+   * the voice instead of doubling it.
+   */
   sendPitched(part: 'chords' | 'bass', midis: number[], at: number, durMs: number): void {
     if (!this.partLive(part)) return;
     const cfg = this.parts[part];
-    midis.forEach((m) => {
-      this.out.note(cfg.portId, cfg.channel, transposed(m, cfg.octave), clampVel(cfg.vel), at, durMs);
-    });
+    const notes = cfg.mode === 'pads'
+      ? [...new Set(midis.map((m) => pitchToPadNote(m, cfg.group, cfg.rootPad)))]
+      : midis.map((m) => transposed(m, cfg.octave));
+    notes.forEach((n) => this.out.note(cfg.portId, cfg.channel, n, clampVel(cfg.vel), at, durMs));
   }
 
   /**
@@ -284,8 +311,11 @@ export class MidiStore {
     if (!this.live) return;
     const cfg = this.parts[part];
     const midis = part === 'bass' ? [36] : [60, 64, 67];
-    midis.forEach((m, i) => {
-      this.out.note(cfg.portId, cfg.channel, transposed(m, cfg.octave), clampVel(cfg.vel), performance.now() + i * 8, 500);
+    const notes = cfg.mode === 'pads'
+      ? [...new Set(midis.map((m) => pitchToPadNote(m, cfg.group, cfg.rootPad)))]
+      : midis.map((m) => transposed(m, cfg.octave));
+    notes.forEach((n, i) => {
+      this.out.note(cfg.portId, cfg.channel, n, clampVel(cfg.vel), performance.now() + i * 8, 500);
     });
   }
 

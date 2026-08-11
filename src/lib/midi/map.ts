@@ -44,6 +44,27 @@ export type DrumMap = Partial<Record<DrumVoiceId, PadAddr>>;
 export type MidiPart = 'drums' | 'chords' | 'bass';
 export const MIDI_PARTS: readonly MidiPart[] = ['drums', 'chords', 'bass'];
 
+/**
+ * How a pitched part reaches a sampler. The EP-133 hears a note number as one
+ * of two completely different things, and which one depends on the device's
+ * own state — so this has to be said out loud rather than guessed.
+ *
+ * - `keys` — the device is in KEYS mode, where the note map becomes a
+ *   chromatic keyboard across 0–127 playing the *selected* pad's sample. Full
+ *   range and the obvious choice for a keyboard or synth, but only one sound
+ *   at a time, and it takes the whole instrument over: drums cannot be sitting
+ *   on pads at the same time.
+ * - `pads` — plain pad addressing. Pressing KEYS on a pad spreads its sample
+ *   chromatically across that group's twelve pads, and a group is twelve note
+ *   numbers, so once a group is set up that way its pads *are* an octave of
+ *   semitones. Pitches fold into one octave and play them.
+ *
+ * `pads` is what lets one K.O. II play drums on group A and harmony on group C
+ * at once, which KEYS mode cannot do. The trade is that everything collapses
+ * into a single octave.
+ */
+export type PitchMode = 'keys' | 'pads';
+
 export interface PartCfg {
   /** Does this part go out to the device at all? */
   on: boolean;
@@ -56,8 +77,18 @@ export interface PartCfg {
   portId: string | null;
   /** 1–16. The device receives on one channel unless you assign per-pad ones. */
   channel: number;
-  /** Octaves of transpose, −4…+4. Ignored by drums, which address pads. */
+  /** Octaves of transpose, −4…+4. Ignored by drums, and by `pads` mode. */
   octave: number;
+  /** How a pitched part addresses the device. Drums always address pads. */
+  mode: PitchMode;
+  /** In `pads` mode, the group whose twelve pads carry the octave. */
+  group: MidiGroup;
+  /**
+   * In `pads` mode, which pad sounds C. Pad order is the panel's — `.`, `0`,
+   * `⏎`, then 1–9 — and a sample spread with KEYS starts on whichever pad the
+   * root landed on, so this has to be adjustable rather than assumed.
+   */
+  rootPad: number;
   /**
    * Velocity for an ordinary note. Per part, because the devices want
    * different things: a sampler needs a hit hard enough to cut, while the same
@@ -111,10 +142,13 @@ export const DEFAULT_DRUM_MAP: DrumMap = {
 // hard accent, because a sampled hit either cuts through or is not heard.
 // Chords comp underneath, so they start softer. Bass sits between the two: it
 // carries the bottom without fighting the kick.
+// `keys` is the default because it is the mode that needs no setup on a
+// keyboard or synth — the majority case. The groups the pitched parts would
+// use in `pads` mode start clear of A, where the drums live.
 export const DEFAULT_PARTS: Record<MidiPart, PartCfg> = {
-  drums: { on: true, portId: null, channel: 1, octave: 0, vel: 84, velAccent: 127 },
-  chords: { on: false, portId: null, channel: 1, octave: 0, vel: 76, velAccent: 127 },
-  bass: { on: false, portId: null, channel: 1, octave: 0, vel: 88, velAccent: 127 },
+  drums: { on: true, portId: null, channel: 1, octave: 0, vel: 84, velAccent: 127, mode: 'pads', group: 'A', rootPad: 0 },
+  chords: { on: false, portId: null, channel: 1, octave: 0, vel: 76, velAccent: 127, mode: 'keys', group: 'C', rootPad: 0 },
+  bass: { on: false, portId: null, channel: 1, octave: 0, vel: 88, velAccent: 127, mode: 'keys', group: 'B', rootPad: 0 },
 };
 
 export const DEFAULT_SETTINGS: MidiSettings = {
@@ -138,6 +172,22 @@ export function padName(a: PadAddr): string {
 export function padAt(note: number): PadAddr | null {
   const g = GROUPS.find((id) => note >= GROUP_BASE[id] && note < GROUP_BASE[id] + PADS_PER_GROUP);
   return g ? { group: g, pad: note - GROUP_BASE[g] } : null;
+}
+
+/**
+ * The pad a pitch lands on when a part plays a group chromatically: fold to a
+ * pitch class, then step that many pads up from whichever pad sounds C,
+ * wrapping inside the group.
+ *
+ * Octave is discarded, and that is the whole trade of `pads` mode — twelve
+ * pads is twelve semitones, so a two-octave bassline comes back as one. It
+ * costs the register and buys a device that can play drums and harmony at the
+ * same time.
+ */
+export function pitchToPadNote(midi: number, group: MidiGroup, rootPad: number): number {
+  const pc = (((Math.round(midi) % 12) + 12) % 12);
+  const pad = (((rootPad + pc) % PADS_PER_GROUP) + PADS_PER_GROUP) % PADS_PER_GROUP;
+  return GROUP_BASE[group] + pad;
 }
 
 /**
@@ -166,6 +216,9 @@ export function clampChannel(c: number): number {
 }
 export function clampOctave(o: number): number {
   return Math.max(-4, Math.min(4, Math.round(o) || 0));
+}
+export function clampPad(p: number): number {
+  return Math.max(0, Math.min(PADS_PER_GROUP - 1, Math.round(p) || 0));
 }
 
 /** Is any voice other than `voice` already sitting on this pad? */
@@ -203,6 +256,9 @@ export function sanitizeSettings(raw: unknown): MidiSettings {
       octave: clampOctave(typeof c.octave === 'number' ? c.octave : d.octave),
       vel: clampVel(typeof c.vel === 'number' ? c.vel : oldVel ?? d.vel),
       velAccent: clampVel(typeof c.velAccent === 'number' ? c.velAccent : oldAcc ?? d.velAccent),
+      mode: c.mode === 'keys' || c.mode === 'pads' ? c.mode : d.mode,
+      group: GROUPS.includes(c.group as MidiGroup) ? (c.group as MidiGroup) : d.group,
+      rootPad: clampPad(typeof c.rootPad === 'number' ? c.rootPad : d.rootPad),
     };
   });
 

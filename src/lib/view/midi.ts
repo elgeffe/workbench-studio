@@ -57,16 +57,25 @@ export function buildMidi(s: WorkbenchStore) {
       octaveLabel: cfg.octave > 0 ? `+${cfg.octave}` : String(cfg.octave),
       vel: cfg.vel,
       velAccent: cfg.velAccent,
+      mode: cfg.mode,
+      group: cfg.group,
+      rootPad: cfg.rootPad,
+      rootPadLabel: PAD_LABELS[cfg.rootPad],
       // Drums address pads, so an octave transpose would just walk them off
       // their group. Only the pitched parts get one. Accents run the other way:
       // the grid is the only thing in the studio that marks them.
       pitched: id !== 'drums',
       accents: id === 'drums',
+      // A group is twelve semitones and no more, so `pads` mode has an octave
+      // to give up rather than one to set.
+      padded: id !== 'drums' && cfg.mode === 'pads',
       hint: id === 'drums'
         ? 'Pads, from the map below'
-        : id === 'bass'
-          ? 'Chromatic — put the device in KEYS mode on a bass sound'
-          : 'Chromatic — KEYS mode on a melodic sound',
+        : cfg.mode === 'pads'
+          ? `Group ${cfg.group} pads — one octave, ${PAD_LABELS[cfg.rootPad]} is C`
+          : id === 'bass'
+            ? 'Chromatic — put the device in KEYS mode on a bass sound'
+            : 'Chromatic — KEYS mode on a melodic sound',
       bg: cfg.on && live && port ? 'rgba(63,107,95,.14)' : 'transparent',
       border: cfg.on && !port && live ? '#9a3f1f' : cfg.on ? '#3f6b5f' : '#d8c7a8',
       fg: cfg.on ? '#2c261d' : '#8a7350',

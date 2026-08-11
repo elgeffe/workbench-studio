@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { DRUM_VOICES } from '../engine/kit';
 import {
   DEFAULT_DRUM_MAP, GROUPS, GROUP_BASE, PADS_PER_GROUP, PAD_LABELS,
-  clampChannel, clampOctave, clampVel, padAt, padName, padNote, padTakenBy,
+  clampChannel, clampOctave, clampPad, clampVel, padAt, padName, padNote, padTakenBy, pitchToPadNote,
   MIDI_PARTS, sanitizeSettings, transposed, velocityFor,
   type DrumMap,
 } from './map';
@@ -104,6 +104,48 @@ describe('transposed', () => {
   });
 });
 
+// Pad mode is how one K.O. II plays drums and harmony at once: a group's
+// twelve pads, set up with KEYS, are twelve semitones of one sound.
+describe('pitchToPadNote', () => {
+  it('lands every pitch inside the chosen group and nowhere else', () => {
+    GROUPS.forEach((g) => {
+      for (let m = 0; m <= 127; m++) {
+        const n = pitchToPadNote(m, g, 0);
+        expect(n, `${m} in ${g}`).toBeGreaterThanOrEqual(GROUP_BASE[g]);
+        expect(n, `${m} in ${g}`).toBeLessThan(GROUP_BASE[g] + PADS_PER_GROUP);
+      }
+    });
+  });
+
+  it('walks a chromatic scale up the pads in order', () => {
+    const notes = Array.from({ length: 12 }, (_, i) => pitchToPadNote(60 + i, 'C', 0));
+    expect(notes).toEqual(Array.from({ length: 12 }, (_, i) => 60 + i));
+  });
+
+  it('folds octaves together — the trade pad mode makes', () => {
+    expect(pitchToPadNote(36, 'C', 0)).toBe(pitchToPadNote(60, 'C', 0));
+    expect(pitchToPadNote(36, 'C', 0)).toBe(pitchToPadNote(84, 'C', 0));
+  });
+
+  it('moves the whole scale when the root pad moves', () => {
+    // C on pad 3 ("1"), so C major lands on pads 3, 7 and 10.
+    expect(pitchToPadNote(60, 'C', 3)).toBe(60 + 3);
+    expect(pitchToPadNote(64, 'C', 3)).toBe(60 + 7);
+    expect(pitchToPadNote(67, 'C', 3)).toBe(60 + 10);
+  });
+
+  it('wraps around the group rather than off the end of it', () => {
+    // Root on the last pad: the very next semitone comes back to the first.
+    expect(pitchToPadNote(60, 'B', 11)).toBe(48 + 11);
+    expect(pitchToPadNote(61, 'B', 11)).toBe(48 + 0);
+  });
+
+  it('handles a pitch below the group base without going negative', () => {
+    expect(pitchToPadNote(0, 'A', 0)).toBe(36);
+    expect(pitchToPadNote(2, 'D', 0)).toBe(74);
+  });
+});
+
 describe('velocity and range guards', () => {
   it('separates accents from ordinary hits', () => {
     const cfg = { vel: 80, velAccent: 127 };
@@ -115,11 +157,13 @@ describe('velocity and range guards', () => {
     expect(clampVel(-40)).toBe(1);
     expect(clampVel(NaN)).toBe(1);
   });
-  it('keeps channels and octaves inside their legal range', () => {
+  it('keeps channels, octaves and pads inside their legal range', () => {
     expect(clampChannel(0)).toBe(1);
     expect(clampChannel(17)).toBe(16);
     expect(clampOctave(-9)).toBe(-4);
     expect(clampOctave(9)).toBe(4);
+    expect(clampPad(-3)).toBe(0);
+    expect(clampPad(99)).toBe(11);
   });
 });
 
@@ -179,6 +223,20 @@ describe('sanitizeSettings', () => {
     const s = sanitizeSettings({ parts: { bass: { on: true } } });
     expect(s.parts.chords.channel).toBe(1);
     expect(s.parts.drums.on).toBe(true);
+  });
+
+  it('keeps a part’s pitch mode, group and root pad', () => {
+    const s = sanitizeSettings({ parts: { bass: { mode: 'pads', group: 'D', rootPad: 5 } } });
+    expect(s.parts.bass.mode).toBe('pads');
+    expect(s.parts.bass.group).toBe('D');
+    expect(s.parts.bass.rootPad).toBe(5);
+  });
+
+  it('rejects a nonsense mode or group instead of routing to nowhere', () => {
+    const s = sanitizeSettings({ parts: { chords: { mode: 'sideways', group: 'Z', rootPad: 40 } } });
+    expect(s.parts.chords.mode).toBe('keys');
+    expect(s.parts.chords.group).toBe('C');
+    expect(s.parts.chords.rootPad).toBe(11);
   });
 
   it('keeps each part pointed at its own output', () => {

@@ -144,6 +144,41 @@
 
                 {#if p.pitched}
                   <label class="wb-midi-field">
+                    <span class="mono">PLAY</span>
+                    <select
+                      aria-label="{p.label} pitch mode" value={p.mode}
+                      onchange={(e) => m.setPartMode(p.id, e.currentTarget.value === 'pads' ? 'pads' : 'keys')}
+                    >
+                      <option value="keys">chromatic</option>
+                      <option value="pads">group pads</option>
+                    </select>
+                  </label>
+                {/if}
+
+                {#if p.padded}
+                  <!-- A group is exactly twelve semitones, so these two replace
+                       the octave: which group carries the notes, and which of
+                       its pads the sample's root landed on. -->
+                  <label class="wb-midi-field">
+                    <span class="mono">GROUP</span>
+                    <select
+                      aria-label="{p.label} group" value={p.group}
+                      onchange={(e) => m.setPartGroup(p.id, e.currentTarget.value as 'A' | 'B' | 'C' | 'D')}
+                    >
+                      {#each v.midiGroups as g (g)}<option value={g}>{g}</option>{/each}
+                    </select>
+                  </label>
+                  <label class="wb-midi-field">
+                    <span class="mono">C IS</span>
+                    <select
+                      aria-label="{p.label} root pad" value={p.rootPad}
+                      onchange={(e) => m.setPartRootPad(p.id, +e.currentTarget.value)}
+                    >
+                      {#each v.midiPads as pad (pad.i)}<option value={pad.i}>{pad.label}</option>{/each}
+                    </select>
+                  </label>
+                {:else if p.pitched}
+                  <label class="wb-midi-field">
                     <span class="mono">OCT</span>
                     <select
                       aria-label="{p.label} octave transpose" value={p.octave}
@@ -188,6 +223,14 @@
             the hardware alone. The K.O. II answers on one channel out of the box (<span class="mono">SHIFT</span> +
             <span class="mono">ERASE</span>, <b>110</b>); give a part its own channel only if you have assigned channels per
             pad in sound edit.
+          </div>
+          <div class="caption" style="margin-top:6px;font-size:12.5px;color:#7a6448;line-height:1.5">
+            <b>Chromatic</b> plays real pitches across the full range — right for a keyboard, and on a K.O. II it needs
+            <span class="mono">KEYS</span> mode, which takes the whole instrument. <b>Group pads</b> instead folds the part
+            into one octave on a group's twelve pads, so one K.O. II can play drums on group A <i>and</i> harmony on group C
+            at the same time. Set the group up first: pick the sound on a pad, press <span class="mono">KEYS</span> to spread
+            it chromatically across that group, then tell <b>C IS</b> which pad the root landed on. Choosing the sample is
+            done on the device — MIDI cannot assign one.
           </div>
         </div>
 

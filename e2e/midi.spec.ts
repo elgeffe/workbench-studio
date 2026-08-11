@@ -244,6 +244,60 @@ test('each part carries its own velocity to the wire', async ({ page }) => {
   expect([...bassVels]).toEqual([70]);
 });
 
+// One K.O. II playing drums on group A and harmony on group C at the same
+// time — which KEYS mode cannot do, because it takes the whole instrument.
+test('group-pads mode folds the harmony onto one group of the same device', async ({ page }) => {
+  await stubMidi(page);
+  await page.goto('/');
+
+  const tabs = page.getByTestId('desktop-tabs');
+  await tabs.getByRole('tab', { name: 'drums' }).click();
+  await page.getByTestId('drum-picker-summary').click();
+  await page.getByTestId('drum-genres').getByRole('button', { name: /^Disco & Boogie\s+\d+$/ }).click();
+  await page.getByTestId('drum-picker-loadall').click();
+
+  await page.getByTestId('midi-button').click();
+  await page.getByTestId('midi-arm').click();
+
+  const chords = page.getByTestId('midi-part-chords');
+  await page.getByTestId('midi-part-toggle-chords').click();
+  await chords.getByLabel('CHORDS pitch mode').selectOption('pads');
+  await chords.getByLabel('CHORDS group').selectOption('C');
+  // The octave control is gone: a group is twelve semitones and has none.
+  await expect(chords.getByLabel('CHORDS octave transpose')).toHaveCount(0);
+  await expect(chords).toContainText('Group C pads');
+
+  const bass = page.getByTestId('midi-part-bass');
+  await page.getByTestId('midi-part-toggle-bass').click();
+  await bass.getByLabel('BASS pitch mode').selectOption('pads');
+  await bass.getByLabel('BASS group').selectOption('D');
+
+  await page.getByTestId('midi-close').click();
+  await page.getByTestId('studio-play').click();
+  await page.waitForTimeout(2600);
+  await page.getByTestId('studio-play').click();
+
+  const notes = notesOn(await messages(page)).map((m) => m.data[1]);
+  const inGroup = (n: number, base: number) => n >= base && n < base + 12;
+
+  // Three parts, three groups, one cable — and nothing outside them.
+  expect(notes.some((n) => inGroup(n, 36)), 'no drums on group A').toBe(true);
+  expect(notes.some((n) => inGroup(n, 60)), 'no chords on group C').toBe(true);
+  expect(notes.some((n) => inGroup(n, 72)), 'no bass on group D').toBe(true);
+  expect(notes.every((n) => inGroup(n, 36) || inGroup(n, 60) || inGroup(n, 72)),
+    `a note escaped its group: ${[...new Set(notes)].sort((a, b) => a - b).join()}`).toBe(true);
+
+  // A chord voiced across an octave must not fire one pad twice in the same
+  // instant — that chokes the voice rather than doubling it.
+  const chordHits = notesOn(await messages(page)).filter((m) => inGroup(m.data[1], 60));
+  const byMoment = new Map<string, number>();
+  chordHits.forEach((m) => {
+    const key = `${Math.round(m.at)}:${m.data[1]}`;
+    byMoment.set(key, (byMoment.get(key) ?? 0) + 1);
+  });
+  expect([...byMoment.values()].every((n) => n === 1), 'the same pad was struck twice at once').toBe(true);
+});
+
 test('an unrouted part says so rather than looking like it is playing', async ({ page }) => {
   await stubMidi(page, { ports: ['EP-133 K.O. II', 'reface CP'] });
   await page.goto('/');
