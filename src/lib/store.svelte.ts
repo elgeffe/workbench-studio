@@ -23,6 +23,7 @@ import {
 } from './engine/drums';
 import { AudioEngine } from './audio';
 import { MetronomeStore } from './metronome/store.svelte';
+import { MidiStore } from './midi/store.svelte';
 import { computeView } from './view';
 import type { Wedge } from './view/types';
 
@@ -59,7 +60,7 @@ interface DrumBar {
  * progression starting points, bass grooves) or the key/scale picker that the
  * studio bar's key button opens.
  */
-export type PickerId = 'drums' | 'progressions' | 'bass' | 'key';
+export type PickerId = 'drums' | 'progressions' | 'bass' | 'key' | 'midi';
 
 // Re-exported so components can keep importing view-model types from here.
 export type {
@@ -190,6 +191,13 @@ export class WorkbenchStore {
   // other tabs — practice against it anywhere in the studio.
   met = new MetronomeStore();
 
+  // ---- MIDI out (its own runes sub-store) ----
+  // The band, played out to hardware — a teenage engineering EP-133 K.O. II or
+  // anything else that takes notes and clock. A device the whole studio talks
+  // to rather than a feature of one tab, so it sits here beside the metronome
+  // and hangs off the transport below, not off any mode.
+  midi = new MidiStore();
+
   // ---- derived view-model (pure render step, lives in lib/view) ----
   view = $derived.by(() => computeView(this));
 
@@ -241,6 +249,7 @@ export class WorkbenchStore {
 
   destroy(): void {
     this.met.destroy();
+    this.midi.destroy();
     if (this.trLoop) clearInterval(this.trLoop);
     this.stopDrDraw();
     this.seqTimers.forEach((id) => clearTimeout(id));
@@ -257,6 +266,22 @@ export class WorkbenchStore {
   playChord(ch: Chord | null, stagger = 0.018, at?: number): void {
     if (!ch) return;
     this.playMidis(gMidis(ch), 1.3, stagger, at);
+  }
+
+  /**
+   * A moment on the audio clock, in the performance clock Web MIDI schedules
+   * against. The two run independently, so the offset between them has to be
+   * read fresh each time rather than cached at connect.
+   *
+   * The output latency belongs here for the same reason it belongs on the drum
+   * playhead: a note handed to the audio graph at `t` is not *heard* until `t`
+   * plus the device's buffering, whereas MIDI leaves more or less at once. Send
+   * it at the raw time and the hardware plays ahead of the app by exactly that
+   * buffer. Adding the latency lines the two up — and when the app is muted and
+   * the hardware is all you can hear, it only shifts everything equally.
+   */
+  private toPerf(at: number): number {
+    return performance.now() + (at + this.audio.latency() - this.audio.now()) * 1000;
   }
 
   // ---- key navigation ----
@@ -441,14 +466,24 @@ export class WorkbenchStore {
    * chord a step sits on (and which one it should be walking towards), so a bar
    * carrying two changes gets each half resolved against its own chord.
    */
-  private scheduleBassSteps(steps: BassStep[], at: number, chordAt: (s: number) => { ch: Chord; next: Chord }): void {
-    if (!this.soundOn) return;
+  private scheduleBassSteps(steps: BassStep[], at: number, chordAt: (s: number) => { ch: Chord; next: Chord }, live = false): void {
+    // `live` marks the transport's own bar, as opposed to a preview: only that
+    // one answers to the mixer strip, and only that one goes out to hardware.
+    const hear = this.soundOn && (!live || this.audible('bass'));
+    const send = live && this.midi.partLive('bass');
+    if (!hear && !send) return;
     const stepSec = this.barMs() / 16000;
     steps.forEach((st) => {
       const { ch, next } = chordAt(st.s);
       const t = at + st.s * stepSec;
-      if (st.g) this.audio.ghost(bassRootMidi(ch.rootPc), t);
-      else if (st.d) this.playMidis([resolveBassStep(st.d, ch, next, this.tonicPc)], Math.max(0.16, (st.l ?? 1.6) * stepSec), 0, t);
+      // A ghost is a pitchless thud from a damped string — there is no note to
+      // send, so it stays an internal-only detail of the line.
+      if (st.g) { if (hear) this.audio.ghost(bassRootMidi(ch.rootPc), t); return; }
+      if (!st.d) return;
+      const midi = resolveBassStep(st.d, ch, next, this.tonicPc);
+      const dur = Math.max(0.16, (st.l ?? 1.6) * stepSec);
+      if (hear) this.playMidis([midi], dur, 0, t);
+      if (send) this.midi.sendPitched('bass', [midi], this.toPerf(t), dur * 1000);
     });
   }
   toggleFinger(): void { this.fingerOn = !this.fingerOn; }
@@ -644,10 +679,19 @@ export class WorkbenchStore {
     const i = this.jIdx % chs.length;
     const ch = chs[i];
     this.jzStep = i;
-    this.activeChord = jChVoiced(ch, this.jzVoicing);
+    const voiced = jChVoiced(ch, this.jzVoicing);
+    this.activeChord = voiced;
     // A muted chord part still lights the instruments and still moves the
     // progression on — only the sound is skipped.
-    if (this.audible('chords')) this.playChord(jChVoiced(ch, this.jzVoicing), 0.02, at);
+    if (this.audible('chords')) this.playChord(voiced, 0.02, at);
+    // Hardware holds the chord for its whole slot rather than the synth's fixed
+    // decay: a sampler sustains what you send it, so a 1.3 s note-off would cut
+    // a bar-long change short. A hair under the slot keeps the release clear of
+    // the next chord's attack on the same pad.
+    if (this.midi.partLive('chords')) {
+      const slotMs = this.chordSlot === 'half' ? this.halfBarMs() : this.barMs();
+      this.midi.sendPitched('chords', gMidis(voiced), this.toPerf(at), slotMs * 0.96);
+    }
     this.jIdx = i + 1;
   };
   /**
@@ -660,8 +704,10 @@ export class WorkbenchStore {
   private barBass(at: number): void {
     // The bass is a part of the band now, not a mode of the chord workshop: the
     // line plays whichever tab you happen to be looking at, and only its mixer
-    // strip silences it.
-    if (!this.audible('bass')) return;
+    // strip silences it. The strip is a fader, though — muting it must not also
+    // stop the line going out to hardware, since "silence the app and let the
+    // K.O. II play it" is exactly what someone does with both connected. So the
+    // mute is applied per-step below, alongside the send.
     const steps = this.lineSteps();
     const chs = this.jzChanges;
     if (!steps.length || !chs.length) return;
@@ -670,7 +716,7 @@ export class WorkbenchStore {
     this.scheduleBassSteps(steps, at, (s) => {
       const i = (first + (half && s >= 8 ? 1 : 0)) % chs.length;
       return { ch: chs[i], next: chs[(i + 1) % chs.length] };
-    });
+    }, true);
   }
 
   // ---- global transport (Workshop + Drums as one band) ----
@@ -691,6 +737,9 @@ export class WorkbenchStore {
     // Start far enough out that the first slot is scheduled ahead like every
     // other one, rather than racing the clock the moment PLAY is pressed.
     this.trNext = this.audio.now() + 0.08;
+    // START goes out before the first slot's ticks are queued, so a device
+    // following the clock starts its own bar on ours.
+    this.midi.transportStart(this.toPerf(this.trNext));
     this.pump();
     this.trLoop = setInterval(this.pump, LOOKAHEAD_MS);
   }
@@ -699,6 +748,9 @@ export class WorkbenchStore {
     // A bar is queued in advance, so silence what hasn't sounded yet. Notes
     // already ringing are left alone — cutting those mid-note would click.
     this.audio.cancelScheduled();
+    // The same problem on the wire, where it is worse: an un-cancelled note-on
+    // with its note-off dropped is a pad that never lets go.
+    this.midi.transportStop();
     this.stopDrDraw();
     this.jzPlaying = false;
     this.jzStep = -1;
@@ -734,6 +786,9 @@ export class WorkbenchStore {
   // part is re-checked each bar so one added mid-play joins on the next ONE.
   private trTick = (at: number): void => {
     const barStart = this.trHalf % 2 === 0;
+    // Clock is laid out per slot, timestamped like every note, so the device's
+    // sequencer cannot drift away from ours however the main thread behaves.
+    this.midi.sendClockSlot(this.toPerf(at), 60000 / this.tempo);
     if (barStart) {
       if (!this.drPlaying && this.gridHasHits()) this.drPlaying = true;
       if (!this.jzPlaying && this.jzChanges.length) { this.jzPlaying = true; this.jIdx = 0; }
@@ -840,13 +895,16 @@ export class WorkbenchStore {
   setDrTempo(v: number): void { this.setTempo(v); } // one shared transport tempo
   setDrSwing(v: number): void { this.drSwing = v; } // picked up on the next bar
   /** Turn a grid (minus muted voices) into one bar of scheduled hits. */
-  private gridHits(grid: DrumGrid, swing: number, stepSec: number): Array<{ v: DrumVoiceId; at: number; vel: number }> {
-    const hits: Array<{ v: DrumVoiceId; at: number; vel: number }> = [];
+  private gridHits(grid: DrumGrid, swing: number, stepSec: number): Array<{ v: DrumVoiceId; at: number; vel: number; acc: boolean }> {
+    const hits: Array<{ v: DrumVoiceId; at: number; vel: number; acc: boolean }> = [];
     DRUM_VOICES.forEach(({ id }) => {
       if (this.drMuted.includes(id)) return;
       grid[id].forEach((cell, s) => {
         if (!cell) return;
-        hits.push({ v: id, at: (s + swingDelaySteps(s, swing)) * stepSec, vel: cell === 2 ? 1 : 0.55 });
+        // `acc` carries the accent as the grid means it. The synth wants a gain
+        // and MIDI wants a velocity, and deriving one from the other by
+        // comparing floats is the kind of coupling that breaks quietly.
+        hits.push({ v: id, at: (s + swingDelaySteps(s, swing)) * stepSec, vel: cell === 2 ? 1 : 0.55, acc: cell === 2 });
       });
     });
     return hits;
@@ -856,9 +914,16 @@ export class WorkbenchStore {
   // each bar, so edits, mutes and swing changes land on the next ONE.
   private drTick = (at: number): void => {
     const stepSec = this.barMs() / 16000;
+    const wantAudio = this.soundOn && this.audible('drums');
+    const wantMidi = this.midi.partLive('drums');
+    // One layout, both destinations — the kit the hardware plays is the kit on
+    // screen, hit for hit, swing and all.
+    const hits = wantAudio || wantMidi ? this.gridHits(this.drGrid, this.drSwing, stepSec) : [];
     // Muting the kit silences it without stopping it: the bar below is still
     // laid out, so the playhead keeps sweeping the grid you are editing.
-    if (this.soundOn && this.audible('drums')) this.audio.playDrums(this.gridHits(this.drGrid, this.drSwing, stepSec), at);
+    if (wantAudio) this.audio.playDrums(hits, at);
+    // Hit times inside a bar are offsets; the wire wants absolute moments.
+    if (wantMidi) this.midi.sendDrums(hits.map((h) => ({ v: h.v, acc: h.acc, at: this.toPerf(at + h.at) })));
     // The playhead follows when the bar is *heard*, not when it was scheduled:
     // it goes out to the speakers an output latency later, and lighting a step
     // the moment we queued it is exactly what put the ring in front of the kit.

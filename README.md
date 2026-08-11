@@ -63,16 +63,23 @@ src/
       learn.ts         Jazz curriculum, the jazz/classical palettes, rhythm
                        concepts, bassline moves, song-structure timelines
       practice.ts      Ear-training and sight-reading views
+      midi.ts          The MIDI bar button, device status and the pad map rows
     metronome/         Practice metronome (ported from Metrognome): look-ahead
                        click engine, tempo/mute automation, mic tempo detection,
                        practice-session history, and its own runes sub-store
+    midi/              MIDI out: the band played to hardware (see below)
+      map.ts           Pure address book — group/pad note numbers, the drum map,
+                       per-part channel and transpose, settings sanitising
+      out.ts           The wire: Web MIDI ports, timestamped notes, clock, panic
+      store.svelte.ts  Connection + mapping state, and the send methods the
+                       transport calls on the bar line
     audio.ts           Web Audio synth engine (isolated from state)
     store.svelte.ts    Svelte 5 runes store: $state + actions + view = $derived(computeView)
     context.ts         provideStore()/useStore() context helpers
     components/        StudioBar (brand + transport + key), KeyPicker, GenrePicker,
                        CircleMode, DrumsMode, ChordsMode, BassMode, MetronomeMode,
                        LearnMode, EarMode, ReadingMode, Staff, Instruments,
-                       Fretboard, FretDiagram, Piano
+                       Fretboard, FretDiagram, Piano, MidiPanel
       parts/           Widgets used at two altitudes — bare in a tool tab, wrapped
                        in teaching copy in Learn (ChordInspector)
       learn/           The six Learn areas: Theory, Rhythm, Bass, Patterns,
@@ -99,6 +106,39 @@ npm test           # Vitest unit tests
 npm run test:e2e   # Playwright end-to-end tests
 npm run icons      # regenerate the app icons in public/
 ```
+
+## MIDI out — playing the hardware
+
+The studio can drive an external sampler instead of (or alongside) its own Web Audio synth.
+It was built against a **teenage engineering EP-133 K.O. II**, whose note map it knows by
+default, but nothing here is device-specific: anything that takes notes and MIDI clock works.
+
+Open it from **MIDI** in the studio bar. Connect over USB-C, arm the connection, and the
+shared transport sends the same bar it plays — drum grid, chord slots and bassline, swing,
+accents and all — as timestamped MIDI, wrapped in start / stop and 24-PPQN clock so the
+device's own sequencer stays locked to the studio's tempo.
+
+The two kinds of part are addressed differently, which is the thing to understand:
+
+- **Drums address pads.** Each of the K.O. II's four groups is one octave of note numbers,
+  its twelve pads sitting in panel order (`.`, `0`, `⏎`, then 1–9), so a kit voice maps to a
+  group and a pad and nothing more. The panel maps all fourteen voices; the defaults fill
+  group A.
+- **Chords and bass address pitches.** They send real note numbers with a per-part channel
+  and octave transpose, which means the device wants a melodic sound in **KEYS** mode — that
+  is what spreads one sample chromatically across the full range.
+
+Mixer mutes are faders, not switches: muting a part silences the app while the hardware keeps
+playing it, which is how you hand a part over. Each part has its own on/off for the wire.
+
+On the device, three system settings are worth setting first (`SHIFT` + `ERASE`, then the
+code, then `ENTER`): **101** to follow incoming clock, **110** to receive on all channels,
+and **301** or **302** to turn velocity on — it ships off, so accents land flat until you do.
+
+**Desktop only.** Web MIDI does not exist in Safari, so the button is hidden below 981px
+rather than opening a panel that could never connect. Chrome, Edge and Brave all support it.
+Nothing is sent until you arm the connection, and the mapping is remembered across reloads —
+the armed state deliberately is not.
 
 ## Offline use
 

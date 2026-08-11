@@ -60,6 +60,18 @@
       <KeyPicker />
     </div>
 
+    <!-- MIDI out, desktop only: Web MIDI does not exist in Safari, so on a
+         phone this button would open a panel that can never connect. -->
+    {#if store.isDesktop}
+      <div
+        class="mono click wb-sound" data-testid="midi-button" role="button" tabindex="0"
+        aria-label="MIDI out" aria-expanded={v.midiOpen}
+        style="background:{v.midiBtnBg};color:{v.midiBtnFg}"
+        onclick={() => store.togglePicker('midi')}
+        onkeydown={(e) => e.key === 'Enter' && store.togglePicker('midi')}
+      >{v.midiBtnLabel}</div>
+    {/if}
+
     <div class="mono click wb-sound" role="button" tabindex="0" aria-label="sound" style="background:{v.soundBg};color:{v.soundFg}" onclick={() => store.toggleSound()} onkeydown={(e) => e.key === 'Enter' && store.toggleSound()}>
       <span class="only-desktop">{v.soundLabel}</span><span class="only-mobile">{v.soundLabelShort}</span>
     </div>
