@@ -25,9 +25,9 @@ export function buildMidi(s: WorkbenchStore) {
       name: v.name,
       short: v.short,
       color: v.color,
-      // Rows in the current pattern first: on a fourteen-voice kit those are
-      // the handful that will actually be sent, and the list is long enough
-      // that finding them matters.
+      // Rows in the current pattern first: those are the handful that will
+      // actually be sent, and twelve rows is long enough that finding them
+      // matters.
       inGrid: s.drRowIds.includes(v.id),
       mapped: !!addr,
       group: addr ? addr.group : '',

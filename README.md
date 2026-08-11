@@ -127,8 +127,8 @@ The two kinds of part are addressed differently, which is the thing to understan
 
 - **Drums address pads.** Each of the K.O. II's four groups is one octave of note numbers,
   its twelve pads sitting in panel order (`.`, `0`, `⏎`, then 1–9), so a kit voice maps to a
-  group and a pad and nothing more. The panel maps all fourteen voices; the defaults fill
-  group A.
+  group and a pad and nothing more. The kit is twelve voices and a group is twelve pads, so
+  the default map is one to one: kick on the first pad and the kit climbing away from it.
 - **Chords and bass address pitches** — in one of two ways, chosen per part, because a
   sampler hears a note number as one of two completely different things:
   - **Chromatic** sends real note numbers with a channel and an octave transpose. Right for
@@ -232,7 +232,7 @@ from the same genre, since all three libraries shelve off one taxonomy.
   hardstyle, hardcore, jazz, soul-jazz, jazz-funk, fusion, blues, Latin, Afrobeat, reggae,
   reggaeton). Every pattern is authored as ordered *layers*, so the LAYERS chips rebuild
   the groove one part at a time. The grid shows only the instruments the pattern plays —
-  add any of the 14 kit voices as a new row, or remove one — and cells are editable
+  add any of the 12 kit voices as a new row, or remove one — and cells are editable
   (rest → hit → accent). Swing lives here; tempo is the studio's.
 - **Chords** — build a progression from the diatonic and colour/borrowed palettes, or load
   one of 119 starting points across the 31 genres. Drag to reorder. Select a placed chord

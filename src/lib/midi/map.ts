@@ -111,27 +111,26 @@ export interface MidiSettings {
 }
 
 // Group A, because that is where a K.O. II's drums live in every factory
-// project and in nearly every project anyone builds. The nine numbered pads
-// take the nine voices you reach for first; the bottom row picks up the
-// colour percussion.
+// project and in nearly every project anyone builds.
 //
-// The kit has fourteen voices and a group has twelve pads, so two voices start
-// unmapped rather than silently colliding with something else. The panel shows
-// them as unmapped, and moving them to another group is two clicks.
+// The layout is the conventional one for the machine: kick on the first pad and
+// the kit climbing away from it, low to high, so the bottom row is the low end
+// and the numbered pads run up through skins, hands and metal. Twelve kit
+// voices onto twelve pads — the whole kit reaches the hardware, with nothing
+// left over and nothing sharing a pad.
 export const DEFAULT_DRUM_MAP: DrumMap = {
-  kick: { group: 'A', pad: 3 },    // A1
-  snare: { group: 'A', pad: 4 },   // A2
-  chat: { group: 'A', pad: 5 },    // A3
-  ohat: { group: 'A', pad: 6 },    // A4
-  clap: { group: 'A', pad: 7 },    // A5
-  rim: { group: 'A', pad: 8 },     // A6
-  ltom: { group: 'A', pad: 9 },    // A7
-  htom: { group: 'A', pad: 10 },   // A8
-  ride: { group: 'A', pad: 11 },   // A9
-  crash: { group: 'A', pad: 0 },   // A.
-  shaker: { group: 'A', pad: 1 },  // A0
-  tamb: { group: 'A', pad: 2 },    // A⏎
-  // cowbell and sub: unmapped by default. See above.
+  kick: { group: 'A', pad: 0 },     // A.
+  sub: { group: 'A', pad: 1 },      // A0
+  clap: { group: 'A', pad: 2 },     // A⏎
+  snare: { group: 'A', pad: 3 },    // A1
+  rim: { group: 'A', pad: 4 },      // A2
+  cowbell: { group: 'A', pad: 5 },  // A3
+  shaker: { group: 'A', pad: 6 },   // A4
+  chat: { group: 'A', pad: 7 },     // A5
+  ohat: { group: 'A', pad: 8 },     // A6
+  htom: { group: 'A', pad: 9 },     // A7
+  ltom: { group: 'A', pad: 10 },    // A8
+  ride: { group: 'A', pad: 11 },    // A9
 };
 
 // Everything on channel 1, which is what a K.O. II answers to out of the box

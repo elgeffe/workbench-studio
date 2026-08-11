@@ -59,11 +59,11 @@ test('the drum grid plays out as K.O. II pads, wrapped in clock and start/stop',
   expect(clock.length, 'no MIDI clock').toBeGreaterThan(24);
   expect(clock.every((m) => m.at > 0), 'clock sent without a timestamp').toBe(true);
 
-  // Notes: the default map puts the kick on A1, which is 36 + 3.
+  // Notes: the default map puts the kick on the first pad, A. — note 36.
   const noteOns = notesOn(out);
   expect(noteOns.length, 'no notes sent').toBeGreaterThan(0);
   expect(noteOns.every((m) => (m.data[0] & 0x0f) === 0), 'not all on channel 1').toBe(true);
-  expect(noteOns.some((m) => m.data[1] === 39), 'kick never hit A1 (note 39)').toBe(true);
+  expect(noteOns.some((m) => m.data[1] === 36), 'kick never hit A. (note 36)').toBe(true);
   // Every note lands inside the four groups: an off-by-one in the pad map
   // would show up here as a note the device has no pad for.
   expect(noteOns.every((m) => m.data[1] >= 36 && m.data[1] <= 83), 'a note fell outside groups A–D').toBe(true);
@@ -132,7 +132,8 @@ test('remapping a voice moves it to the pad you picked', async ({ page }) => {
 
   const notes = notesOn(await messages(page)).map((m) => m.data[1]);
   expect(notes, 'the kick did not move').toContain(55);
-  expect(notes, 'the kick still fired its old pad').not.toContain(39);
+  // A. (36) is the kick's default pad, and nothing else is mapped there.
+  expect(notes, 'the kick still fired its old pad').not.toContain(36);
 });
 
 test('the mapping survives a reload', async ({ page }) => {

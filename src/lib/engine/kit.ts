@@ -52,17 +52,8 @@ export interface DrumVoiceDef {
 // position where it belongs in that stack.
 export const DRUM_VOICES = [
   {
-    id: 'crash', name: 'Crash / China', short: 'CR', color: '#caa04a', kind: 'cymbal',
-    hint: 'Accent cymbal for downbeats and phrase ends.',
-    synth: [
-      { kind: 'tone', dur: 0.9, amp: 0.04, f0: 4700, f1: 4600, wave: 'square' },
-      { kind: 'tone', dur: 0.8, amp: 0.035, f0: 6100, f1: 6000, wave: 'square' },
-      { kind: 'noise', dur: 0.95, amp: 0.1, filter: 'highpass', freq: 8800 },
-    ],
-  },
-  {
-    id: 'ride', name: 'Ride / Bell', short: 'RD', color: '#b07d23', kind: 'cymbal',
-    hint: 'Jazz and fusion timekeeping; the bell also plays African bell timelines.',
+    id: 'ride', name: 'Ride / Crash', short: 'CY', color: '#b07d23', kind: 'cymbal',
+    hint: 'The one cymbal: ride timekeeping, the bell for African timelines, and accents on downbeats and phrase ends.',
     synth: [
       { kind: 'tone', dur: 0.4, amp: 0.055, f0: 3150, f1: 3100, wave: 'square' },
       { kind: 'tone', dur: 0.32, amp: 0.045, f0: 4680, f1: 4600, wave: 'square' },
@@ -80,19 +71,11 @@ export const DRUM_VOICES = [
     synth: [{ kind: 'noise', dur: 0.045, amp: 0.32, filter: 'highpass', freq: 7500 }],
   },
   {
-    id: 'shaker', name: 'Shaker', short: 'SH', color: '#9b86c4', kind: 'hat',
-    hint: 'Softer than a hat: house, amapiano, neo-soul, samba 16ths.',
+    id: 'shaker', name: 'Shaker / Tambourine', short: 'SH', color: '#9b86c4', kind: 'hat',
+    hint: 'The hand percussion layer, softer than a hat: house and samba 16ths, Motown off-beat jingle.',
     synth: [
       { kind: 'noise', dur: 0.07, amp: 0.2, filter: 'bandpass', freq: 6200, q: 0.9 },
       { kind: 'noise', dur: 0.03, amp: 0.1, filter: 'highpass', freq: 9500 },
-    ],
-  },
-  {
-    id: 'tamb', name: 'Tambourine', short: 'TB', color: '#b2789a', kind: 'perc',
-    hint: 'Off-beat jingle: Motown, Philly soul, G-funk, soulful house.',
-    synth: [
-      { kind: 'noise', dur: 0.09, amp: 0.16, filter: 'bandpass', freq: 9000, q: 1.6 },
-      { kind: 'noise', dur: 0.14, amp: 0.1, filter: 'bandpass', freq: 7000, q: 1.2, at: 0.006 },
     ],
   },
   {

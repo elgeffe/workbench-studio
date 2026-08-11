@@ -17,7 +17,7 @@
   const v = $derived(store.view);
   const m = store.midi;
 
-  // The kit is fourteen voices deep and a pattern uses five or six of them.
+  // The kit is twelve voices deep and a pattern uses five or six of them.
   // Sorting the ones in the current groove to the top makes the list you
   // actually have to configure the list you see first.
   const rows = $derived([...v.midiRows].sort((a, b) => Number(b.inGrid) - Number(a.inGrid)));

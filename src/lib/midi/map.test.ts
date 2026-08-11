@@ -57,15 +57,19 @@ describe('the default map', () => {
     });
   });
 
-  it('fills the group and leaves exactly the overflow unmapped', () => {
-    const mapped = Object.keys(DEFAULT_DRUM_MAP).length;
-    expect(mapped).toBe(PADS_PER_GROUP);
-    expect(DRUM_VOICES.length).toBeGreaterThan(mapped); // the kit is deeper than a group
+  // The kit is sized to a group on purpose: twelve voices, twelve pads. If a
+  // voice is ever added back, this fails rather than letting one silently
+  // arrive with nowhere to go.
+  it('maps every kit voice, exactly filling the group', () => {
+    expect(DRUM_VOICES.length).toBe(PADS_PER_GROUP);
+    expect(Object.keys(DEFAULT_DRUM_MAP).length).toBe(DRUM_VOICES.length);
+    DRUM_VOICES.forEach((v) => expect(DEFAULT_DRUM_MAP[v.id], v.id).toBeDefined());
   });
 
-  it('maps the kick and snare, which every pattern uses', () => {
-    expect(DEFAULT_DRUM_MAP.kick).toBeDefined();
-    expect(DEFAULT_DRUM_MAP.snare).toBeDefined();
+  it('puts the kick on the first pad, with the kit climbing away from it', () => {
+    expect(padName(DEFAULT_DRUM_MAP.kick!)).toBe('A.');
+    expect(padName(DEFAULT_DRUM_MAP.snare!)).toBe('A1');
+    expect(padName(DEFAULT_DRUM_MAP.ride!)).toBe('A9');
   });
 });
 

@@ -111,7 +111,7 @@ export const TECHNO_PATTERNS: DrumTemplate[] = [
       { name: 'Four-floor kick', why: 'The kick holds steady — the roll above it is what creates the sense of acceleration.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 4, 8, 12] }] },
       { name: 'Snare roll: 8ths', why: 'The first half of the bar rolls in 8ths — a slow, readable build.', add: [{ v: 'snare', on: [0, 2, 4, 6], acc: [0] }] },
       { name: 'Snare roll: 16ths', why: 'The second half doubles to 16ths. Same notes, twice the density: the whole trick of a build.', add: [{ v: 'snare', on: [8, 9, 10, 11, 12, 13, 14, 15], acc: [8, 12] }] },
-      { name: 'Crash on 1', why: 'A cymbal on the downbeat marks where the last build ended and this one starts.', add: [{ v: 'crash', on: [0], acc: [0] }] },
+      { name: 'Crash on 1', why: 'A cymbal on the downbeat marks where the last build ended and this one starts.', add: [{ v: 'ride', on: [0], acc: [0] }] },
       { name: 'Open-hat lift', why: 'Off-beat open hats in the first half only, thinning out as the roll takes over.', add: [{ v: 'ohat', on: [3, 7] }] },
     ],
   },
