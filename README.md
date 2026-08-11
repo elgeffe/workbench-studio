@@ -149,6 +149,19 @@ code, then `ENTER`): **101** to follow incoming clock, **110** to receive on all
 and **301** or **302** to turn velocity on — it ships off, so accents land flat until you do.
 Most keyboards and synths need none of this: channel 1, no transpose, and they play.
 
+**Incoming notes play but are not recorded.** The K.O. II sounds MIDI as it arrives and does
+not capture it into its own patterns — tested on hardware, not assumed. Nor is there another
+way in: the reverse-engineered `.ppak` project format covers samples and pad assignments, but
+sequencer data has never been located, so no tool can write a pattern to the device. The
+studio therefore *drives* the K.O. II rather than loading it, and there is no route for
+baking a groove from the pattern library into a project.
+
+If you want the material on the device rather than streamed to it, sample it as audio. From
+firmware 2.5 the EP-133 is a class-compliant USB audio interface: make it the computer's
+audio output, set `usb` as the sampling source (**510**), and `SAMPLE` records the studio's
+own output down the same cable — ready to chop onto a pad. That gives you audio rather than
+an editable sequence, which is the trade.
+
 **Desktop only.** Web MIDI does not exist in Safari, so the button is hidden below 981px
 rather than opening a panel that could never connect. Chrome, Edge and Brave all support it.
 Nothing is sent until you arm the connection, and the mapping is remembered across reloads —
