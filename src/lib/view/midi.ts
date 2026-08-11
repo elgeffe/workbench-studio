@@ -42,12 +42,18 @@ export function buildMidi(s: WorkbenchStore) {
 
   const parts = MIDI_PARTS.map((id) => {
     const cfg = m.parts[id];
+    const port = m.ports.find((p) => p.id === cfg.portId);
     return {
       id,
       label: PART_LABEL[id],
       on: cfg.on,
       channel: cfg.channel,
       octave: cfg.octave,
+      portId: port ? cfg.portId! : '',
+      portName: port ? port.name : '',
+      // Switched on with nowhere to go: the part is configured and silent, and
+      // saying so is better than letting it look like it is playing.
+      unrouted: cfg.on && !port,
       octaveLabel: cfg.octave > 0 ? `+${cfg.octave}` : String(cfg.octave),
       // Drums address pads, so an octave transpose would just walk them off
       // their group. Only the pitched parts get one.
@@ -57,8 +63,8 @@ export function buildMidi(s: WorkbenchStore) {
         : id === 'bass'
           ? 'Chromatic — put the device in KEYS mode on a bass sound'
           : 'Chromatic — KEYS mode on a melodic sound',
-      bg: cfg.on && live ? 'rgba(63,107,95,.14)' : 'transparent',
-      border: cfg.on ? '#3f6b5f' : '#d8c7a8',
+      bg: cfg.on && live && port ? 'rgba(63,107,95,.14)' : 'transparent',
+      border: cfg.on && !port && live ? '#9a3f1f' : cfg.on ? '#3f6b5f' : '#d8c7a8',
       fg: cfg.on ? '#2c261d' : '#8a7350',
     };
   });
@@ -70,27 +76,23 @@ export function buildMidi(s: WorkbenchStore) {
     midiStatus: m.status,
     midiError: m.error,
     midiConnecting: m.status === 'connecting',
-    midiPortId: m.portId,
-    // With one device plugged in and already taken there is nothing to choose,
-    // and the chip would only repeat the name in the status line above it.
-    midiShowPorts: m.ports.length > 1 || (m.ports.length === 1 && m.ports[0].id !== m.portId),
+    // Outputs are listed for reference; routing is chosen per part below, so
+    // these are labels rather than a selection.
     midiPorts: m.ports.map((p) => ({
       id: p.id,
       name: p.name,
-      active: p.id === m.portId,
-      bg: p.id === m.portId ? '#3f6b5f' : '#f6efe0',
-      fg: p.id === m.portId ? '#fff' : '#5c4a30',
-      border: p.id === m.portId ? '#3f6b5f' : '#d8c7a8',
+      // Which parts this device is playing — the one-line answer to "what is
+      // this box doing", which is the question a two-device rig raises.
+      parts: MIDI_PARTS.filter((id) => m.parts[id].on && m.parts[id].portId === p.id)
+        .map((id) => PART_LABEL[id]).join(' · '),
     })),
     midiStatusLine: !m.supported
       ? 'Web MIDI is not available in this browser'
       : m.status === 'ready'
-        ? (m.ports.find((p) => p.id === m.portId)?.name ?? 'Connected')
+        ? (m.ports.length === 1 ? m.ports[0].name : `${m.ports.length} outputs`)
         : m.status === 'connecting'
           ? 'Asking for MIDI access…'
-          : m.status === 'error'
-            ? 'Not connected'
-            : 'Not connected',
+          : 'Not connected',
     // The bar button
     midiBtnLabel: btnState === 'live' ? '● MIDI' : btnState === 'error' ? '! MIDI' : '○ MIDI',
     midiBtnBg: btnState === 'live' ? 'rgba(63,107,95,.4)' : btnState === 'error' ? 'rgba(154,63,31,.4)' : 'transparent',

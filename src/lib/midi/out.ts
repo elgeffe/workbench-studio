@@ -8,6 +8,10 @@
 // `performance.now()` milliseconds while the studio's transport runs on the
 // audio clock in seconds. Converting between them is the caller's job (see
 // WorkbenchStore.toPerf), because only the caller knows the audio clock.
+//
+// Every send names its output. A part of the band is routed independently, so
+// the drums can play a sampler while the chords play a synth on a second cable
+// — which is the ordinary case once someone owns two boxes, not an exotic one.
 
 // `MIDIAccess` and friends come from the DOM library. `requestMIDIAccess` is
 // declared on Navigator whether or not the engine implements it, so the
@@ -32,23 +36,19 @@ export const PPQN = 24;
 
 export class MidiOut {
   private access: MIDIAccess | null = null;
-  private port: MIDIOutput | null = null;
-  // Every (channel, note) this connection has ever sounded. Panic walks it and
-  // sends a note-off for each. The EP-133 does not implement all-notes-off
-  // (CC 123), so there is no single message that clears a stuck pad — the only
-  // reliable way is to release exactly what we pressed.
-  private touched = new Set<number>();
+  // Every (channel, note) this connection has sounded, per output. Panic walks
+  // it and sends a note-off for each. The EP-133 does not implement
+  // all-notes-off (CC 123), so there is no single message that clears a stuck
+  // pad — the only reliable way is to release exactly what we pressed.
+  private touched = new Map<string, Set<number>>();
 
   /** Does this browser have Web MIDI at all? Safari and Firefox do not. */
   static supported(): boolean {
     return typeof navigator !== 'undefined' && typeof (navigator as MidiNavigator).requestMIDIAccess === 'function';
   }
 
-  get connected(): boolean {
-    return !!this.port;
-  }
-  get portId(): string | null {
-    return this.port?.id ?? null;
+  get ready(): boolean {
+    return !!this.access;
   }
 
   /**
@@ -63,12 +63,7 @@ export class MidiOut {
     if (!nav.requestMIDIAccess) throw new Error('This browser has no Web MIDI. Use Chrome, Edge or Brave.');
     if (!this.access) {
       const access = await nav.requestMIDIAccess({ sysex: false });
-      access.onstatechange = () => {
-        // A port that vanished under us must not stay selected, or every send
-        // after it throws into the transport's hot path.
-        if (this.port && this.port.state !== 'connected') this.port = null;
-        onChange?.();
-      };
+      access.onstatechange = () => onChange?.();
       this.access = access;
     }
     return this.ports();
@@ -76,18 +71,24 @@ export class MidiOut {
 
   ports(): MidiPortInfo[] {
     if (!this.access) return [];
-    return [...this.access.outputs.values()].map((p) => ({ id: p.id, name: p.name || p.id }));
+    return [...this.access.outputs.values()]
+      .filter((p) => p.state === 'connected')
+      .map((p) => ({ id: p.id, name: p.name || p.id }));
   }
 
-  /** Point at an output by id. Returns false if it isn't there (any more). */
-  select(id: string | null): boolean {
-    if (!this.access || !id) {
-      this.port = null;
-      return false;
-    }
+  has(id: string | null | undefined): boolean {
+    return !!this.resolve(id);
+  }
+
+  /**
+   * The output behind an id, or null. Resolved per send rather than held onto:
+   * a port pulled mid-bar would otherwise stay referenced and throw on every
+   * note for the rest of the loop.
+   */
+  private resolve(id: string | null | undefined): MIDIOutput | null {
+    if (!this.access || !id) return null;
     const p = this.access.outputs.get(id);
-    this.port = p && p.state === 'connected' ? p : null;
-    return !!this.port;
+    return p && p.state === 'connected' ? p : null;
   }
 
   /**
@@ -95,11 +96,13 @@ export class MidiOut {
    * performance clock. Note-off is a real note-off rather than a zero-velocity
    * note-on so the message reads correctly in a MIDI monitor.
    */
-  note(channel: number, note: number, velocity: number, at: number, durMs: number): void {
-    const p = this.port;
+  note(portId: string | null, channel: number, note: number, velocity: number, at: number, durMs: number): void {
+    const p = this.resolve(portId);
     if (!p || note < 0 || note > 127) return;
     const ch = (channel - 1) & 0x0f;
-    this.touched.add((ch << 8) | note);
+    let held = this.touched.get(p.id);
+    if (!held) { held = new Set(); this.touched.set(p.id, held); }
+    held.add((ch << 8) | note);
     try {
       p.send([0x90 | ch, note, velocity], at);
       p.send([0x80 | ch, note, 0], at + Math.max(1, durMs));
@@ -110,20 +113,22 @@ export class MidiOut {
     }
   }
 
-  /** A system real-time byte at a scheduled time. */
-  private rt(byte: number, at?: number): void {
-    try {
-      this.port?.send([byte], at);
-    } catch { /* see note() */ }
+  /** A system real-time byte, to each of the given outputs. */
+  private rt(byte: number, portIds: Iterable<string>, at?: number): void {
+    for (const id of portIds) {
+      try {
+        this.resolve(id)?.send([byte], at);
+      } catch { /* see note() */ }
+    }
   }
-  clock(at: number): void { this.rt(CLOCK, at); }
-  start(at?: number): void { this.rt(START, at); }
-  continue(at?: number): void { this.rt(CONTINUE, at); }
-  stop(at?: number): void { this.rt(STOP, at); }
+  clock(portIds: Iterable<string>, at: number): void { this.rt(CLOCK, portIds, at); }
+  start(portIds: Iterable<string>, at?: number): void { this.rt(START, portIds, at); }
+  continue(portIds: Iterable<string>, at?: number): void { this.rt(CONTINUE, portIds, at); }
+  stop(portIds: Iterable<string>, at?: number): void { this.rt(STOP, portIds, at); }
 
   /**
-   * Silence. Drops everything still queued, then releases every note this
-   * connection has ever pressed.
+   * Silence, across every output this connection has touched. Drops what is
+   * still queued, then releases every note it ever pressed.
    *
    * The queue has to go first. Stopping the transport leaves up to a bar of
    * note-ons already handed to the browser's scheduler, and releasing notes
@@ -131,24 +136,24 @@ export class MidiOut {
    * arrive afterwards and hang.
    */
   panic(): void {
-    const p = this.port;
-    if (!p) return;
-    try {
-      // `clear()` is in the Web MIDI spec but not in TypeScript's DOM library,
-      // and an engine that ships MIDI without it is allowed — so feature-detect
-      // rather than assume. Without it the queued note-ons still arrive, but
-      // their note-offs arrive too, so nothing hangs; it is only less abrupt.
-      (p as MIDIOutput & { clear?: () => void }).clear?.();
-      this.touched.forEach((key) => {
-        p.send([0x80 | (key >> 8), key & 0xff, 0]);
-      });
-    } catch { /* see note() */ }
+    this.touched.forEach((held, id) => {
+      const p = this.resolve(id);
+      if (!p) return;
+      try {
+        // `clear()` is in the Web MIDI spec but not in TypeScript's DOM
+        // library, and an engine that ships MIDI without it is allowed — so
+        // feature-detect rather than assume. Without it the queued note-ons
+        // still arrive, but their note-offs arrive too, so nothing hangs; it
+        // is only less abrupt.
+        (p as MIDIOutput & { clear?: () => void }).clear?.();
+        held.forEach((key) => p.send([0x80 | (key >> 8), key & 0xff, 0]));
+      } catch { /* see note() */ }
+    });
     this.touched.clear();
   }
 
   close(): void {
     this.panic();
-    this.port = null;
     if (this.access) this.access.onstatechange = null;
     this.access = null;
   }

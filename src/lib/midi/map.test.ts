@@ -150,12 +150,26 @@ describe('sanitizeSettings', () => {
 
   it('repairs out-of-range channels and octaves from an older file', () => {
     const s = sanitizeSettings({ parts: { bass: { on: true, channel: 44, octave: -12 } } });
-    expect(s.parts.bass).toEqual({ on: true, channel: 16, octave: -4 });
+    expect(s.parts.bass).toEqual({ on: true, portId: null, channel: 16, octave: -4 });
   });
 
   it('falls back to defaults for a part the file does not mention', () => {
     const s = sanitizeSettings({ parts: { bass: { on: true } } });
     expect(s.parts.chords.channel).toBe(1);
     expect(s.parts.drums.on).toBe(true);
+  });
+
+  it('keeps each part pointed at its own output', () => {
+    const s = sanitizeSettings({
+      parts: { drums: { on: true, portId: 'ko2' }, chords: { on: true, portId: 'reface' } },
+    });
+    expect(s.parts.drums.portId).toBe('ko2');
+    expect(s.parts.chords.portId).toBe('reface');
+    expect(s.parts.bass.portId).toBeNull();
+  });
+
+  it('drops a non-string port rather than routing to nonsense', () => {
+    const s = sanitizeSettings({ parts: { drums: { portId: 7 } } });
+    expect(s.parts.drums.portId).toBeNull();
   });
 });

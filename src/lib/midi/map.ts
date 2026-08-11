@@ -47,6 +47,13 @@ export const MIDI_PARTS: readonly MidiPart[] = ['drums', 'chords', 'bass'];
 export interface PartCfg {
   /** Does this part go out to the device at all? */
   on: boolean;
+  /**
+   * Which output it goes to. Per part, not per studio: the ordinary setup once
+   * someone owns two boxes is a sampler taking the drums and a synth taking the
+   * harmony, and those are two USB ports rather than two channels on one wire.
+   * Null means unrouted — the part is configured but has nowhere to go.
+   */
+  portId: string | null;
   /** 1–16. The device receives on one channel unless you assign per-pad ones. */
   channel: number;
   /** Octaves of transpose, −4…+4. Ignored by drums, which address pads. */
@@ -54,7 +61,6 @@ export interface PartCfg {
 }
 
 export interface MidiSettings {
-  portId: string | null;
   enabled: boolean;
   clockOn: boolean;
   velNormal: number;
@@ -92,13 +98,12 @@ export const DEFAULT_DRUM_MAP: DrumMap = {
 // start an octave down: the studio voices chords around middle C, and a sample
 // played chromatically from there sits high for a bassline.
 export const DEFAULT_PARTS: Record<MidiPart, PartCfg> = {
-  drums: { on: true, channel: 1, octave: 0 },
-  chords: { on: false, channel: 1, octave: 0 },
-  bass: { on: false, channel: 1, octave: -1 },
+  drums: { on: true, portId: null, channel: 1, octave: 0 },
+  chords: { on: false, portId: null, channel: 1, octave: 0 },
+  bass: { on: false, portId: null, channel: 1, octave: 0 },
 };
 
 export const DEFAULT_SETTINGS: MidiSettings = {
-  portId: null,
   enabled: false,
   clockOn: true,
   velNormal: 84,
@@ -172,6 +177,9 @@ export function sanitizeSettings(raw: unknown): MidiSettings {
     const c = (o.parts as Record<string, Partial<PartCfg>> | undefined)?.[p] ?? {};
     parts[p] = {
       on: typeof c.on === 'boolean' ? c.on : d.on,
+      // A remembered port is only a hope: the store checks it against what is
+      // actually plugged in before routing anything to it.
+      portId: typeof c.portId === 'string' ? c.portId : d.portId,
       channel: clampChannel(typeof c.channel === 'number' ? c.channel : d.channel),
       octave: clampOctave(typeof c.octave === 'number' ? c.octave : d.octave),
     };
@@ -195,7 +203,6 @@ export function sanitizeSettings(raw: unknown): MidiSettings {
   });
 
   return {
-    portId: typeof o.portId === 'string' ? o.portId : null,
     // Never restore "enabled" from storage: reconnecting to hardware needs a
     // live user gesture anyway, and a page that starts firing at a device the
     // user has since unplugged is a worse default than one that waits.

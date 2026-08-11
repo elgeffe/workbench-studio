@@ -113,10 +113,15 @@ The studio can drive an external sampler instead of (or alongside) its own Web A
 It was built against a **teenage engineering EP-133 K.O. II**, whose note map it knows by
 default, but nothing here is device-specific: anything that takes notes and MIDI clock works.
 
-Open it from **MIDI** in the studio bar. Connect over USB-C, arm the connection, and the
+Open it from **MIDI** in the studio bar. Connect over USB, arm the connection, and the
 shared transport sends the same bar it plays — drum grid, chord slots and bassline, swing,
 accents and all — as timestamped MIDI, wrapped in start / stop and 24-PPQN clock so the
 device's own sequencer stays locked to the studio's tempo.
+
+**Each part picks its own output.** Drums to a sampler, chords and bass to a synth, one
+transport and one clock across both — routing is a property of the part, because two boxes
+means two USB ports rather than two channels on one wire. With a single device plugged in
+there is nothing to configure: every part takes it automatically.
 
 The two kinds of part are addressed differently, which is the thing to understand:
 
@@ -125,8 +130,11 @@ The two kinds of part are addressed differently, which is the thing to understan
   group and a pad and nothing more. The panel maps all fourteen voices; the defaults fill
   group A.
 - **Chords and bass address pitches.** They send real note numbers with a per-part channel
-  and octave transpose, which means the device wants a melodic sound in **KEYS** mode — that
-  is what spreads one sample chromatically across the full range.
+  and octave transpose. On a sampler that means a melodic sound in **KEYS** mode, which is
+  what spreads one sample chromatically across the full range; on a keyboard or synth it
+  just plays. The bassline is already written in bass register (MIDI 24–47), so a real
+  instrument wants no transpose — the octave control is there for a sampler whose pad root
+  sits somewhere else.
 
 Mixer mutes are faders, not switches: muting a part silences the app while the hardware keeps
 playing it, which is how you hand a part over. Each part has its own on/off for the wire.

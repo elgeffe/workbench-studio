@@ -69,14 +69,16 @@
             <div class="caption" data-testid="midi-error" style="margin-top:8px;font-size:13px;color:#9a3f1f;line-height:1.5">{v.midiError}</div>
           {/if}
 
-          {#if v.midiShowPorts}
+          {#if v.midiPorts.length > 1}
+            <!-- Two boxes on the desk is the point of per-part routing, so say
+                 which one is playing what rather than leaving it to be worked
+                 out from three dropdowns. -->
             <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px" data-testid="midi-ports">
               {#each v.midiPorts as p (p.id)}
-                <div
-                  class="serif click" role="button" tabindex="0" aria-pressed={p.active}
-                  style="font-size:13.5px;padding:6px 11px;border-radius:13px;border:1.5px solid {p.border};background:{p.bg};color:{p.fg};white-space:nowrap"
-                  onclick={() => m.selectPort(p.id)} onkeydown={(e) => e.key === 'Enter' && m.selectPort(p.id)}
-                >{p.name}</div>
+                <div class="wb-midi-port">
+                  <span class="wb-midi-portname">{p.name}</span>
+                  <span class="mono wb-midi-portparts">{p.parts || 'unused'}</span>
+                </div>
               {/each}
             </div>
           {/if}
@@ -107,7 +109,22 @@
                 onkeydown={(e) => e.key === 'Enter' && m.setPartOn(p.id, !p.on)}
               >{p.label}</span>
 
-              <span class="caption wb-midi-parthint">{p.hint}</span>
+              {#if p.unrouted}
+                <span class="caption wb-midi-parthint" style="color:#9a3f1f">On, but not routed — pick an output</span>
+              {:else}
+                <span class="caption wb-midi-parthint">{p.hint}</span>
+              {/if}
+
+              <label class="wb-midi-field">
+                <span class="mono">OUT</span>
+                <select
+                  aria-label="{p.label} output" value={p.portId}
+                  onchange={(e) => m.setPartPort(p.id, e.currentTarget.value)}
+                >
+                  <option value="">—</option>
+                  {#each v.midiPorts as o (o.id)}<option value={o.id}>{o.name}</option>{/each}
+                </select>
+              </label>
 
               <label class="wb-midi-field">
                 <span class="mono">CH</span>
@@ -138,9 +155,11 @@
             </div>
           {/each}
           <div class="caption" style="margin-top:8px;font-size:12.5px;color:#7a6448;line-height:1.5">
-            A part keeps playing through the app's own speakers as well — mute its mixer strip to hear the hardware alone.
-            The K.O. II answers on one channel out of the box (<span class="mono">SHIFT</span> + <span class="mono">ERASE</span>,
-            <b>110</b>); give a part its own channel only if you have assigned channels per pad in sound edit.
+            Each part picks its own output, so a sampler can take the drums while a synth takes the harmony — one transport,
+            one clock, both boxes. A part keeps playing through the app's own speakers as well; mute its mixer strip to hear
+            the hardware alone. The K.O. II answers on one channel out of the box (<span class="mono">SHIFT</span> +
+            <span class="mono">ERASE</span>, <b>110</b>); give a part its own channel only if you have assigned channels per
+            pad in sound edit.
           </div>
         </div>
 
@@ -237,7 +256,14 @@
     padding: 7px 9px; margin-bottom: 6px;
     border: 1px solid #d8c7a8; border-radius: 8px;
   }
-  .wb-midi-parthint { flex: 1 1 200px; min-width: 0; font-size: 12.5px; color: #7a6448; }
+  .wb-midi-parthint { flex: 1 1 150px; min-width: 0; font-size: 12.5px; color: #7a6448; }
+  .wb-midi-port {
+    display: inline-flex; align-items: baseline; gap: 7px;
+    padding: 5px 11px; border-radius: 13px;
+    border: 1.5px solid #d8c7a8; background: #f6efe0;
+  }
+  .wb-midi-portname { font-size: 13.5px; color: #2c261d; white-space: nowrap; }
+  .wb-midi-portparts { font-size: 8px; letter-spacing: .1em; color: #8a7350; text-transform: uppercase; }
   .wb-midi-row {
     display: flex; align-items: center; gap: 8px;
     padding: 4px 0; border-bottom: 1px solid #ece0c8;

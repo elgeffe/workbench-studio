@@ -44,7 +44,6 @@ export class MidiStore {
   status = $state<MidiStatus>('idle');
   error = $state('');
   ports = $state<MidiPortInfo[]>([]);
-  portId = $state<string | null>(null);
 
   // ---- configuration ----
   clockOn = $state(true);
@@ -57,7 +56,6 @@ export class MidiStore {
 
   constructor() {
     const s = this.load();
-    this.portId = s.portId;
     this.clockOn = s.clockOn;
     this.velNormal = s.velNormal;
     this.velAccent = s.velAccent;
@@ -69,15 +67,29 @@ export class MidiStore {
   get live(): boolean {
     return this.enabled && this.status === 'ready';
   }
+  /**
+   * A part is live only if it is switched on *and* pointed at an output that is
+   * really there. Routing is per part, so one unplugged device silences its own
+   * part and leaves the rest of the band playing.
+   */
   partLive(p: MidiPart): boolean {
-    return this.live && this.parts[p].on;
+    return this.live && this.parts[p].on && this.out.has(this.parts[p].portId);
+  }
+
+  /** The distinct outputs the enabled parts are pointed at — where clock goes. */
+  private activePorts(): Set<string> {
+    const ids = new Set<string>();
+    MIDI_PARTS.forEach((p) => {
+      const id = this.parts[p].portId;
+      if (this.parts[p].on && id && this.out.has(id)) ids.add(id);
+    });
+    return ids;
   }
 
   // ---- connection ----
   /**
-   * Ask the browser for MIDI, list the outputs and take the remembered one if
-   * it is still there (a single output gets taken regardless — with one device
-   * plugged in there is nothing to choose).
+   * Ask the browser for MIDI and list the outputs, then give any part that has
+   * nowhere to go somewhere to go.
    */
   async connect(): Promise<void> {
     if (!this.supported) {
@@ -89,17 +101,13 @@ export class MidiStore {
     this.error = '';
     try {
       this.ports = await this.out.open(() => this.refresh());
-      const want = this.portId && this.ports.some((p) => p.id === this.portId) ? this.portId
-        : this.ports.length === 1 ? this.ports[0].id
-        : null;
-      if (want && this.out.select(want)) {
-        this.portId = want;
+      if (this.ports.length) {
+        this.route();
         this.status = 'ready';
         this.enabled = true;
       } else {
-        // Access granted, nothing chosen yet — the panel lists what it found.
-        this.status = this.ports.length ? 'idle' : 'error';
-        if (!this.ports.length) this.error = 'No MIDI outputs found. Connect the K.O. II over USB-C and try again.';
+        this.status = 'error';
+        this.error = 'No MIDI outputs found. Connect a device over USB and try again.';
       }
     } catch (e) {
       this.status = 'error';
@@ -108,25 +116,46 @@ export class MidiStore {
     this.save();
   }
 
+  /**
+   * Point every part at something sensible without ever silently rerouting one.
+   *
+   * An unrouted part takes the first output — with one box plugged in that
+   * makes the whole thing work with no configuring at all. A part whose
+   * remembered output is *missing* is the dangerous case: falling back to
+   * "the first one" is how the drums end up hammering a piano. So it only
+   * inherits when there is exactly one candidate and therefore no ambiguity;
+   * otherwise it is cleared, and the panel shows it wants an answer.
+   */
+  private route(): void {
+    const next = { ...this.parts };
+    let changed = false;
+    MIDI_PARTS.forEach((p) => {
+      const cur = next[p].portId;
+      if (cur && this.out.has(cur)) return;
+      const want = !cur || this.ports.length === 1 ? this.ports[0]?.id ?? null : null;
+      if (want !== cur) { next[p] = { ...next[p], portId: want }; changed = true; }
+    });
+    if (changed) this.parts = next;
+  }
+
   /** A device was plugged in or pulled out. */
   private refresh(): void {
     this.ports = this.out.ports();
-    if (this.portId && !this.ports.some((p) => p.id === this.portId)) {
-      this.status = 'error';
-      this.error = 'The MIDI output disappeared — check the cable, then reconnect.';
+    this.route();
+    const orphaned = MIDI_PARTS.filter((p) => this.parts[p].on && !this.out.has(this.parts[p].portId));
+    if (orphaned.length) {
+      this.error = `No output for ${orphaned.join(', ')} — check the cable, then pick one below.`;
+    } else if (this.error.startsWith('No output for')) {
+      this.error = '';
     }
   }
 
-  selectPort(id: string): void {
-    if (this.out.select(id)) {
-      this.portId = id;
-      this.status = 'ready';
-      this.error = '';
-      this.enabled = true;
-    } else {
-      this.status = 'error';
-      this.error = 'That output is no longer available.';
-    }
+  /** Route one part to an output (or to nothing, with an empty id). */
+  setPartPort(p: MidiPart, id: string): void {
+    // The old device keeps whatever it was holding, so release first.
+    this.panic();
+    this.parts = { ...this.parts, [p]: { ...this.parts[p], portId: id || null } };
+    if (id && this.error.startsWith('No output for')) this.refresh();
     this.save();
   }
 
@@ -200,12 +229,12 @@ export class MidiStore {
    */
   sendDrums(hits: Array<{ v: DrumVoiceId; at: number; acc: boolean }>): void {
     if (!this.partLive('drums')) return;
-    const ch = this.parts.drums.channel;
+    const { portId, channel } = this.parts.drums;
     const vel = { velNormal: this.velNormal, velAccent: this.velAccent };
     hits.forEach((h) => {
       const addr = this.drumMap[h.v];
       if (!addr) return;
-      this.out.note(ch, padNote(addr), velocityFor(h.acc, vel), h.at, DRUM_GATE_MS);
+      this.out.note(portId, channel, padNote(addr), velocityFor(h.acc, vel), h.at, DRUM_GATE_MS);
     });
   }
 
@@ -214,28 +243,31 @@ export class MidiStore {
     if (!this.partLive(part)) return;
     const cfg = this.parts[part];
     midis.forEach((m) => {
-      this.out.note(cfg.channel, transposed(m, cfg.octave), clampVel(this.velNormal), at, durMs);
+      this.out.note(cfg.portId, cfg.channel, transposed(m, cfg.octave), clampVel(this.velNormal), at, durMs);
     });
   }
 
   /**
    * Clock for one half-bar slot: 48 ticks, laid out from `at` at the given
-   * beat length. Scheduled by timestamp like the notes, so the device's clock
-   * cannot drift away from the studio's own.
+   * beat length, to every device the band is playing. Scheduled by timestamp
+   * like the notes, so a device's clock cannot drift away from the studio's
+   * own — or from the other device's.
    */
   sendClockSlot(at: number, beatMs: number): void {
     if (!this.live || !this.clockOn) return;
+    const ports = this.activePorts();
+    if (!ports.size) return;
     const tickMs = beatMs / PPQN;
-    for (let i = 0; i < PPQN * 2; i++) this.out.clock(at + i * tickMs);
+    for (let i = 0; i < PPQN * 2; i++) this.out.clock(ports, at + i * tickMs);
   }
 
   transportStart(at: number): void {
     if (!this.live || !this.clockOn) return;
-    this.out.start(at);
+    this.out.start(this.activePorts(), at);
   }
   transportStop(): void {
     if (!this.live) return;
-    if (this.clockOn) this.out.stop();
+    if (this.clockOn) this.out.stop(this.activePorts());
     // Stopping leaves up to a bar of note-ons queued; panic drops the queue
     // and releases anything already pressed.
     this.panic();
@@ -245,7 +277,8 @@ export class MidiStore {
   testVoice(v: DrumVoiceId): void {
     const addr = this.drumMap[v];
     if (!addr || !this.live) return;
-    this.out.note(this.parts.drums.channel, padNote(addr), clampVel(this.velAccent), performance.now(), 120);
+    const { portId, channel } = this.parts.drums;
+    this.out.note(portId, channel, padNote(addr), clampVel(this.velAccent), performance.now(), 120);
   }
 
   /**
@@ -255,9 +288,9 @@ export class MidiStore {
   testPitched(part: 'chords' | 'bass'): void {
     if (!this.live) return;
     const cfg = this.parts[part];
-    const midis = part === 'bass' ? [48] : [60, 64, 67];
+    const midis = part === 'bass' ? [36] : [60, 64, 67];
     midis.forEach((m, i) => {
-      this.out.note(cfg.channel, transposed(m, cfg.octave), clampVel(this.velAccent), performance.now() + i * 8, 500);
+      this.out.note(cfg.portId, cfg.channel, transposed(m, cfg.octave), clampVel(this.velAccent), performance.now() + i * 8, 500);
     });
   }
 
@@ -280,7 +313,6 @@ export class MidiStore {
     const s = storage();
     if (!s) return;
     const data: MidiSettings = {
-      portId: this.portId,
       enabled: this.enabled,
       clockOn: this.clockOn,
       velNormal: this.velNormal,
