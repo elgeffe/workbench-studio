@@ -299,6 +299,33 @@ test('group-pads mode folds the harmony onto one group of the same device', asyn
   expect([...byMoment.values()].every((n) => n === 1), 'the same pad was struck twice at once').toBe(true);
 });
 
+// Chromatic and pads on one K.O. II is the configuration that half-works:
+// KEYS mode repoints the whole note map, so the pad part stops being read.
+// The symptom looks like an app bug, so the panel has to say so first.
+test('warns when a chromatic part would take the pads over on a shared device', async ({ page }) => {
+  await stubMidi(page, { ports: ['EP-133 K.O. II', 'reface CP'] });
+  await page.goto('/');
+  await page.getByTestId('midi-button').click();
+  await page.getByTestId('midi-arm').click();
+
+  const bass = page.getByTestId('midi-part-bass');
+  await page.getByTestId('midi-part-toggle-bass').click();
+  await bass.getByLabel('BASS output').selectOption({ label: 'EP-133 K.O. II' });
+
+  // Drums are on the same device and channel, addressing pads.
+  await expect(page.getByTestId('midi-clash-bass')).toContainText('KEYS mode takes the pads over');
+
+  // Either way out clears it: fold the bass onto its own group…
+  await bass.getByLabel('BASS pitch mode').selectOption('pads');
+  await expect(page.getByTestId('midi-clash-bass')).toHaveCount(0);
+
+  // …or send it to a different box entirely.
+  await bass.getByLabel('BASS pitch mode').selectOption('keys');
+  await expect(page.getByTestId('midi-clash-bass')).toBeVisible();
+  await bass.getByLabel('BASS output').selectOption({ label: 'reface CP' });
+  await expect(page.getByTestId('midi-clash-bass')).toHaveCount(0);
+});
+
 test('an unrouted part says so rather than looking like it is playing', async ({ page }) => {
   await stubMidi(page, { ports: ['EP-133 K.O. II', 'reface CP'] });
   await page.goto('/');

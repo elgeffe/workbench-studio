@@ -132,17 +132,20 @@ The two kinds of part are addressed differently, which is the thing to understan
 - **Chords and bass address pitches** — in one of two ways, chosen per part, because a
   sampler hears a note number as one of two completely different things:
   - **Chromatic** sends real note numbers with a channel and an octave transpose. Right for
-    a keyboard or synth, where it just plays; on a K.O. II it needs **KEYS** mode, which
-    spreads the selected pad's sample across the full range but takes the whole instrument —
-    drums cannot be sitting on pads at the same time. The bassline is already written in
-    bass register (MIDI 24–47), so a real instrument wants no transpose; the octave control
-    is for a sampler whose pad root sits somewhere else.
-  - **Group pads** folds the part into one octave and plays a group's twelve pads. Pressing
-    `KEYS` on a pad spreads its sample chromatically across that group, and a group *is*
-    twelve note numbers — so once it is set up that way, its pads are an octave of
-    semitones. **C IS** says which pad the root landed on. This is what lets a single
-    K.O. II play drums on group A and harmony on group C at once. The cost is the register:
-    twelve pads is twelve semitones, so a two-octave bassline comes back as one.
+    a keyboard or synth, where it just plays. On a K.O. II it needs **KEYS** mode, and keys
+    mode repoints the *whole* note map at pitches across 0–127 — so any part addressing pads
+    stops being understood, and drums plus a chromatic part cannot share one K.O. II
+    whatever channel they are on. The panel warns when a configuration would hit this. The
+    bassline is already written in bass register (MIDI 24–47), so a real instrument wants no
+    transpose; the octave control is for a sampler whose pad root sits somewhere else.
+  - **Group pads** folds the part into one octave and plays a group's twelve pads, with
+    `KEYS` **off** — which is what lets a single K.O. II play drums on group A and harmony
+    on group C at once. The group has to be tuned on the device first: put the sound on each
+    pad and set its **Pitch** a semitone apart in sound edit (`SHIFT` + `SOUND`, knob Y).
+    Pressing `KEYS` also spreads a sample across the pads, but that is a mode for playing by
+    hand rather than a tuning — it does not persist when you leave it. **C IS** says which
+    pad the root sits on. The cost is the register: twelve pads is twelve semitones, so a
+    two-octave bassline comes back as one.
 
   Which sample sits on those pads is chosen on the device. MIDI cannot assign one, and the
   reverse-engineered sysex path that could is not something to attempt from a browser.

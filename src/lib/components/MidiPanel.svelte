@@ -115,6 +115,11 @@
 
                 {#if p.unrouted}
                   <span class="caption wb-midi-parthint" style="color:#9a3f1f">On, but not routed — pick an output</span>
+                {:else if p.clash}
+                  <span class="caption wb-midi-parthint" style="color:#9a3f1f" data-testid="midi-clash-{p.id}">
+                    ⚠ Chromatic shares {p.portLabel} ch {p.channel} with a pad part — KEYS mode takes the pads over, so only
+                    one will play. Switch to <b>group pads</b>.
+                  </span>
                 {:else}
                   <span class="caption wb-midi-parthint">{p.hint}</span>
                 {/if}
@@ -225,12 +230,17 @@
             pad in sound edit.
           </div>
           <div class="caption" style="margin-top:6px;font-size:12.5px;color:#7a6448;line-height:1.5">
-            <b>Chromatic</b> plays real pitches across the full range — right for a keyboard, and on a K.O. II it needs
-            <span class="mono">KEYS</span> mode, which takes the whole instrument. <b>Group pads</b> instead folds the part
-            into one octave on a group's twelve pads, so one K.O. II can play drums on group A <i>and</i> harmony on group C
-            at the same time. Set the group up first: pick the sound on a pad, press <span class="mono">KEYS</span> to spread
-            it chromatically across that group, then tell <b>C IS</b> which pad the root landed on. Choosing the sample is
-            done on the device — MIDI cannot assign one.
+            <b>Chromatic</b> plays real pitches across the full range — right for a keyboard or synth. On a K.O. II it needs
+            <span class="mono">KEYS</span> mode, and that repoints the <i>whole</i> note map at pitches, so any part
+            addressing pads stops being understood: drums and a chromatic part cannot share one K.O. II, whatever the
+            channel.<br />
+            <b>Group pads</b> is the way round it — the part folds into one octave on a group's twelve pads, so one K.O. II
+            plays drums on group A <i>and</i> harmony on group C at once, with <span class="mono">KEYS</span> off. Tune the
+            group first, on the device: put the sound on each pad of the group and set its <b>Pitch</b> a semitone apart in
+            sound edit (<span class="mono">SHIFT</span> + <span class="mono">SOUND</span>, knob Y), then tell <b>C IS</b>
+            which pad the root sits on. Pressing <span class="mono">KEYS</span> spreads a sample across the pads to play by
+            hand, but it is a mode rather than a tuning — it does not stay behind when you leave it. Only the notes a part
+            actually uses need tuning, which for one key is far fewer than twelve.
           </div>
         </div>
 

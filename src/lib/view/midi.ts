@@ -54,6 +54,16 @@ export function buildMidi(s: WorkbenchStore) {
       // Switched on with nowhere to go: the part is configured and silent, and
       // saying so is better than letting it look like it is playing.
       unrouted: cfg.on && !port,
+      // Chromatic sharing a socket and a channel with another part is the one
+      // combination that silently half-works on a pad sampler: KEYS mode
+      // repoints the whole note map at pitches, so whichever part addresses
+      // pads stops being understood. The symptom is "only one of the two
+      // plays", which reads as a bug in here rather than as a mode on the
+      // device — so it gets called out before it is hit.
+      clash: cfg.on && !!port && cfg.mode === 'keys' && MIDI_PARTS.some(
+        (o) => o !== id && m.parts[o].on && m.parts[o].portId === cfg.portId
+          && m.parts[o].channel === cfg.channel && m.parts[o].mode === 'pads',
+      ),
       octaveLabel: cfg.octave > 0 ? `+${cfg.octave}` : String(cfg.octave),
       vel: cfg.vel,
       velAccent: cfg.velAccent,
@@ -78,6 +88,7 @@ export function buildMidi(s: WorkbenchStore) {
             : 'Chromatic — KEYS mode on a melodic sound',
       bg: cfg.on && live && port ? 'rgba(63,107,95,.14)' : 'transparent',
       border: cfg.on && !port && live ? '#9a3f1f' : cfg.on ? '#3f6b5f' : '#d8c7a8',
+      portLabel: port ? port.name : '',
       fg: cfg.on ? '#2c261d' : '#8a7350',
     };
   });
