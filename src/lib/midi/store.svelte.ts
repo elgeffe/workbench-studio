@@ -47,8 +47,6 @@ export class MidiStore {
 
   // ---- configuration ----
   clockOn = $state(true);
-  velNormal = $state(DEFAULT_SETTINGS.velNormal);
-  velAccent = $state(DEFAULT_SETTINGS.velAccent);
   drumMap = $state<DrumMap>({ ...DEFAULT_SETTINGS.drumMap });
   parts = $state({ ...DEFAULT_SETTINGS.parts });
 
@@ -57,8 +55,6 @@ export class MidiStore {
   constructor() {
     const s = this.load();
     this.clockOn = s.clockOn;
-    this.velNormal = s.velNormal;
-    this.velAccent = s.velAccent;
     this.drumMap = s.drumMap;
     this.parts = s.parts;
   }
@@ -202,12 +198,12 @@ export class MidiStore {
     this.clockOn = on;
     this.save();
   }
-  setVelNormal(v: number): void {
-    this.velNormal = clampVel(v);
+  setPartVel(p: MidiPart, v: number): void {
+    this.parts = { ...this.parts, [p]: { ...this.parts[p], vel: clampVel(v) } };
     this.save();
   }
-  setVelAccent(v: number): void {
-    this.velAccent = clampVel(v);
+  setPartAccent(p: MidiPart, v: number): void {
+    this.parts = { ...this.parts, [p]: { ...this.parts[p], velAccent: clampVel(v) } };
     this.save();
   }
   /** Point a kit voice at a pad, or pass null to stop sending it. */
@@ -229,12 +225,11 @@ export class MidiStore {
    */
   sendDrums(hits: Array<{ v: DrumVoiceId; at: number; acc: boolean }>): void {
     if (!this.partLive('drums')) return;
-    const { portId, channel } = this.parts.drums;
-    const vel = { velNormal: this.velNormal, velAccent: this.velAccent };
+    const cfg = this.parts.drums;
     hits.forEach((h) => {
       const addr = this.drumMap[h.v];
       if (!addr) return;
-      this.out.note(portId, channel, padNote(addr), velocityFor(h.acc, vel), h.at, DRUM_GATE_MS);
+      this.out.note(cfg.portId, cfg.channel, padNote(addr), velocityFor(h.acc, cfg), h.at, DRUM_GATE_MS);
     });
   }
 
@@ -243,7 +238,7 @@ export class MidiStore {
     if (!this.partLive(part)) return;
     const cfg = this.parts[part];
     midis.forEach((m) => {
-      this.out.note(cfg.portId, cfg.channel, transposed(m, cfg.octave), clampVel(this.velNormal), at, durMs);
+      this.out.note(cfg.portId, cfg.channel, transposed(m, cfg.octave), clampVel(cfg.vel), at, durMs);
     });
   }
 
@@ -277,8 +272,8 @@ export class MidiStore {
   testVoice(v: DrumVoiceId): void {
     const addr = this.drumMap[v];
     if (!addr || !this.live) return;
-    const { portId, channel } = this.parts.drums;
-    this.out.note(portId, channel, padNote(addr), clampVel(this.velAccent), performance.now(), 120);
+    const cfg = this.parts.drums;
+    this.out.note(cfg.portId, cfg.channel, padNote(addr), clampVel(cfg.velAccent), performance.now(), 120);
   }
 
   /**
@@ -290,7 +285,7 @@ export class MidiStore {
     const cfg = this.parts[part];
     const midis = part === 'bass' ? [36] : [60, 64, 67];
     midis.forEach((m, i) => {
-      this.out.note(cfg.portId, cfg.channel, transposed(m, cfg.octave), clampVel(this.velAccent), performance.now() + i * 8, 500);
+      this.out.note(cfg.portId, cfg.channel, transposed(m, cfg.octave), clampVel(cfg.vel), performance.now() + i * 8, 500);
     });
   }
 
@@ -315,8 +310,6 @@ export class MidiStore {
     const data: MidiSettings = {
       enabled: this.enabled,
       clockOn: this.clockOn,
-      velNormal: this.velNormal,
-      velAccent: this.velAccent,
       // Persist the unmapped voices too, as explicit nulls: a voice missing
       // from the file means "never configured" and gets its default back.
       drumMap: Object.fromEntries(

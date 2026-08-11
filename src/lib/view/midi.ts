@@ -55,9 +55,13 @@ export function buildMidi(s: WorkbenchStore) {
       // saying so is better than letting it look like it is playing.
       unrouted: cfg.on && !port,
       octaveLabel: cfg.octave > 0 ? `+${cfg.octave}` : String(cfg.octave),
+      vel: cfg.vel,
+      velAccent: cfg.velAccent,
       // Drums address pads, so an octave transpose would just walk them off
-      // their group. Only the pitched parts get one.
+      // their group. Only the pitched parts get one. Accents run the other way:
+      // the grid is the only thing in the studio that marks them.
       pitched: id !== 'drums',
+      accents: id === 'drums',
       hint: id === 'drums'
         ? 'Pads, from the map below'
         : id === 'bass'
@@ -103,8 +107,6 @@ export function buildMidi(s: WorkbenchStore) {
     midiClockOn: m.clockOn,
     midiClockBg: m.clockOn ? '#3f6b5f' : '#f6efe0',
     midiClockFg: m.clockOn ? '#fff' : '#5c4a30',
-    midiVelNormal: m.velNormal,
-    midiVelAccent: m.velAccent,
 
     midiParts: parts,
     midiRows: rows,

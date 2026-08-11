@@ -58,13 +58,23 @@ export interface PartCfg {
   channel: number;
   /** Octaves of transpose, −4…+4. Ignored by drums, which address pads. */
   octave: number;
+  /**
+   * Velocity for an ordinary note. Per part, because the devices want
+   * different things: a sampler needs a hit hard enough to cut, while the same
+   * number on a weighted piano is a bang. Once parts can go to different boxes,
+   * one global pair cannot serve both.
+   */
+  vel: number;
+  /**
+   * Velocity for an accented cell. Drums only — the grid is the one thing in
+   * the studio that marks accents; chord slots and bass steps do not.
+   */
+  velAccent: number;
 }
 
 export interface MidiSettings {
   enabled: boolean;
   clockOn: boolean;
-  velNormal: number;
-  velAccent: number;
   drumMap: DrumMap;
   parts: Record<MidiPart, PartCfg>;
 }
@@ -97,17 +107,19 @@ export const DEFAULT_DRUM_MAP: DrumMap = {
 // (system code 110 — receive on all channels, send on 1). The pitched parts
 // start an octave down: the studio voices chords around middle C, and a sample
 // played chromatically from there sits high for a bassline.
+// Velocities start where each part usually wants to sit. Drums are loud with a
+// hard accent, because a sampled hit either cuts through or is not heard.
+// Chords comp underneath, so they start softer. Bass sits between the two: it
+// carries the bottom without fighting the kick.
 export const DEFAULT_PARTS: Record<MidiPart, PartCfg> = {
-  drums: { on: true, portId: null, channel: 1, octave: 0 },
-  chords: { on: false, portId: null, channel: 1, octave: 0 },
-  bass: { on: false, portId: null, channel: 1, octave: 0 },
+  drums: { on: true, portId: null, channel: 1, octave: 0, vel: 84, velAccent: 127 },
+  chords: { on: false, portId: null, channel: 1, octave: 0, vel: 76, velAccent: 127 },
+  bass: { on: false, portId: null, channel: 1, octave: 0, vel: 88, velAccent: 127 },
 };
 
 export const DEFAULT_SETTINGS: MidiSettings = {
   enabled: false,
   clockOn: true,
-  velNormal: 84,
-  velAccent: 127,
   drumMap: DEFAULT_DRUM_MAP,
   parts: DEFAULT_PARTS,
 };
@@ -142,8 +154,8 @@ export function transposed(midi: number, octaves: number): number {
 }
 
 /** MIDI velocity for a grid cell: accents get their own value. */
-export function velocityFor(accent: boolean, s: Pick<MidiSettings, 'velNormal' | 'velAccent'>): number {
-  return clampVel(accent ? s.velAccent : s.velNormal);
+export function velocityFor(accent: boolean, cfg: Pick<PartCfg, 'vel' | 'velAccent'>): number {
+  return clampVel(accent ? cfg.velAccent : cfg.vel);
 }
 
 export function clampVel(v: number): number {
@@ -171,6 +183,13 @@ export function padTakenBy(map: DrumMap, addr: PadAddr, voice: DrumVoiceId): Dru
  */
 export function sanitizeSettings(raw: unknown): MidiSettings {
   const o = (raw ?? {}) as Partial<MidiSettings>;
+  // Velocity used to be one global pair, before parts could go to different
+  // devices. A file written by that version carries the numbers the user tuned,
+  // so seed every part from them rather than throwing the tuning away.
+  const legacy = o as { velNormal?: unknown; velAccent?: unknown };
+  const oldVel = typeof legacy.velNormal === 'number' ? clampVel(legacy.velNormal) : null;
+  const oldAcc = typeof legacy.velAccent === 'number' ? clampVel(legacy.velAccent) : null;
+
   const parts = {} as Record<MidiPart, PartCfg>;
   MIDI_PARTS.forEach((p) => {
     const d = DEFAULT_PARTS[p];
@@ -182,6 +201,8 @@ export function sanitizeSettings(raw: unknown): MidiSettings {
       portId: typeof c.portId === 'string' ? c.portId : d.portId,
       channel: clampChannel(typeof c.channel === 'number' ? c.channel : d.channel),
       octave: clampOctave(typeof c.octave === 'number' ? c.octave : d.octave),
+      vel: clampVel(typeof c.vel === 'number' ? c.vel : oldVel ?? d.vel),
+      velAccent: clampVel(typeof c.velAccent === 'number' ? c.velAccent : oldAcc ?? d.velAccent),
     };
   });
 
@@ -208,8 +229,6 @@ export function sanitizeSettings(raw: unknown): MidiSettings {
     // user has since unplugged is a worse default than one that waits.
     enabled: false,
     clockOn: typeof o.clockOn === 'boolean' ? o.clockOn : DEFAULT_SETTINGS.clockOn,
-    velNormal: clampVel(typeof o.velNormal === 'number' ? o.velNormal : DEFAULT_SETTINGS.velNormal),
-    velAccent: clampVel(typeof o.velAccent === 'number' ? o.velAccent : DEFAULT_SETTINGS.velAccent),
     drumMap: map,
     parts,
   };

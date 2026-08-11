@@ -136,12 +136,18 @@ The two kinds of part are addressed differently, which is the thing to understan
   instrument wants no transpose — the octave control is there for a sampler whose pad root
   sits somewhere else.
 
+Channel, transpose and **velocity** are all per part, for the same reason routing is: a
+sampled hit has to be loud enough to cut, and the same number on a weighted piano is a bang.
+Only the drums carry an accent value, because the grid is the one thing in the studio that
+marks accents — chord slots and bass steps do not.
+
 Mixer mutes are faders, not switches: muting a part silences the app while the hardware keeps
 playing it, which is how you hand a part over. Each part has its own on/off for the wire.
 
-On the device, three system settings are worth setting first (`SHIFT` + `ERASE`, then the
+On a K.O. II, three system settings are worth setting first (`SHIFT` + `ERASE`, then the
 code, then `ENTER`): **101** to follow incoming clock, **110** to receive on all channels,
 and **301** or **302** to turn velocity on — it ships off, so accents land flat until you do.
+Most keyboards and synths need none of this: channel 1, no transpose, and they play.
 
 **Desktop only.** Web MIDI does not exist in Safari, so the button is hidden below 981px
 rather than opening a panel that could never connect. Chrome, Edge and Brave all support it.

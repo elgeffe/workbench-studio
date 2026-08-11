@@ -100,58 +100,86 @@
         <div class="wb-midi-sec">
           <div class="wb-midi-h">PARTS</div>
           {#each v.midiParts as p (p.id)}
+            <!-- Two rows: what the part is and where it goes, then how it is
+                 played there. Six controls on one line wrapped into an
+                 unreadable ladder as soon as a device name got long. -->
             <div class="wb-midi-part" style="background:{p.bg};border-color:{p.border}" data-testid="midi-part-{p.id}">
-              <span
-                class="mono click" role="button" tabindex="0" aria-pressed={p.on} aria-label="send {p.label} to MIDI"
-                data-testid="midi-part-toggle-{p.id}"
-                style="flex:none;width:86px;padding:7px 0;text-align:center;border-radius:6px;font-size:10px;letter-spacing:.1em;color:{p.on ? '#fff' : '#8a7350'};background:{p.on ? '#3f6b5f' : '#f1e6cf'}"
-                onclick={() => m.setPartOn(p.id, !p.on)}
-                onkeydown={(e) => e.key === 'Enter' && m.setPartOn(p.id, !p.on)}
-              >{p.label}</span>
+              <div class="wb-midi-partrow">
+                <span
+                  class="mono click" role="button" tabindex="0" aria-pressed={p.on} aria-label="send {p.label} to MIDI"
+                  data-testid="midi-part-toggle-{p.id}"
+                  style="flex:none;width:86px;padding:7px 0;text-align:center;border-radius:6px;font-size:10px;letter-spacing:.1em;color:{p.on ? '#fff' : '#8a7350'};background:{p.on ? '#3f6b5f' : '#f1e6cf'}"
+                  onclick={() => m.setPartOn(p.id, !p.on)}
+                  onkeydown={(e) => e.key === 'Enter' && m.setPartOn(p.id, !p.on)}
+                >{p.label}</span>
 
-              {#if p.unrouted}
-                <span class="caption wb-midi-parthint" style="color:#9a3f1f">On, but not routed — pick an output</span>
-              {:else}
-                <span class="caption wb-midi-parthint">{p.hint}</span>
-              {/if}
+                {#if p.unrouted}
+                  <span class="caption wb-midi-parthint" style="color:#9a3f1f">On, but not routed — pick an output</span>
+                {:else}
+                  <span class="caption wb-midi-parthint">{p.hint}</span>
+                {/if}
 
-              <label class="wb-midi-field">
-                <span class="mono">OUT</span>
-                <select
-                  aria-label="{p.label} output" value={p.portId}
-                  onchange={(e) => m.setPartPort(p.id, e.currentTarget.value)}
-                >
-                  <option value="">—</option>
-                  {#each v.midiPorts as o (o.id)}<option value={o.id}>{o.name}</option>{/each}
-                </select>
-              </label>
-
-              <label class="wb-midi-field">
-                <span class="mono">CH</span>
-                <select
-                  aria-label="{p.label} MIDI channel" value={p.channel}
-                  onchange={(e) => m.setPartChannel(p.id, +e.currentTarget.value)}
-                >
-                  {#each Array.from({ length: 16 }, (_, i) => i + 1) as ch (ch)}<option value={ch}>{ch}</option>{/each}
-                </select>
-              </label>
-
-              {#if p.pitched}
                 <label class="wb-midi-field">
-                  <span class="mono">OCT</span>
+                  <span class="mono">OUT</span>
                   <select
-                    aria-label="{p.label} octave transpose" value={p.octave}
-                    onchange={(e) => m.setPartOctave(p.id, +e.currentTarget.value)}
+                    aria-label="{p.label} output" value={p.portId}
+                    onchange={(e) => m.setPartPort(p.id, e.currentTarget.value)}
                   >
-                    {#each [-4, -3, -2, -1, 0, 1, 2, 3, 4] as o (o)}<option value={o}>{o > 0 ? '+' + o : o}</option>{/each}
+                    <option value="">—</option>
+                    {#each v.midiPorts as o (o.id)}<option value={o.id}>{o.name}</option>{/each}
                   </select>
                 </label>
+              </div>
+
+              <div class="wb-midi-partrow wb-midi-partrow2">
+                <label class="wb-midi-field">
+                  <span class="mono">CH</span>
+                  <select
+                    aria-label="{p.label} MIDI channel" value={p.channel}
+                    onchange={(e) => m.setPartChannel(p.id, +e.currentTarget.value)}
+                  >
+                    {#each Array.from({ length: 16 }, (_, i) => i + 1) as ch (ch)}<option value={ch}>{ch}</option>{/each}
+                  </select>
+                </label>
+
+                {#if p.pitched}
+                  <label class="wb-midi-field">
+                    <span class="mono">OCT</span>
+                    <select
+                      aria-label="{p.label} octave transpose" value={p.octave}
+                      onchange={(e) => m.setPartOctave(p.id, +e.currentTarget.value)}
+                    >
+                      {#each [-4, -3, -2, -1, 0, 1, 2, 3, 4] as o (o)}<option value={o}>{o > 0 ? '+' + o : o}</option>{/each}
+                    </select>
+                  </label>
+                {/if}
+
+                <label class="wb-midi-field wb-midi-vel">
+                  <span class="mono">VEL</span>
+                  <input
+                    type="range" min="1" max="127" value={p.vel} aria-label="{p.label} velocity"
+                    oninput={(e) => m.setPartVel(p.id, +e.currentTarget.value)}
+                  />
+                  <span class="mono wb-midi-num">{p.vel}</span>
+                </label>
+
+                {#if p.accents}
+                  <label class="wb-midi-field wb-midi-vel">
+                    <span class="mono">ACCENT</span>
+                    <input
+                      type="range" min="1" max="127" value={p.velAccent} aria-label="{p.label} accent velocity"
+                      oninput={(e) => m.setPartAccent(p.id, +e.currentTarget.value)}
+                    />
+                    <span class="mono wb-midi-num">{p.velAccent}</span>
+                  </label>
+                {/if}
+
                 <span
                   class="mono click wb-midi-test" role="button" tabindex="0" aria-label="test {p.label}"
-                  onclick={() => m.testPitched(p.id === 'bass' ? 'bass' : 'chords')}
-                  onkeydown={(e) => e.key === 'Enter' && m.testPitched(p.id === 'bass' ? 'bass' : 'chords')}
+                  onclick={() => p.pitched ? m.testPitched(p.id === 'bass' ? 'bass' : 'chords') : m.testVoice('kick')}
+                  onkeydown={(e) => e.key === 'Enter' && (p.pitched ? m.testPitched(p.id === 'bass' ? 'bass' : 'chords') : m.testVoice('kick'))}
                 >TEST</span>
-              {/if}
+              </div>
             </div>
           {/each}
           <div class="caption" style="margin-top:8px;font-size:12.5px;color:#7a6448;line-height:1.5">
@@ -211,31 +239,16 @@
           </div>
 
           <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px">
-            <label class="wb-midi-field">
-              <span class="mono">VEL</span>
-              <input
-                type="range" min="1" max="127" value={v.midiVelNormal} aria-label="normal velocity"
-                oninput={(e) => m.setVelNormal(+e.currentTarget.value)}
-              />
-              <span class="mono wb-midi-num">{v.midiVelNormal}</span>
-            </label>
-            <label class="wb-midi-field">
-              <span class="mono">ACCENT</span>
-              <input
-                type="range" min="1" max="127" value={v.midiVelAccent} aria-label="accent velocity"
-                oninput={(e) => m.setVelAccent(+e.currentTarget.value)}
-              />
-              <span class="mono wb-midi-num">{v.midiVelAccent}</span>
-            </label>
             <span
               class="mono click" role="button" tabindex="0" aria-label="reset the pad map"
               style="padding:6px 11px;border-radius:7px;font-size:10px;letter-spacing:.08em;color:#5c4a30;background:#f6efe0;border:1px solid #d8c7a8"
               onclick={() => m.resetMap()} onkeydown={(e) => e.key === 'Enter' && m.resetMap()}
             >RESET MAP</span>
-          </div>
-          <div class="caption" style="margin-top:8px;font-size:12.5px;color:#7a6448;line-height:1.5">
-            Velocity only lands if the pads are set to respond to it — it ships off. Turn it on with
-            <span class="mono">SHIFT</span> + <span class="mono">ERASE</span>, <b>301</b> (light touch) or <b>302</b> (heavy).
+            <span class="caption" style="flex:1 1 240px;min-width:0;font-size:12.5px;color:#7a6448;line-height:1.5">
+              The <b>VEL</b> and <b>ACCENT</b> sliders on the DRUMS strip above only land if the pads are set to respond to
+              velocity — it ships off. Turn it on with <span class="mono">SHIFT</span> + <span class="mono">ERASE</span>,
+              <b>301</b> (light touch) or <b>302</b> (heavy).
+            </span>
           </div>
         </div>
       </div>
@@ -252,11 +265,18 @@
     color: #8a7350; margin-bottom: 9px; text-transform: uppercase;
   }
   .wb-midi-part {
-    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
     padding: 7px 9px; margin-bottom: 6px;
     border: 1px solid #d8c7a8; border-radius: 8px;
   }
+  .wb-midi-partrow { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .wb-midi-partrow2 {
+    margin-top: 7px; padding-top: 7px; gap: 14px;
+    border-top: 1px solid #e7d9bf;
+  }
   .wb-midi-parthint { flex: 1 1 150px; min-width: 0; font-size: 12.5px; color: #7a6448; }
+  /* The sliders take the slack so the row's selects stay put between parts. */
+  .wb-midi-vel { flex: 1 1 130px; min-width: 110px; }
+  .wb-midi-vel input { flex: 1 1 auto; min-width: 0; }
   .wb-midi-port {
     display: inline-flex; align-items: baseline; gap: 7px;
     padding: 5px 11px; border-radius: 13px;

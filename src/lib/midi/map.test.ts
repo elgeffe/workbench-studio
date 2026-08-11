@@ -3,7 +3,7 @@ import { DRUM_VOICES } from '../engine/kit';
 import {
   DEFAULT_DRUM_MAP, GROUPS, GROUP_BASE, PADS_PER_GROUP, PAD_LABELS,
   clampChannel, clampOctave, clampVel, padAt, padName, padNote, padTakenBy,
-  sanitizeSettings, transposed, velocityFor,
+  MIDI_PARTS, sanitizeSettings, transposed, velocityFor,
   type DrumMap,
 } from './map';
 
@@ -106,9 +106,9 @@ describe('transposed', () => {
 
 describe('velocity and range guards', () => {
   it('separates accents from ordinary hits', () => {
-    const s = { velNormal: 80, velAccent: 127 };
-    expect(velocityFor(false, s)).toBe(80);
-    expect(velocityFor(true, s)).toBe(127);
+    const cfg = { vel: 80, velAccent: 127 };
+    expect(velocityFor(false, cfg)).toBe(80);
+    expect(velocityFor(true, cfg)).toBe(127);
   });
   it('never emits a zero velocity, which would read as a note-off', () => {
     expect(clampVel(0)).toBe(1);
@@ -150,7 +150,29 @@ describe('sanitizeSettings', () => {
 
   it('repairs out-of-range channels and octaves from an older file', () => {
     const s = sanitizeSettings({ parts: { bass: { on: true, channel: 44, octave: -12 } } });
-    expect(s.parts.bass).toEqual({ on: true, portId: null, channel: 16, octave: -4 });
+    expect(s.parts.bass).toMatchObject({ on: true, portId: null, channel: 16, octave: -4 });
+  });
+
+  it('repairs an out-of-range velocity rather than sending a silent note', () => {
+    const s = sanitizeSettings({ parts: { drums: { vel: 0, velAccent: 999 } } });
+    expect(s.parts.drums.vel).toBe(1);
+    expect(s.parts.drums.velAccent).toBe(127);
+  });
+
+  // Velocity used to be one global pair. Someone who tuned it should not have
+  // to tune it again three times when it becomes per part.
+  it('carries a pre-split global velocity onto every part', () => {
+    const s = sanitizeSettings({ velNormal: 61, velAccent: 99 });
+    MIDI_PARTS.forEach((p) => {
+      expect(s.parts[p].vel, p).toBe(61);
+      expect(s.parts[p].velAccent, p).toBe(99);
+    });
+  });
+
+  it('prefers a part’s own velocity over the old global one', () => {
+    const s = sanitizeSettings({ velNormal: 61, parts: { bass: { vel: 100 } } });
+    expect(s.parts.bass.vel).toBe(100);
+    expect(s.parts.drums.vel).toBe(61); // still inherits, having none of its own
   });
 
   it('falls back to defaults for a part the file does not mention', () => {

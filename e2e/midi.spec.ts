@@ -203,6 +203,47 @@ test('two devices: drums to one output, chords and bass to the other', async ({ 
   expect(started.size, 'start did not reach both devices').toBe(2);
 });
 
+// Velocity is per part because the devices want different things: a sampled
+// hit has to cut, and the same number on a weighted piano is a bang.
+test('each part carries its own velocity to the wire', async ({ page }) => {
+  await stubMidi(page, { ports: ['EP-133 K.O. II', 'reface CP'] });
+  await page.goto('/');
+
+  const tabs = page.getByTestId('desktop-tabs');
+  await tabs.getByRole('tab', { name: 'drums' }).click();
+  await page.getByTestId('drum-picker-summary').click();
+  await page.getByTestId('drum-genres').getByRole('button', { name: /^Disco & Boogie\s+\d+$/ }).click();
+  await page.getByTestId('drum-picker-loadall').click();
+
+  await page.getByTestId('midi-button').click();
+  await page.getByTestId('midi-arm').click();
+
+  // Three distinct values, so every note-on says which part sent it.
+  const drums = page.getByTestId('midi-part-drums');
+  await drums.getByLabel('DRUMS velocity').fill('40');
+  await drums.getByLabel('DRUMS accent velocity').fill('120');
+
+  const bass = page.getByTestId('midi-part-bass');
+  await page.getByTestId('midi-part-toggle-bass').click();
+  await bass.getByLabel('BASS output').selectOption({ label: 'reface CP' });
+  await bass.getByLabel('BASS velocity').fill('70');
+
+  await page.getByTestId('midi-close').click();
+  await page.getByTestId('studio-play').click();
+  await page.waitForTimeout(2400);
+  await page.getByTestId('studio-play').click();
+
+  const out = await messages(page);
+  const drumVels = new Set(notesOn(out, 'EP-133 K.O. II').map((m) => m.data[2]));
+  const bassVels = new Set(notesOn(out, 'reface CP').map((m) => m.data[2]));
+
+  // The kit sends only its own two values, and the accent is distinguishable
+  // from the ordinary hit — a single value would mean accents got flattened.
+  expect([...drumVels].sort((a, b) => a - b)).toEqual([40, 120]);
+  // The bass is untouched by the drum sliders.
+  expect([...bassVels]).toEqual([70]);
+});
+
 test('an unrouted part says so rather than looking like it is playing', async ({ page }) => {
   await stubMidi(page, { ports: ['EP-133 K.O. II', 'reface CP'] });
   await page.goto('/');
