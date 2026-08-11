@@ -16,6 +16,7 @@ import { buildBass } from './bass';
 import { buildPatterns } from './patterns';
 import { buildDrums } from './drums';
 import { buildLearn } from './learn';
+import { buildMidi } from './midi';
 import { buildEar, buildReading } from './practice';
 
 function litInfo(s: WorkbenchStore): LitInfo {
@@ -158,6 +159,8 @@ export function computeView(s: WorkbenchStore) {
     drPlayBg: transportOn ? '#9a3f1f' : '#c2562e', drPlayShadow: transportOn ? '#6e2c12' : '#9a3f1f',
     // learn
     ...buildLearn(s),
+    // MIDI out — the studio bar's button and the mapping panel behind it
+    ...buildMidi(s),
     tempo: s.tempo,
     // ear + sight reading
     ...buildEar(s),

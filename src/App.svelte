@@ -9,6 +9,7 @@
   import BassMode from './lib/components/BassMode.svelte';
   import MetronomeMode from './lib/components/MetronomeMode.svelte';
   import LearnMode from './lib/components/LearnMode.svelte';
+  import MidiPanel from './lib/components/MidiPanel.svelte';
 
   const store = provideStore();
   const v = $derived(store.view);
@@ -105,6 +106,11 @@
     </div>
   </div>
 </div>
+
+<!-- MIDI out settings, desktop only — see MidiPanel.svelte -->
+{#if store.isDesktop}
+  <MidiPanel />
+{/if}
 
 <!-- mobile fixed dock + tab bar -->
 {#if !store.isDesktop}

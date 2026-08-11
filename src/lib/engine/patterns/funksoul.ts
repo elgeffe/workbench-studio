@@ -66,7 +66,7 @@ export const FUNK_SOUL_PATTERNS: DrumTemplate[] = [
     layers: [
       { name: 'Four-beat kick', why: 'Motown put the kick on all four beats a decade before disco. It drives without ever syncopating.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 8] }] },
       { name: 'Cracking backbeat', why: 'Snare on 2 & 4, often doubled by handclaps and recorded loud enough to hear on a car radio.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }] },
-      { name: 'Tambourine off-beats', why: 'The tambourine on every “and” is the Motown signature — the shimmer that makes the groove float.', add: [{ v: 'tamb', on: [2, 6, 10, 14], acc: [2, 6, 10, 14] }] },
+      { name: 'Tambourine off-beats', why: 'The tambourine on every “and” is the Motown signature — the shimmer that makes the groove float.', add: [{ v: 'shaker', on: [2, 6, 10, 14], acc: [2, 6, 10, 14] }] },
       { name: 'Hat 8ths', why: 'Quiet hats double the tambourine grid so the top end stays continuous.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14] }] },
       { name: 'Kick pickup', why: 'A 16th kick before beat 3 keeps a human drummer’s push inside the machine-like pulse.', add: [{ v: 'kick', on: [7] }] },
     ],
@@ -98,7 +98,7 @@ export const FUNK_SOUL_PATTERNS: DrumTemplate[] = [
       { name: 'Four on the floor', why: 'The kick pulse Philadelphia handed straight to disco a few years later.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 8] }] },
       { name: 'Backbeat plus clap', why: 'Snare and handclap together on 2 & 4 — a wider, smoother backbeat than Memphis soul.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }, { v: 'clap', on: [4, 12] }] },
       { name: '16th hats', why: 'Continuous 16ths, quiet, with accents on the quarters — the sheen under the strings.', add: [{ v: 'chat', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 4, 8, 12] }] },
-      { name: 'Tambourine', why: 'Off-beat tambourine keeps the Motown lift alive inside the new four-floor pulse.', add: [{ v: 'tamb', on: [2, 6, 10, 14] }] },
+      { name: 'Tambourine', why: 'Off-beat tambourine keeps the Motown lift alive inside the new four-floor pulse.', add: [{ v: 'shaker', on: [2, 6, 10, 14] }] },
     ],
   },
 
@@ -174,7 +174,7 @@ export const FUNK_SOUL_PATTERNS: DrumTemplate[] = [
       { name: 'Four-beat kick', why: 'Kick on every beat at speed — the praise break is a march.', add: [{ v: 'kick', on: [0, 4, 8, 12], acc: [0, 8] }] },
       { name: 'Off-beat snare', why: 'Snare on every “and” instead of just 2 & 4. Doubling the backbeat is what raises the temperature.', add: [{ v: 'snare', on: [2, 6, 10, 14], acc: [6, 14] }] },
       { name: 'Swung hat 8ths', why: 'Hats shuffle along with the snare, keeping the triplet lean at high tempo.', add: [{ v: 'chat', on: [0, 2, 4, 6, 8, 10, 12, 14] }] },
-      { name: 'Crash on 1', why: 'A cymbal on the downbeat of every bar — subtlety is not the objective here.', add: [{ v: 'crash', on: [0], acc: [0] }] },
+      { name: 'Crash on 1', why: 'A cymbal on the downbeat of every bar — subtlety is not the objective here.', add: [{ v: 'ride', on: [0], acc: [0] }] },
     ],
   },
 ];

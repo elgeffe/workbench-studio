@@ -10,7 +10,7 @@ const voiceIds = new Set(DRUM_VOICES.map((v) => v.id));
 
 describe('the kit', () => {
   it('is a table of instruments with unique ids and complete metadata', () => {
-    expect(DRUM_VOICES.length).toBeGreaterThanOrEqual(14);
+    expect(DRUM_VOICES.length).toBeGreaterThanOrEqual(12);
     expect(new Set(DRUM_VOICES.map((v) => v.id)).size).toBe(DRUM_VOICES.length);
     DRUM_VOICES.forEach((v) => {
       expect(v.name).toBeTruthy();
@@ -44,8 +44,8 @@ describe('the kit', () => {
 
   it('inKitOrder sorts any set of ids top-to-bottom, ignoring duplicates', () => {
     const order = DRUM_VOICES.map((v) => v.id);
-    const picked = inKitOrder(['kick', 'chat', 'crash', 'kick']);
-    expect(picked).toEqual(['crash', 'chat', 'kick']);
+    const picked = inKitOrder(['kick', 'chat', 'ride', 'kick']);
+    expect(picked).toEqual(['ride', 'chat', 'kick']);
     expect(picked.map((id) => order.indexOf(id))).toEqual([...picked.map((id) => order.indexOf(id))].sort((a, b) => a - b));
   });
 });

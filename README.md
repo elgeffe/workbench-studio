@@ -63,16 +63,23 @@ src/
       learn.ts         Jazz curriculum, the jazz/classical palettes, rhythm
                        concepts, bassline moves, song-structure timelines
       practice.ts      Ear-training and sight-reading views
+      midi.ts          The MIDI bar button, device status and the pad map rows
     metronome/         Practice metronome (ported from Metrognome): look-ahead
                        click engine, tempo/mute automation, mic tempo detection,
                        practice-session history, and its own runes sub-store
+    midi/              MIDI out: the band played to hardware (see below)
+      map.ts           Pure address book — group/pad note numbers, the drum map,
+                       per-part channel and transpose, settings sanitising
+      out.ts           The wire: Web MIDI ports, timestamped notes, clock, panic
+      store.svelte.ts  Connection + mapping state, and the send methods the
+                       transport calls on the bar line
     audio.ts           Web Audio synth engine (isolated from state)
     store.svelte.ts    Svelte 5 runes store: $state + actions + view = $derived(computeView)
     context.ts         provideStore()/useStore() context helpers
     components/        StudioBar (brand + transport + key), KeyPicker, GenrePicker,
                        CircleMode, DrumsMode, ChordsMode, BassMode, MetronomeMode,
                        LearnMode, EarMode, ReadingMode, Staff, Instruments,
-                       Fretboard, FretDiagram, Piano
+                       Fretboard, FretDiagram, Piano, MidiPanel
       parts/           Widgets used at two altitudes — bare in a tool tab, wrapped
                        in teaching copy in Learn (ChordInspector)
       learn/           The six Learn areas: Theory, Rhythm, Bass, Patterns,
@@ -99,6 +106,83 @@ npm test           # Vitest unit tests
 npm run test:e2e   # Playwright end-to-end tests
 npm run icons      # regenerate the app icons in public/
 ```
+
+## MIDI out — playing the hardware
+
+The studio can drive an external sampler instead of (or alongside) its own Web Audio synth.
+It was built against a **teenage engineering EP-133 K.O. II**, whose note map it knows by
+default, but nothing here is device-specific: anything that takes notes and MIDI clock works.
+
+Open it from **MIDI** in the studio bar. Connect over USB, arm the connection, and the
+shared transport sends the same bar it plays — drum grid, chord slots and bassline, swing,
+accents and all — as timestamped MIDI, wrapped in start / stop and 24-PPQN clock so the
+device's own sequencer stays locked to the studio's tempo.
+
+**Each part picks its own output.** Drums to a sampler, chords and bass to a synth, one
+transport and one clock across both — routing is a property of the part, because two boxes
+means two USB ports rather than two channels on one wire. With a single device plugged in
+there is nothing to configure: every part takes it automatically.
+
+The two kinds of part are addressed differently, which is the thing to understand:
+
+- **Drums address pads.** Each of the K.O. II's four groups is one octave of note numbers,
+  its twelve pads sitting in panel order (`.`, `0`, `⏎`, then 1–9), so a kit voice maps to a
+  group and a pad and nothing more. The kit is twelve voices and a group is twelve pads, so
+  the default map is one to one: kick on the first pad and the kit climbing away from it.
+- **Chords and bass address pitches** — in one of two ways, chosen per part, because a
+  sampler hears a note number as one of two completely different things:
+  - **Chromatic** sends real note numbers with a channel and an octave transpose. Right for
+    a keyboard or synth, where it just plays. On a K.O. II it needs **KEYS** mode, and keys
+    mode repoints the *whole* note map at pitches across 0–127 — so any part addressing pads
+    stops being understood, and drums plus a chromatic part cannot share one K.O. II
+    whatever channel they are on. The panel warns when a configuration would hit this. The
+    bassline is already written in bass register (MIDI 24–47), so a real instrument wants no
+    transpose; the octave control is for a sampler whose pad root sits somewhere else.
+  - **Group pads** folds the part into one octave and plays a group's twelve pads, with
+    `KEYS` **off** — which is what lets a single K.O. II play drums on group A and harmony
+    on group C at once. The group has to be tuned on the device first: put the sound on each
+    pad and set its **Pitch** a semitone apart in sound edit (`SHIFT` + `SOUND`, knob Y).
+    Pressing `KEYS` also spreads a sample across the pads, but that is a mode for playing by
+    hand rather than a tuning — it does not persist when you leave it. **C IS** says which
+    pad the root sits on. The cost is the register: twelve pads is twelve semitones, so a
+    two-octave bassline comes back as one.
+
+  Which sample sits on those pads is chosen on the device. MIDI cannot assign one, and the
+  reverse-engineered sysex path that could is not something to attempt from a browser.
+
+Channel, transpose and **velocity** are all per part, for the same reason routing is: a
+sampled hit has to be loud enough to cut, and the same number on a weighted piano is a bang.
+Only the drums carry an accent value, because the grid is the one thing in the studio that
+marks accents — chord slots and bass steps do not.
+
+Mixer mutes are faders, not switches: muting a part silences the app while the hardware keeps
+playing it, which is how you hand a part over. Each part has its own on/off for the wire.
+
+On a K.O. II, three system settings are worth setting first (`SHIFT` + `ERASE`, then the
+code, then `ENTER`): **101** to follow incoming clock, **110** to receive on all channels,
+and **301** or **302** to turn velocity on — it ships off, so accents land flat until you do.
+Most keyboards and synths need none of this: channel 1, no transpose, and they play.
+
+**The K.O. II records what the studio sends.** Arm record on the device and the notes going
+out land in its own pattern, so a groove from the library can be printed into a project and
+then edited on the hardware like anything you played by hand. Set clock in (**101**) first so
+the device's sequencer is running on the studio's bar line rather than its own, and turn
+quantize on (`TIMING`, then `−`) unless you want the swing captured exactly as sent.
+
+This is the only route in. The reverse-engineered `.ppak` project format covers samples and
+pad assignments, but its sequencer data has never been located, so no tool can write a
+pattern *file* — recording one live is what works.
+
+There is also an audio route, for material rather than sequences. From firmware 2.5 the
+EP-133 is a class-compliant USB audio interface: make it the computer's audio output, set
+`usb` as the sampling source (**510**), and `SAMPLE` records the studio's own output down the
+same cable — ready to chop onto a pad. That captures the app's own synth, including the parts
+no pad is playing.
+
+**Desktop only.** Web MIDI does not exist in Safari, so the button is hidden below 981px
+rather than opening a panel that could never connect. Chrome, Edge and Brave all support it.
+Nothing is sent until you arm the connection, and the mapping is remembered across reloads —
+the armed state deliberately is not.
 
 ## Offline use
 
@@ -154,7 +238,7 @@ from the same genre, since all three libraries shelve off one taxonomy.
   hardstyle, hardcore, jazz, soul-jazz, jazz-funk, fusion, blues, Latin, Afrobeat, reggae,
   reggaeton). Every pattern is authored as ordered *layers*, so the LAYERS chips rebuild
   the groove one part at a time. The grid shows only the instruments the pattern plays —
-  add any of the 14 kit voices as a new row, or remove one — and cells are editable
+  add any of the 12 kit voices as a new row, or remove one — and cells are editable
   (rest → hit → accent). Swing lives here; tempo is the studio's.
 - **Chords** — build a progression from the diatonic and colour/borrowed palettes, or load
   one of 119 starting points across the 31 genres. Drag to reorder. Select a placed chord

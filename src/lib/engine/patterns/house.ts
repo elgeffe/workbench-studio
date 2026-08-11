@@ -32,7 +32,7 @@ export const HOUSE_PATTERNS: DrumTemplate[] = [
     layers: [
       { name: 'Kick with a skip', why: 'Four on the floor plus a 16th pickup before beat 3 — the small deviation that makes it feel played.', add: [{ v: 'kick', on: [0, 4, 7, 8, 12], acc: [0, 8] }] },
       { name: 'Snare + clap backbeat', why: 'Stacking a live snare under the clap on 2 & 4 gives the gospel-flavoured crack this style needs.', add: [{ v: 'snare', on: [4, 12], acc: [4, 12] }, { v: 'clap', on: [4, 12] }] },
-      { name: 'Tambourine off-beats', why: 'Tambourine on every “and” — Motown’s idea, still doing the same lifting job 60 years later.', add: [{ v: 'tamb', on: [2, 6, 10, 14] }] },
+      { name: 'Tambourine off-beats', why: 'Tambourine on every “and” — Motown’s idea, still doing the same lifting job 60 years later.', add: [{ v: 'shaker', on: [2, 6, 10, 14] }] },
       { name: 'Swung 16th hats', why: 'With swing near 58 the hats shuffle. Soulful house is the swingiest branch of the family.', add: [{ v: 'chat', on: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 4, 8, 12] }] },
       { name: 'Ghost snares', why: 'Two whispered snares on the “a” of 1 and 3 add the human roll under the four-floor pulse.', add: [{ v: 'snare', on: [3, 11] }] },
     ],
