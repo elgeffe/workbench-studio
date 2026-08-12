@@ -5,8 +5,8 @@
 // look ahead ('A' walks a half-step under the NEXT chord's root), so a single
 // pattern transposes correctly through any progression.
 
-import { mod12, gI } from './theory';
-import type { Chord } from './constants';
+import { mod12, gI, cname } from './theory';
+import { INT, type Chord } from './constants';
 import { FAMILIES, GENRES } from './genres';
 import { ROCK_POP_BASSLINES } from './basslines/rockpop';
 import { FUNK_SOUL_BASSLINES } from './basslines/funksoul';
@@ -73,6 +73,86 @@ export function resolveBassStep(tok: DegTok, ch: Chord, next: Chord, tonicPc: nu
   if (tok === '3') return base + (gI(ch).includes(3) ? 3 : 4);
   const fixed: Record<string, number> = { R: 0, '2': 2, b3: 3, '4': 5, '5': 7, '5_': -5, '6': 9, b6: 8, b7: 10, n7: 11, O: 12 };
   return base + (fixed[tok] ?? 0);
+}
+
+/** Octave number of a MIDI note, in scientific pitch (60 = C4). */
+export function midiOctave(midi: number): number {
+  return Math.floor(midi / 12) - 1;
+}
+
+// ---- the line, as one bar of actual notes ----
+//
+// A cell of the line holds a degree, not a pitch, so what you are about to hear
+// depends on which change is underneath it. Resolving the whole bar in one pass
+// is what lets the tab *show* that: the same walk the transport makes when it
+// lays a bar out, done for the screen instead of the speakers.
+
+/** One cell of the user's line: a degree, a ghost, or a rest. */
+export type BassCell = { d?: DegTok; g?: boolean } | null;
+
+/** One 16th of a resolved bar: what sounds there, over which change. */
+export interface BassBarNote {
+  s: number;         // 0..15
+  d?: DegTok;        // the degree written in the cell (absent on ghosts and rests)
+  g?: boolean;       // ghost: muted, pitchless
+  midi?: number;     // the pitch it resolves to (absent on ghosts and rests)
+  l?: number;        // how many steps it rings for
+  chordIdx: number;  // which change sounds under this step
+}
+
+/**
+ * The line as playable steps: each note sustains up to the next filled cell — a
+ * fat, legato line — capped at a quarter note.
+ *
+ * One definition of how long a written note rings, because the transport and
+ * the tab must not disagree about it: the row that draws a note's tail is
+ * drawing the note the scheduler is holding.
+ */
+export function bassLineSteps(line: BassCell[]): BassStep[] {
+  const idxs = line.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
+  return idxs.map((i, k) => {
+    const cell = line[i]!;
+    if (cell.g) return { s: i, g: true };
+    const gap = (k + 1 < idxs.length ? idxs[k + 1] : i + 16) - i;
+    return { s: i, d: cell.d, l: Math.max(1, Math.min(gap, 4)) };
+  });
+}
+
+/**
+ * Which change sounds under 16th-step `s`, when the bar starts on change
+ * `first` and each one holds half a bar (`half`) or the whole of it.
+ *
+ * The transport walks a bar with this and so does the tab's note row, so what
+ * is drawn under a step cannot disagree with what is played there.
+ */
+export function bassChordIndexAt(s: number, first: number, half: boolean, n: number): number {
+  if (n <= 0) return 0;
+  return (((first + (half && s >= 8 ? 1 : 0)) % n) + n) % n;
+}
+
+/**
+ * The chord a line resolves against when no changes are loaded: the key's own
+ * dominant 7th. Editing a cell previews against it, so the tab reads the notes
+ * off the same fallback rather than going blank.
+ */
+export function bassFallbackChord(tonicPc: number): Chord {
+  return { rootPc: tonicPc, intervals: INT.dom7, name: cname(tonicPc, 'dom7', tonicPc), fn: 'T' };
+}
+
+/** Resolve every cell of `line` against the changes it falls over. */
+export function bassBarNotes(line: BassCell[], chs: Chord[], first: number, half: boolean, tonicPc: number): BassBarNote[] {
+  const rings = new Map(bassLineSteps(line).map((st) => [st.s, st.l]));
+  return line.map((cell, s) => {
+    const i = bassChordIndexAt(s, first, half, chs.length);
+    const note: BassBarNote = { s, chordIdx: i };
+    if (!cell || !chs.length) return note;
+    if (cell.g) { note.g = true; return note; }
+    if (!cell.d) return note;
+    note.d = cell.d;
+    note.l = rings.get(s);
+    note.midi = resolveBassStep(cell.d, chs[i], chs[(i + 1) % chs.length], tonicPc);
+    return note;
+  });
 }
 
 // ---- the groove library ----

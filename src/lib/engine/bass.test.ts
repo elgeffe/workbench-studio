@@ -1,11 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import {
   BASS_GENRES, BASS_PATTERNS, BASS_TRICKS, BASS_TOK_LABEL,
-  bassGenreOf, bassPatternsIn, bassRole, bassRootMidi, resolveBassStep, type BassStep,
+  bassGenreOf, bassPatternsIn, bassRole, bassRootMidi, resolveBassStep,
+  bassBarNotes, bassChordIndexAt, bassFallbackChord, midiOctave,
+  type BassCell, type BassStep,
 } from './bass';
 import { INT, type Chord } from './constants';
 
 const ch = (rootPc: number, q: string): Chord => ({ rootPc, intervals: INT[q], fn: 'T' });
+
+/** A 16-cell line with the given cells filled in. */
+const line = (at: Record<number, BassCell>): BassCell[] =>
+  Array.from({ length: 16 }, (_, s) => at[s] ?? null);
 
 describe('bassRootMidi', () => {
   it('keeps every root inside the 4-string low register (E1..E♭2)', () => {
@@ -44,6 +50,75 @@ describe('resolveBassStep', () => {
 
   it('pedals the key tonic regardless of the sounding chord', () => {
     expect(resolveBassStep('T', F7, C7, 9)).toBe(bassRootMidi(9));
+  });
+});
+
+describe('midiOctave', () => {
+  it('numbers octaves in scientific pitch', () => {
+    expect(midiOctave(60)).toBe(4);   // middle C
+    expect(midiOctave(28)).toBe(1);   // low E on a 4-string
+    expect(midiOctave(40)).toBe(2);
+  });
+});
+
+describe('bassChordIndexAt', () => {
+  it('holds one change for the whole bar', () => {
+    for (let s = 0; s < 16; s++) expect(bassChordIndexAt(s, 2, false, 4)).toBe(2);
+  });
+
+  it('splits the bar between two changes on half-bar slots', () => {
+    expect(bassChordIndexAt(7, 2, true, 4)).toBe(2);
+    expect(bassChordIndexAt(8, 2, true, 4)).toBe(3);
+  });
+
+  it('wraps round the end of the progression', () => {
+    expect(bassChordIndexAt(8, 3, true, 4)).toBe(0);
+    expect(bassChordIndexAt(0, 5, false, 4)).toBe(1);
+  });
+
+  it('is safe on an empty progression', () => {
+    expect(bassChordIndexAt(9, 0, true, 0)).toBe(0);
+  });
+});
+
+describe('bassBarNotes', () => {
+  const Cm7 = ch(0, 'min7'), F7 = ch(5, 'dom7');
+
+  it('resolves each cell against the change sounding under it', () => {
+    const notes = bassBarNotes(line({ 0: { d: 'R' }, 8: { d: 'R' } }), [Cm7, F7], 0, true, 0);
+    expect(notes[0].midi).toBe(bassRootMidi(0)); // first half is Cm7
+    expect(notes[8].midi).toBe(bassRootMidi(5)); // second half has moved to F7
+    expect(notes[0].chordIdx).toBe(0);
+    expect(notes[8].chordIdx).toBe(1);
+  });
+
+  it('walks an approach note into the change that follows its own', () => {
+    const notes = bassBarNotes(line({ 14: { d: 'A' } }), [Cm7, F7], 0, false, 0);
+    expect(notes[14].midi).toBe(bassRootMidi(5) - 1);
+  });
+
+  it('gives ghosts and rests no pitch, and keeps every step in the bar', () => {
+    const notes = bassBarNotes(line({ 2: { g: true } }), [Cm7, F7], 0, false, 0);
+    expect(notes).toHaveLength(16);
+    expect(notes.map((n) => n.s)).toEqual([...Array(16).keys()]);
+    expect(notes[2].g).toBe(true);
+    expect(notes[2].midi).toBeUndefined();
+    expect(notes[5].d).toBeUndefined();
+    expect(notes[5].midi).toBeUndefined();
+  });
+
+  it('leaves the line unresolved when there are no changes to resolve against', () => {
+    const notes = bassBarNotes(line({ 0: { d: 'R' } }), [], 0, false, 0);
+    expect(notes[0].midi).toBeUndefined();
+  });
+});
+
+describe('bassFallbackChord', () => {
+  it('is the key’s own dominant 7th, named for the key', () => {
+    const c = bassFallbackChord(6);
+    expect(c.rootPc).toBe(6);
+    expect(c.intervals).toEqual(INT.dom7);
+    expect(c.name).toBe('Gb7'); // a flat key spells itself flat
   });
 });
 
