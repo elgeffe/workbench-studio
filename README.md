@@ -37,7 +37,8 @@ src/
       data.ts          Progression library (119 across the 31 genres), the
                        pattern library, the Learn-mode jazz curriculum
       fretpatterns.ts  Fretboard diagram library (scale boxes, chord grips)
-      bass.ts          Degree resolution, walking tricks, the bassline index
+      bass.ts          Degree resolution, walking tricks, the bassline index,
+                       and one bar of a line resolved into actual notes
       basslines/       The bassline library: 119 grooves across 31 genres
                        (rockpop, funksoul, hiphop, house, breaks, hard, jazz, world)
       kit.ts           The instrument table: one entry per drum voice, carrying
@@ -48,6 +49,9 @@ src/
       patterns/        The groove library: 132 layered patterns across 31 genres
                        (rockpop, funksoul, hiphop, house, techno, breaks, hard,
                        jazz, world)
+      playhead.ts      Which 16th of the bar the ear is hearing: bars are queued
+                       and promoted when they reach the speakers, so drums and
+                       bass both track what is sounding, not what was scheduled
       ear.ts           Ear-training question generator
       reading.ts       Sight-reading drills: staff geometry, key signatures, targets
     view/              Pure view-model builders (state in → render props out)
@@ -56,7 +60,8 @@ src/
       circle.ts        Circle-of-fifths wheel geometry and colouring
       instruments.ts   Fretboard + piano lighting and the jazz finger overlay
       chords.ts        Progression strip, diatonic/colour palettes, chord inspector
-      bass.ts          The line, the groove shelf, the annotated library cards
+      bass.ts          The line, the groove shelf, the annotated library cards,
+                       and the count / note / change rows tracked under the line
       patterns.ts      Pattern library, chord shapes, fret-diagram tabs
       drums.ts         Groovebox grid, genre → pattern picker, layer stepper
       picker.ts        Shelf/chip builders shared by all the genre pickers
@@ -247,7 +252,12 @@ from the same genre, since all three libraries shelve off one taxonomy.
   per-progression settings.
 - **Bass** — one line, which is yours: a 16-step grid of *degrees*, so it transposes itself
   through every change. The 119-groove library across 31 genres loads into it as a starting
-  point rather than replacing it. Use the chrome's mixer to solo it and study it alone.
+  point rather than replacing it. Under the grid the same bar is spelled out three ways —
+  the count ("1 e & a"), the **pitch** every degree resolves to (with the tail showing how
+  long it rings), and the **change** it resolves against, as bands under the steps they own.
+  While the loop runs all of it tracks the bar in the speakers, and a readout names the note
+  in your hands: *the ♭7 of A♭m9, on the &*. Use the chrome's mixer to solo it and study it
+  alone.
 - **Metronome** — a full practice metronome (ported from the standalone Metrognome app):
   sample-accurate Web Audio click with tap tempo, time signatures, subdivisions and accents;
   tempo automation for rhythm drills (step trainer, smooth ramps by time or bars, gap-click

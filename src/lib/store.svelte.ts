@@ -13,12 +13,13 @@ import {
   type ReadAnswerMode, type ReadTarget,
 } from './engine/reading';
 import {
-  BASS_PATTERNS, BASS_TRICKS, bassGenreOf, bassPatternsIn,
-  bassRootMidi, resolveBassStep, type BassStep, type DegTok,
+  BASS_PATTERNS, BASS_TRICKS, bassGenreOf, bassPatternsIn, bassChordIndexAt, bassFallbackChord,
+  bassLineSteps, bassRootMidi, resolveBassStep, type BassCell, type BassStep, type DegTok,
 } from './engine/bass';
+import { Playhead, type PlayheadBar } from './engine/playhead';
 import {
   DRUM_VOICES, RHYTHM_CONCEPTS,
-  drumTemplates, composeGrid, swingDelaySteps, stepAtElapsed, templateVoices, inKitOrder,
+  drumTemplates, composeGrid, swingDelaySteps, templateVoices, inKitOrder,
   type DrumVoiceId, type DrumGrid, type DrumLayerPart,
 } from './engine/drums';
 import { AudioEngine } from './audio';
@@ -48,12 +49,16 @@ export type ChordSlot = 'half' | 'bar';
 const LOOKAHEAD_MS = 25;
 const SCHEDULE_AHEAD_S = 0.12;
 
-/** One scheduled bar of drums, as the playhead needs to see it. */
-interface DrumBar {
-  /** audio-clock time the ear gets step 0 */
-  heard: number;
-  stepSec: number;
-  swing: number;
+/**
+ * One scheduled bar of the bassline, as its playhead needs to see it. The
+ * change the bar was laid out over travels with it: with half-bar slots the
+ * progression has already moved on by the time the bar's second half is heard,
+ * so reading the live chord index off the transport would slide the tab's note
+ * row forward mid-bar, under notes that were resolved against the chord before.
+ */
+interface BassBar extends PlayheadBar {
+  /** index of the change the bar's first half was resolved against */
+  first: number;
 }
 /**
  * The one panel that can be open at a time: a genre shelf (drum machine,
@@ -120,7 +125,7 @@ export class WorkbenchStore {
   // not a set of alternatives to it. That is the whole model: you always have
   // one line, and a library groove is just a fast way to fill it in before you
   // start moving notes around.
-  bassLine = $state<Array<{ d?: DegTok; g?: boolean } | null>>(Array(16).fill(null));
+  bassLine = $state<BassCell[]>(Array(16).fill(null));
   // Which groove it came from, and whether it has been touched since — enough
   // for the picker summary to say "Octave Pump · edited" rather than lying
   // about which library pattern is loaded.
@@ -131,6 +136,11 @@ export class WorkbenchStore {
   // opened.
   bassSeedId = $state<string | null>(null);
   bassEdited = $state(false);
+  // Where the line is in its bar, and which change it is walking over — the two
+  // things a degree grid cannot tell you by looking at it. Both follow what is
+  // in the speakers (see BassBar), not what has just been scheduled.
+  bsStep = $state(-1);
+  bsFirst = $state(0);
   // ---- the mixer ----
   // Three parts on one clock, so muting is a property of the band, not of any
   // one tab: the two toggles this replaces were buried in the bass palette and
@@ -232,12 +242,12 @@ export class WorkbenchStore {
   private jIdx = 0; // next progression index the live loop will play
   private seqTimers: ReturnType<typeof setTimeout>[] = [];
   private singleTimers: ReturnType<typeof setTimeout>[] = [];
-  // The drum playhead runs off the audio clock, not off timers: a bar carries
-  // the moment the ear gets its step 0 (`heard`) and the shape it was laid out
-  // with, and a rAF loop reads the clock against it. See drDraw().
-  private drRaf: number | null = null;
-  private drBar: DrumBar | null = null;    // the bar the ring is drawing
-  private drQueued: DrumBar | null = null; // scheduled, not yet out of the speakers
+  // The playheads run off the audio clock, not off timers: a bar carries the
+  // moment the ear gets its step 0 and the shape it was laid out with, and one
+  // rAF loop reads the clock against both. See draw().
+  private raf: number | null = null;
+  private drHead = new Playhead<PlayheadBar>();
+  private bsHead = new Playhead<BassBar>();
 
   constructor() {
     // Prepare an ear-training target so the tab isn't empty, but stay silent:
@@ -251,7 +261,7 @@ export class WorkbenchStore {
     this.met.destroy();
     this.midi.destroy();
     if (this.trLoop) clearInterval(this.trLoop);
-    this.stopDrDraw();
+    this.stopDraw();
     this.seqTimers.forEach((id) => clearTimeout(id));
     this.singleTimers.forEach((id) => clearTimeout(id));
   }
@@ -406,19 +416,9 @@ export class WorkbenchStore {
     // picks the new line up on its next bar instead.
     if (!this.jzPlaying) { const s = this.lineSteps(); if (s.length) this.playBassBar(s); }
   }
-  /**
-   * The line as playable steps: each note sustains up to the next filled cell
-   * (a fat, legato line), capped at a quarter note.
-   */
+  /** The line as playable steps — see bassLineSteps for how long each rings. */
   private lineSteps(): BassStep[] {
-    const cells = this.bassLine;
-    const idxs = cells.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
-    return idxs.map((i, k) => {
-      const cell = cells[i]!;
-      if (cell.g) return { s: i, g: true };
-      const gap = (k + 1 < idxs.length ? idxs[k + 1] : i + 16) - i;
-      return { s: i, d: cell.d, l: Math.max(1, Math.min(gap, 4)) };
-    });
+    return bassLineSteps(this.bassLine);
   }
   /** Cycle a grid cell: rest → R → 3 → 5 → ♭7 → octave → ghost → rest. */
   cycleBassCell(i: number): void {
@@ -447,7 +447,7 @@ export class WorkbenchStore {
   private bassContext(): { ch: Chord; next: Chord } {
     const chs = this.jzChanges;
     const i = this.jzSel >= 0 ? this.jzSel : 0;
-    const ch: Chord = chs.length ? chs[i] : { rootPc: this.tonicPc, intervals: INT.dom7, name: '', fn: 'T' };
+    const ch: Chord = chs.length ? chs[i] : bassFallbackChord(this.tonicPc);
     const next = chs.length ? chs[(i + 1) % chs.length] : ch;
     return { ch, next };
   }
@@ -710,13 +710,23 @@ export class WorkbenchStore {
     // mute is applied per-step below, alongside the send.
     const steps = this.lineSteps();
     const chs = this.jzChanges;
-    if (!steps.length || !chs.length) return;
+    if (!steps.length || !chs.length) {
+      // Nothing under this bar — drop the playhead rather than leave it parked
+      // on the step the line was cleared from.
+      this.bsHead.clear();
+      this.bsStep = -1;
+      return;
+    }
     const first = this.jzStep >= 0 ? this.jzStep : 0;
     const half = this.chordSlot === 'half';
     this.scheduleBassSteps(steps, at, (s) => {
-      const i = (first + (half && s >= 8 ? 1 : 0)) % chs.length;
+      const i = bassChordIndexAt(s, first, half, chs.length);
       return { ch: chs[i], next: chs[(i + 1) % chs.length] };
     }, true);
+    // The line is written straight, so the head walks it straight — the swing
+    // in the drum grid is the kit's own feel, not the band's clock.
+    this.bsHead.push({ heard: at + this.audio.latency(), stepSec: this.barMs() / 16000, swing: 50, first });
+    this.startDraw();
   }
 
   // ---- global transport (Workshop + Drums as one band) ----
@@ -751,11 +761,12 @@ export class WorkbenchStore {
     // The same problem on the wire, where it is worse: an un-cancelled note-on
     // with its note-off dropped is a pad that never lets go.
     this.midi.transportStop();
-    this.stopDrDraw();
+    this.stopDraw();
     this.jzPlaying = false;
     this.jzStep = -1;
     this.drPlaying = false;
     this.drStep = -1;
+    this.bsStep = -1;
   }
   /**
    * The wake-up. Schedules every slot now inside the lookahead window, each at
@@ -932,43 +943,40 @@ export class WorkbenchStore {
     // transport ticks on the bar line, but the ring is running that same lead
     // plus output latency behind it, so the bar that is playing still has that
     // much of its tail to show — 4a, and on a slow output 4& too. It queues
-    // behind the bar in the speakers and drDraw promotes it when it arrives.
-    const bar: DrumBar = { heard: at + this.audio.latency(), stepSec, swing: this.drSwing };
-    if (!this.drBar) this.drBar = bar;
-    else {
-      if (this.drQueued) this.drBar = this.drQueued; // never promoted (hidden tab) — catch up
-      this.drQueued = bar;
-    }
-    this.startDrDraw();
+    // behind the bar in the speakers, and the playhead promotes it on arrival.
+    this.drHead.push({ heard: at + this.audio.latency(), stepSec, swing: this.drSwing });
+    this.startDraw();
   };
-  // The playhead reads the audio clock every frame instead of counting its own
-  // timers, so it can't drift away from the hits when the main thread stalls.
-  private drDraw = (): void => {
-    this.drRaf = null;
-    if (!this.drPlaying) return;
+  // The playheads read the audio clock every frame instead of counting their
+  // own timers, so they can't drift away from the notes when the main thread
+  // stalls. One loop draws both parts: they share a transport, and a bass line
+  // playing under a silent grid still needs its bar tracked.
+  private draw = (): void => {
+    this.raf = null;
+    if (!this.drPlaying && !this.jzPlaying) return;
     const now = this.audio.now();
-    if (this.drQueued && now >= this.drQueued.heard) { this.drBar = this.drQueued; this.drQueued = null; }
-    const b = this.drBar;
-    if (b) {
-      const el = now - b.heard;
-      // Anything more than a bar (plus a step of slack) means the anchor is
-      // stale — an audio clock that hadn't started when we took it, or a
-      // stalled tick. Leave the playhead alone rather than pin it to step 16.
-      if (el < 17 * b.stepSec) {
-        const s = stepAtElapsed(el, b.stepSec, b.swing);
-        if (s >= 0) this.drStep = s;
-      }
+    if (this.drPlaying) {
+      const s = this.drHead.step(now);
+      if (s >= 0) this.drStep = s;
     }
-    this.startDrDraw();
+    if (this.jzPlaying) {
+      const s = this.bsHead.step(now);
+      // The chord moves with the bar it was resolved against, so it is read
+      // after step() — which is what promotes the bar now being heard.
+      const bar = this.bsHead.bar;
+      if (bar) this.bsFirst = bar.first;
+      if (s >= 0) this.bsStep = s;
+    }
+    this.startDraw();
   };
-  private startDrDraw(): void {
-    if (this.drRaf != null || typeof requestAnimationFrame !== 'function') return;
-    this.drRaf = requestAnimationFrame(this.drDraw);
+  private startDraw(): void {
+    if (this.raf != null || typeof requestAnimationFrame !== 'function') return;
+    this.raf = requestAnimationFrame(this.draw);
   }
-  private stopDrDraw(): void {
-    if (this.drRaf != null) { cancelAnimationFrame(this.drRaf); this.drRaf = null; }
-    this.drBar = null;
-    this.drQueued = null;
+  private stopDraw(): void {
+    if (this.raf != null) { cancelAnimationFrame(this.raf); this.raf = null; }
+    this.drHead.clear();
+    this.bsHead.clear();
   }
   toggleDrumPlay(): void { this.togglePlay(); }
   stopDrums(): void { this.stopTransport(); }
