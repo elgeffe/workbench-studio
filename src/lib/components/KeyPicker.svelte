@@ -40,7 +40,10 @@
     <div class="mono" style="font-size:9px;letter-spacing:.08em;color:#7a6b50;margin-bottom:6px">{v.scaleNotes}{#if v.keySig} · {v.keySig}{/if}</div>
     <!-- Two captions: what the key colours the music like, then what the scale
          does. Key first — it is the choice made one row above. -->
-    <div class="caption" style="font-size:12.5px;color:#7a6b50;line-height:1.45;margin-bottom:5px"><span class="serif" style="font-style:normal;font-weight:600;color:#5c4a30">{v.keyCharName}</span> — {v.keyChar}</div>
+    <!-- On a six-accidental key both spellings are equally correct, so the
+         caption names the other one rather than letting the chip pretend the
+         choice was obvious. -->
+    <div class="caption" style="font-size:12.5px;color:#7a6b50;line-height:1.45;margin-bottom:5px"><span class="serif" style="font-style:normal;font-weight:600;color:#5c4a30">{v.keyCharName}</span>{#if v.keyAlt}<span class="caption" style="color:#8a7350">&nbsp;(also written {v.keyAlt})</span>{/if} — {v.keyChar}</div>
     <div class="caption" style="font-size:13px;color:#5c4a30;line-height:1.45">{v.scaleCaption}</div>
   </div>
 {/snippet}

@@ -9,21 +9,93 @@ import {
 
 export const mod12 = (n: number): number => ((n % 12) + 12) % 12;
 
-export function prefFlat(tonicPc: number): boolean {
-  return [5, 10, 3, 8, 1].includes(tonicPc) || tonicPc === 6;
+// ---- enharmonic spelling ----
+//
+// Every black key has two names, and which one is *right* depends on the key
+// you are in — not on a global sharps-or-flats preference. The rule real
+// notation follows is "fewer accidentals wins", and you get there from the
+// circle of fifths: a major key sitting `i` steps clockwise of C carries `i`
+// sharps in its sharp spelling and 12 − i flats in its flat spelling. So flats
+// win as soon as i > 6, and i === 6 is a genuine tie — one key signature of six
+// sharps against one of six flats, both real, both used.
+//
+// Modes come along for free, because a mode is notated with its parent major's
+// key signature: D dorian is C major's signature, so it spells like C major.
+// That is the whole reason this has to know the scale and not just the tonic —
+// pitch class 6 is G♭ when it is the major tonic (6♭, tied with F♯) but F♯ when
+// it is the minor tonic, where the parent major is A and the signature is a
+// mere 3 sharps. Harmonic and melodic minor borrow aeolian's signature and
+// write their raised degrees as accidentals, which is why they map to it here.
+
+const MODE_OFFSET: Record<ScaleId, number> = {
+  ionian: 0, dorian: 2, phrygian: 4, lydian: 5, mixolydian: 7, aeolian: 9, locrian: 11,
+  harmonic: 9, melodic: 9,
+};
+
+// Steps clockwise from C on the circle of fifths — i.e. how many sharps this
+// major key needs when spelled with sharps. Its flat spelling needs 12 − i.
+function fifthsIndex(majorPc: number): number {
+  return mod12(majorPc * 7);
 }
 
-export function spell(pc: number, tonicPc: number): string {
+// The major key whose signature this tonic-and-scale is written with.
+export function parentMajorPc(tonicPc: number, scale: ScaleId = 'ionian'): number {
+  return mod12(tonicPc - MODE_OFFSET[scale]);
+}
+
+// True when this key is one of the two six-accidental spellings — the only
+// case where neither name is more correct than the other.
+export function isEnharmonicTie(tonicPc: number, scale: ScaleId = 'ionian'): boolean {
+  return fifthsIndex(parentMajorPc(tonicPc, scale)) === 6;
+}
+
+// Ties resolve to flats: that makes the major tie G♭ (which is what this app has
+// always shown) and the minor tie E♭ minor, which is overwhelmingly how it is
+// written — D♯ minor's leading tone is C double-sharp, and nobody wants that.
+export function prefFlat(tonicPc: number, scale: ScaleId = 'ionian'): boolean {
+  return fifthsIndex(parentMajorPc(tonicPc, scale)) >= 6;
+}
+
+export function spell(pc: number, tonicPc: number, scale: ScaleId = 'ionian'): string {
   pc = mod12(pc);
-  return prefFlat(tonicPc) ? CF[pc] : CS[pc];
+  return prefFlat(tonicPc, scale) ? CF[pc] : CS[pc];
+}
+
+// The other spelling of the same key — the one the tie does not pick.
+export function spellOther(pc: number, tonicPc: number, scale: ScaleId = 'ionian'): string {
+  pc = mod12(pc);
+  return prefFlat(tonicPc, scale) ? CS[pc] : CF[pc];
+}
+
+// Note names carry ASCII accidentals internally (CS/CF above) because that is
+// what every note list in the app prints; a key *name* set in the serif face
+// gets the real glyphs instead.
+export function fmtKey(name: string): string {
+  return name.replace('b', '♭').replace('#', '♯');
+}
+
+// A key's name split into letter and accidental, so the picker can centre the
+// letter and hang the ♭/♯ off it and still have every chip line up.
+export function keyLabel(pc: number, scale: ScaleId = 'ionian'): [string, string] {
+  const s = spell(pc, pc, scale);
+  return [s[0], fmtKey(s.slice(1))];
+}
+
+// How many sharps or flats this key signature actually carries, given the
+// spelling above — the modes included, since they inherit the parent's.
+export function keySigStr(tonicPc: number, scale: ScaleId = 'ionian'): string {
+  const i = fifthsIndex(parentMajorPc(tonicPc, scale));
+  if (i === 0) return 'no ♯/♭';
+  if (i === 6) return '6 ♯/♭';
+  return i < 6 ? `${i} ♯` : `${12 - i} ♭`;
 }
 
 export function pcs(r: number, q: string): number[] {
   return INT[q].map((i) => (r % 12 + i) % 12);
 }
 
-export function cname(r: number, q: string, tonicPc: number): string {
-  return spell(r, tonicPc) + SUF[q];
+export function cname(r: number, q: string, tonicPc: number, scale: ScaleId = 'ionian'): string {
+  return spell(r, tonicPc, scale) + SUF[q];
 }
 
 export function gI(ch: Chord): number[] {
@@ -80,16 +152,16 @@ export function gMidis(ch: Chord): number[] {
 }
 
 export function keyNameStr(tonicPc: number, scale: ScaleId): string {
-  return spell(tonicPc, tonicPc) + ' ' + SCALES[scale].short;
+  return spell(tonicPc, tonicPc, scale) + ' ' + SCALES[scale].short;
 }
 
 export function scaleNotesStr(tonicPc: number, scale: ScaleId): string {
   const SI = SCALES[scale].int;
-  return SI.map((i) => spell((tonicPc + i) % 12, tonicPc)).join(' · ');
+  return SI.map((i) => spell((tonicPc + i) % 12, tonicPc, scale)).join(' · ');
 }
 
-export function relMinorStr(tonicPc: number): string {
-  return spell((tonicPc + 9) % 12, tonicPc) + ' minor';
+export function relMinorStr(tonicPc: number, scale: ScaleId = 'ionian'): string {
+  return spell((tonicPc + 9) % 12, tonicPc, scale) + ' minor';
 }
 
 export function chordMidis(rootPc: number, quality: string): number[] {
@@ -163,7 +235,7 @@ export function diatonicList(tonicPc: number, scale: ScaleId, ext: string): Diat
     let num = baseNum[i];
     if (q === 'min' || q === 'dim' || q === 'mins5') num = num.toLowerCase();
     const roman = acc + num + (q === 'dim' ? '°' : '') + (q === 'aug' ? '+' : '');
-    return { rootPc: r, intervals, name: spell(r, tonicPc) + suffix, roman, fn: FN[i], degLabels: allDeg.slice(0, count) };
+    return { rootPc: r, intervals, name: spell(r, tonicPc, scale) + suffix, roman, fn: FN[i], degLabels: allDeg.slice(0, count) };
   });
 }
 
@@ -185,14 +257,14 @@ function inferFamily(intervals: number[]): string {
   return 'maj';
 }
 
-export function subsFor(ch: Chord | null, tonicPc: number): Sub[] {
+export function subsFor(ch: Chord | null, tonicPc: number, scale: ScaleId = 'ionian'): Sub[] {
   if (!ch) return [];
   const r = ch.rootPc;
   const fn = ch.fn || 'T';
   const fam = inferFamily(gI(ch));
   const mk = (iv: number, q: string, tag: string, why: string): Sub => {
     const rp = mod12(r + iv);
-    return { rootPc: rp, intervals: INT[q], quality: q, name: spell(rp, tonicPc) + SUF[q], roman: '', tag, why, fn };
+    return { rootPc: rp, intervals: INT[q], quality: q, name: spell(rp, tonicPc, scale) + SUF[q], roman: '', tag, why, fn };
   };
   if (fam === 'dom') return [
     mk(6, 'dom7', 'TRITONE SUB', 'Shares the very same tritone (its 3rd & ♭7). The root slides down a half-step into the tonic — slick chromatic bass.'),
@@ -248,12 +320,12 @@ export function jChVoiced(ch: Chord, voicing: string): Chord {
   return ch;
 }
 
-export function jzNotes(ch: Chord, voicing: string, tonicPc: number): string {
-  return gPcs(jChVoiced(ch, voicing)).map((p) => spell(p, tonicPc)).join(' ');
+export function jzNotes(ch: Chord, voicing: string, tonicPc: number, scale: ScaleId = 'ionian'): string {
+  return gPcs(jChVoiced(ch, voicing)).map((p) => spell(p, tonicPc, scale)).join(' ');
 }
 
 // classical inversion voicing of the selected chord
-export function invChord(ch: Chord, which: number, tonicPc: number): Chord {
+export function invChord(ch: Chord, which: number, tonicPc: number, scale: ScaleId = 'ionian'): Chord {
   const tones = gI(ch).slice(0, 3);
   const base = 48 + ch.rootPc;
   const mids: number[] = [];
@@ -264,8 +336,8 @@ export function invChord(ch: Chord, which: number, tonicPc: number): Chord {
   }
   mids.push(mids[0] + 12);
   const bassPc = mod12(ch.rootPc + tones[which]);
-  const baseName = (ch.name || cname(ch.rootPc, 'maj', tonicPc)).split('/')[0];
-  const name = which === 0 ? baseName : baseName + '/' + spell(bassPc, tonicPc);
+  const baseName = (ch.name || cname(ch.rootPc, 'maj', tonicPc, scale)).split('/')[0];
+  const name = which === 0 ? baseName : baseName + '/' + spell(bassPc, tonicPc, scale);
   return { rootPc: ch.rootPc, intervals: gI(ch), name, roman: ch.roman, fn: ch.fn, midis: mids };
 }
 

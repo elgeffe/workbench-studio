@@ -447,7 +447,7 @@ export class WorkbenchStore {
   private bassContext(): { ch: Chord; next: Chord } {
     const chs = this.jzChanges;
     const i = this.jzSel >= 0 ? this.jzSel : 0;
-    const ch: Chord = chs.length ? chs[i] : bassFallbackChord(this.tonicPc);
+    const ch: Chord = chs.length ? chs[i] : bassFallbackChord(this.tonicPc, this.scale);
     const next = chs.length ? chs[(i + 1) % chs.length] : ch;
     return { ch, next };
   }
@@ -509,7 +509,7 @@ export class WorkbenchStore {
     return {
       rootPc: r,
       intervals: d.intervals || (d.q ? INT[d.q] : undefined),
-      name: d.name || cname(r, d.q || 'maj', this.tonicPc),
+      name: d.name || cname(r, d.q || 'maj', this.tonicPc, this.scale),
       roman: d.roman || '',
       fn: d.fn || 'T',
     };
@@ -517,7 +517,7 @@ export class WorkbenchStore {
 
   // ---- workshop / jazz sandbox ----
   previewChord(ch: Chord): void {
-    const c: Chord = { rootPc: ch.rootPc, intervals: gI(ch), name: ch.name || cname(ch.rootPc, ch.quality || 'maj', this.tonicPc), roman: ch.roman || '', fn: ch.fn || 'T' };
+    const c: Chord = { rootPc: ch.rootPc, intervals: gI(ch), name: ch.name || cname(ch.rootPc, ch.quality || 'maj', this.tonicPc, this.scale), roman: ch.roman || '', fn: ch.fn || 'T' };
     this.activeChord = jChVoiced(c, this.jzVoicing);
     if (!this.jzPlaying) this.playChord(jChVoiced(c, this.jzVoicing), 0.02);
   }
@@ -633,7 +633,7 @@ export class WorkbenchStore {
     if (i < 0) return;
     const t = this.jzChanges[i];
     const R = t.rootPc;
-    const v: Chord = { rootPc: (R + 7) % 12, intervals: INT.dom7, name: cname((R + 7) % 12, 'dom7', this.tonicPc), roman: 'V7/' + (t.roman || 'x'), fn: 'D' };
+    const v: Chord = { rootPc: (R + 7) % 12, intervals: INT.dom7, name: cname((R + 7) % 12, 'dom7', this.tonicPc, this.scale), roman: 'V7/' + (t.roman || 'x'), fn: 'D' };
     const arr = this.jzChanges.slice();
     arr.splice(i, 0, v);
     this.jzChanges = arr;
@@ -645,8 +645,8 @@ export class WorkbenchStore {
     if (i < 0) return;
     const t = this.jzChanges[i];
     const R = t.rootPc;
-    const ii: Chord = { rootPc: (R + 2) % 12, intervals: INT.min7, name: cname((R + 2) % 12, 'min7', this.tonicPc), roman: 'ii7', fn: 'S' };
-    const v: Chord = { rootPc: (R + 7) % 12, intervals: INT.dom7, name: cname((R + 7) % 12, 'dom7', this.tonicPc), roman: 'V7', fn: 'D' };
+    const ii: Chord = { rootPc: (R + 2) % 12, intervals: INT.min7, name: cname((R + 2) % 12, 'min7', this.tonicPc, this.scale), roman: 'ii7', fn: 'S' };
+    const v: Chord = { rootPc: (R + 7) % 12, intervals: INT.dom7, name: cname((R + 7) % 12, 'dom7', this.tonicPc, this.scale), roman: 'V7', fn: 'D' };
     const arr = this.jzChanges.slice();
     arr.splice(i, 0, ii, v);
     this.jzChanges = arr;
@@ -814,7 +814,7 @@ export class WorkbenchStore {
   // ---- patterns ----
   playPatChord(): void {
     const activePat = patternDefs().find((p) => p.id === this.patId) || patternDefs()[0];
-    const name = spell(this.tonicPc, this.tonicPc) + SUF[activePat.chord];
+    const name = spell(this.tonicPc, this.tonicPc, this.scale) + SUF[activePat.chord];
     this.playChord({ rootPc: this.tonicPc, intervals: INT[activePat.chord], name, fn: 'T' }, 0.02);
   }
   playPattern(p: { seq?: number[]; int?: number[]; scaleInt?: number[] }): void {
@@ -1098,7 +1098,7 @@ export class WorkbenchStore {
     this.rdScore += ok ? 1 : 0;
     this.rdTotal += 1;
     this.rdStreak = ok ? this.rdStreak + 1 : 0;
-    const tapped = tappedPc !== undefined ? 'You played ' + spell(tappedPc, this.tonicPc) + ' — it' : 'It';
+    const tapped = tappedPc !== undefined ? 'You played ' + spell(tappedPc, this.tonicPc, this.scale) + ' — it' : 'It';
     this.rdMsg = ok ? '✓ Correct — ' + t.answer : '✗ ' + tapped + ' was ' + t.answer;
     // Light the answer on all three instruments and sound it.
     const root = t.midis[0];

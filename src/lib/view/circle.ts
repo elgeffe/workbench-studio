@@ -1,10 +1,10 @@
 // Circle-of-fifths wheel geometry and colouring — a pure function of the
 // tonic, the maj/min view, and the fifths/fourths direction.
-import { CIRCLE } from '../engine/constants';
+import { CIRCLE, type ScaleId } from '../engine/constants';
 import { spell } from '../engine/theory';
 import type { Wedge } from './types';
 
-export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fifths' | 'fourths'):
+export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fifths' | 'fourths', scale: ScaleId = 'ionian'):
   { wedges: Wedge[]; circleLabel: string; circleHint: string } {
   const isMinView = circleView === 'min';
   const isFourths = circleDir === 'fourths';
@@ -76,7 +76,7 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     const onp = pct(op), oup = pct([op[0], op[1] - numRise]);
     wedges.push({
       d: band(rO, rB, a0, a1), fill: oFill, stroke: oStroke, strokeW: oSw,
-      name: spell(pc, t), numeral: oNum, nameColor: oName, numColor: oNumC, nameSize: '18px',
+      name: spell(pc, t, scale), numeral: oNum, nameColor: oName, numColor: oNumC, nameSize: '18px',
       nameL: onp[0], nameT: onp[1], numL: oup[0], numT: oup[1], pc, ring: 'maj',
     });
     // inner wedge — its relative minor
@@ -90,7 +90,7 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     const inp = pct(ip), iup = pct([ip[0], ip[1] - numRiseMin]);
     wedges.push({
       d: band(rB, rC, a0, a1), fill: iFill, stroke: iStroke, strokeW: iSw,
-      name: spell(mnPc, t).toLowerCase() + 'm', numeral: iNum, nameColor: iName, numColor: iNumC, nameSize: '12.5px',
+      name: spell(mnPc, t, scale).toLowerCase() + 'm', numeral: iNum, nameColor: iName, numColor: iNumC, nameSize: '12.5px',
       nameL: inp[0], nameT: inp[1], numL: iup[0], numT: iup[1], pc: mnPc, ring: 'min',
     });
   });
@@ -99,7 +99,7 @@ export function buildCircle(t: number, circleView: 'maj' | 'min', circleDir: 'fi
     ? 'Clockwise now moves up a fourth (down a fifth) — the direction progressions resolve: V→I→IV…'
     : 'Clockwise moves up a fifth and adds one sharp; neighbours share 6 of 7 notes.';
   const famHint = isMinView
-    ? `Seven adjacent spokes are one key. The inner ring numbers them for ${spell(t, t)} minor — i·iv·v minor (green), III·VI·VII major (red), II° diminished (blue) — and the outer ring reads the same seven from its relative major, ${spell(M, t)}.`
-    : `Seven adjacent spokes are one key. The outer ring numbers them for ${spell(t, t)} major — I·IV·V major (red), ii·iii·vi minor (green), vii° diminished (blue) — and the inner ring reads the same seven from its relative minor, ${spell(m, t)} minor.`;
+    ? `Seven adjacent spokes are one key. The inner ring numbers them for ${spell(t, t, scale)} minor — i·iv·v minor (green), III·VI·VII major (red), II° diminished (blue) — and the outer ring reads the same seven from its relative major, ${spell(M, t, scale)}.`
+    : `Seven adjacent spokes are one key. The outer ring numbers them for ${spell(t, t, scale)} major — I·IV·V major (red), ii·iii·vi minor (green), vii° diminished (blue) — and the inner ring reads the same seven from its relative minor, ${spell(m, t, scale)} minor.`;
   return { wedges, circleLabel, circleHint: dirHint + ' ' + famHint };
 }

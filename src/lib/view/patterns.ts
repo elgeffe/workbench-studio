@@ -13,14 +13,14 @@ export function buildPatterns(s: WorkbenchStore, activePat: LitInfo['activePat']
   const patShapesTab = patCat === PAT_SHAPES_TAB;
   const patFretTab = FRET_TABS.includes(patCat);
   const patLibTab = PAT_GROUPS.includes(patCat);
-  const patFret = patFretTab ? fretTab(patCat, t) : { intro: '', cards: [] };
+  const patFret = patFretTab ? fretTab(patCat, t, s.scale) : { intro: '', cards: [] };
   const patCatChips = PAT_TABS.map((g) => ({ name: g, border: g === patCat ? '#3f6b5f' : '#cbb792', bg: g === patCat ? '#3f6b5f' : '#f6efe0', fg: g === patCat ? '#fff' : '#5c4a30' }));
   const patChips = patternDefs().filter((p) => p.group === patCat).map((p) => ({ id: p.id, name: p.name, weight: p.id === activePat.id ? '700' : '500', border: p.id === activePat.id ? '#c2562e' : '#cbb792', bg: p.id === activePat.id ? '#fbeede' : '#f6efe0' }));
   const patInt = activePat.int || activePat.scaleInt || [];
-  const patChordName = spell(t, t) + SUF[activePat.chord];
+  const patChordName = spell(t, t, s.scale) + SUF[activePat.chord];
   const patDegrees = (activePat.deg || []).map((d, i) => ({ d, color: i === 0 ? '#fff' : '#2c261d', bg: i === 0 ? '#c2562e' : '#efe2c8', bd: i === 0 ? '#c2562e' : '#cbb792' }));
-  const patNotes = patInt.map((i) => spell((t + i) % 12, t)).join('  ·  ');
-  const patSeqNotes = activePat.seq ? activePat.seq.map((o) => spell(t + o, t)).join(' ') : '';
+  const patNotes = patInt.map((i) => spell((t + i) % 12, t, s.scale)).join('  ·  ');
+  const patSeqNotes = activePat.seq ? activePat.seq.map((o) => spell(t + o, t, s.scale)).join(' ') : '';
 
   // chord shapes on the circle of fifths: each quality draws one fixed
   // polygon; changing the root only rotates it. The wheel is rotated so the
@@ -39,7 +39,7 @@ export function buildPatterns(s: WorkbenchStore, activePat: LitInfo['activePat']
       return { x: +x.toFixed(1), y: +y.toFixed(1), on: pset.has(pc), root: pc === t };
     });
     const poly = pcs.map((pc) => shapePos(pc).map((n) => n.toFixed(1)).join(',')).join(' ');
-    const nm = spell(t, t) + SUF[q];
+    const nm = spell(t, t, s.scale) + SUF[q];
     const ch: Chord = { rootPc: t, intervals: INT[q], name: nm, fn: 'T' };
     return { q, name: nm, label: shapeLabels[q] || q, poly, dots, ch };
   });

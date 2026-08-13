@@ -6,7 +6,7 @@
 // pattern transposes correctly through any progression.
 
 import { mod12, gI, cname } from './theory';
-import { INT, type Chord } from './constants';
+import { INT, type Chord, type ScaleId } from './constants';
 import { FAMILIES, GENRES } from './genres';
 import { ROCK_POP_BASSLINES } from './basslines/rockpop';
 import { FUNK_SOUL_BASSLINES } from './basslines/funksoul';
@@ -135,8 +135,8 @@ export function bassChordIndexAt(s: number, first: number, half: boolean, n: num
  * dominant 7th. Editing a cell previews against it, so the tab reads the notes
  * off the same fallback rather than going blank.
  */
-export function bassFallbackChord(tonicPc: number): Chord {
-  return { rootPc: tonicPc, intervals: INT.dom7, name: cname(tonicPc, 'dom7', tonicPc), fn: 'T' };
+export function bassFallbackChord(tonicPc: number, scale: ScaleId = 'ionian'): Chord {
+  return { rootPc: tonicPc, intervals: INT.dom7, name: cname(tonicPc, 'dom7', tonicPc, scale), fn: 'T' };
 }
 
 /** Resolve every cell of `line` against the changes it falls over. */

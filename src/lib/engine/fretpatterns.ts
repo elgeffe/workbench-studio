@@ -7,6 +7,7 @@
 // string, matching the app's fretboards).
 
 import { mod12, spell } from './theory';
+import type { ScaleId } from './constants';
 
 // ---------- shape + diagram types ----------
 
@@ -204,7 +205,7 @@ const BASS_MAJ_PENT: FretShapeSpec = { inst: 'bass', anchorS: 0, anchorF: 1, dot
   { s: 3, f: 0, role: '2' }, { s: 3, f: 2, role: '3' },
 ] };
 
-function boxesCards(t: number): FretCard[] {
+function boxesCards(t: number, sc: ScaleId): FretCard[] {
   const boxTips: Record<number, string> = {
     1: 'THE box — root under your index finger on the low E. Solo here first: every note is safe, the root is always home.',
     2: 'Slides up from box 1 — they share a fret column. Practise crossing the seam mid-phrase so the boxes melt together.',
@@ -223,14 +224,14 @@ function boxesCards(t: number): FretCard[] {
     id: 'majpent1',
     name: 'Major pentatonic · pattern 1',
     tag: 'THE SLIDE-DOWN TRICK',
-    tip: `Physically the same shape as minor box 2 — but the root is now the lowest-E dot. Equivalently: take minor box 1 and slide it 3 frets DOWN and the identical fingering turns major. ${spell(t, t)} major pentatonic = ${spell(mod12(t + 9), t)} minor pentatonic, one shape, two names.`,
+    tip: `Physically the same shape as minor box 2 — but the root is now the lowest-E dot. Equivalently: take minor box 1 and slide it 3 frets DOWN and the identical fingering turns major. ${spell(t, t, sc)} major pentatonic = ${spell(mod12(t + 9), t, sc)} minor pentatonic, one shape, two names.`,
     diagrams: [buildDiagram(MAJ_PENT_BOX, t, 'run')],
   });
   cards.push({
     id: 'majroot6',
     name: 'Major scale · root-6 box',
     tag: 'FULL SCALE IN POSITION',
-    tip: `All seven notes of ${spell(t, t)} major under one hand, wrapped around the E-shape barre chord. The relative minor (${spell(mod12(t + 9), t)}) lives in this exact box too — just treat the 6 as home.`,
+    tip: `All seven notes of ${spell(t, t, sc)} major under one hand, wrapped around the E-shape barre chord. The relative minor (${spell(mod12(t + 9), t, sc)}) lives in this exact box too — just treat the 6 as home.`,
     diagrams: [buildDiagram(MAJOR_ROOT6, t, 'run')],
   });
   cards.push({
@@ -244,7 +245,7 @@ function boxesCards(t: number): FretCard[] {
     id: 'minroot6',
     name: 'Natural minor · root-6 box',
     tag: 'FULL SCALE IN POSITION',
-    tip: `${spell(t, t)} natural minor in one position — the minor pentatonic box 1 plus the 2 and ♭6. Hear how the two extra colours darken the box.`,
+    tip: `${spell(t, t, sc)} natural minor in one position — the minor pentatonic box 1 plus the 2 and ♭6. Hear how the two extra colours darken the box.`,
     diagrams: [buildDiagram(MINOR_ROOT6, t, 'run')],
   });
   cards.push({
@@ -292,8 +293,8 @@ const CAGED_SHAPES: Array<{ id: string; letter: string; rootStr: string; spec: F
     ] } },
 ];
 
-function cagedCards(t: number): FretCard[] {
-  const key = spell(t, t);
+function cagedCards(t: number, sc: ScaleId): FretCard[] {
+  const key = spell(t, t, sc);
   const built = CAGED_SHAPES.map((c) => ({ ...c, d: buildDiagram(c.spec, t, 'chord') }));
   const cards: FretCard[] = built.map((c) => ({
     id: c.id,
@@ -359,8 +360,8 @@ const BLUES_BOX: FretShapeSpec = { inst: 'guitar', anchorS: 0, anchorF: 0, dots:
   { s: 5, f: 0, role: 'R' }, { s: 5, f: 3, role: '♭3' },
 ] };
 
-function soloCards(t: number): FretCard[] {
-  const key = spell(t, t);
+function soloCards(t: number, sc: ScaleId): FretCard[] {
+  const key = spell(t, t, sc);
   const rootFret = mod12(t - 4) || 12; // key root on the low E string
   const majFret = rootFret - 3 < 0 ? rootFret + 9 : rootFret - 3;
   return [
@@ -434,7 +435,7 @@ const BARRE_SHAPES: Array<{ id: string; name: string; tag: string; tip: string; 
     a: BARRE_A([{ s: 1, f: 0, role: 'R' }, { s: 2, f: 2, role: '5' }, { s: 3, f: 0, role: '♭7' }, { s: 4, f: 1, role: '♭3' }, { s: 5, f: 0, role: '5' }]) },
 ];
 
-function barreCards(t: number): FretCard[] {
+function barreCards(t: number, sc: ScaleId): FretCard[] {
   return BARRE_SHAPES.map((b) => {
     const e = buildDiagram(b.e, t, 'chord');
     const a = buildDiagram(b.a, t, 'chord');
@@ -500,7 +501,7 @@ const BASS_CHORD_CARDS: Array<{ id: string; name: string; tag: string; tip: stri
     ] },
 ];
 
-function bassChordCards(t: number): FretCard[] {
+function bassChordCards(t: number, sc: ScaleId): FretCard[] {
   return BASS_CHORD_CARDS.map((c) => ({
     id: c.id, name: c.name, tag: c.tag, tip: c.tip,
     diagrams: c.grips.map((g) => {
@@ -514,36 +515,36 @@ function bassChordCards(t: number): FretCard[] {
 
 export const FRET_TABS = ['Fretboard Boxes', 'CAGED', 'Soloing', 'Barre Chords', 'Bass Chords'];
 
-export function fretTab(tab: string, tonicPc: number): { intro: string; cards: FretCard[] } {
-  const key = spell(tonicPc, tonicPc);
+export function fretTab(tab: string, tonicPc: number, scale: ScaleId = 'ionian'): { intro: string; cards: FretCard[] } {
+  const key = spell(tonicPc, tonicPc, scale);
   if (tab === 'Fretboard Boxes') {
     return {
       intro: `The neck in hand-sized sections. Each card is one position — a dotted box you can play without moving your hand — anchored to ${key}: change key up top and every box slides to the right fret. Orange is the root. Learn one box deeply, then join its neighbours; the five pentatonic boxes tile the entire fretboard. Tap a diagram to hear it.`,
-      cards: boxesCards(tonicPc),
+      cards: boxesCards(tonicPc, scale),
     };
   }
   if (tab === 'CAGED') {
     return {
       intro: `The five open grips every guitarist knows — C, A, G, E, D — are secretly one system. Slide any grip up the neck (your index finger barring where the nut used to be) and it still plays a major chord; the five shapes chain together so ${key} major lives in five positions that tile the whole fretboard. Diagrams below are anchored to ${key} — the dark bar is the barre. Tap to strum.`,
-      cards: cagedCards(tonicPc),
+      cards: cagedCards(tonicPc, scale),
     };
   }
   if (tab === 'Soloing') {
     return {
       intro: `Best-practice soloing patterns for guitar, bass and piano in ${key} — built around the spot where the major and minor pentatonics overlap. In the overlap diagrams the colours mean membership: green = in both scales, gold = major-only (sweet), blue = minor-only (blues). Tap a diagram or phrase to hear it.`,
-      cards: soloCards(tonicPc),
+      cards: soloCards(tonicPc, scale),
     };
   }
   if (tab === 'Barre Chords') {
     return {
       intro: `Every barre chord in ${key}, visually: the dark bar is your index finger laid flat, the dots are the other fingers. Technique first — thumb LOW behind the neck, index rolled slightly onto its bony edge, elbow tucked in; practise around frets 5–7 where the string tension is friendliest, and squeeze only as hard as the clean note needs. Then learn the four qualities in both families below. Tap to strum.`,
-      cards: barreCards(tonicPc),
+      cards: barreCards(tonicPc, scale),
     };
   }
   if (tab === 'Bass Chords') {
     return {
       intro: `Chords on bass are sparse on purpose: stacked close 3rds turn to mud down low, so bassists play WIDE — root + 5th, root + octave, root + tenth. Like guitar barre chords, everything comes in two families: root on the E string or root on the A string. All grips below are ${key} — × marks strings you mute with a spare finger. Tap to hear one ring.`,
-      cards: bassChordCards(tonicPc),
+      cards: bassChordCards(tonicPc, scale),
     };
   }
   return { intro: '', cards: [] };

@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { spell, cname, diatonicList, subsFor, jazzVoicing, invChord, mod12, gPcs, playedIntervals, playedPcs, droppedPcs } from './theory';
-import { INT } from './constants';
+import {
+  spell, cname, diatonicList, subsFor, jazzVoicing, invChord, mod12, gPcs,
+  playedIntervals, playedPcs, droppedPcs, keyLabel, keySigStr, isEnharmonicTie,
+  parentMajorPc, keyNameStr, scaleNotesStr,
+} from './theory';
+import { INT, SCALES, type ScaleId } from './constants';
 
 describe('note spelling', () => {
   it('uses sharps for sharp keys and flats for flat keys', () => {
@@ -11,6 +15,93 @@ describe('note spelling', () => {
   it('wraps pitch classes', () => {
     expect(spell(12, 0)).toBe('C');
     expect(mod12(-1)).toBe(11);
+  });
+  it('defaults to major, matching the spelling table this replaced', () => {
+    const wasFlat = [5, 10, 3, 8, 1, 6];
+    for (let pc = 0; pc < 12; pc++) {
+      expect(spell(1, pc)).toBe(wasFlat.includes(pc) ? 'Db' : 'C#');
+    }
+  });
+});
+
+describe('enharmonic spelling follows the scale, not just the tonic', () => {
+  // The five black keys, spelled the way each mode's key signature writes them.
+  // Minor is sharper than major but not uniformly so: E♭ and B♭ stay flat in
+  // both, which is why a blanket "sharps in minor" rule would be wrong.
+  it('spells the black keys per the fewer-accidentals rule', () => {
+    const major: Record<number, string> = { 1: 'Db', 3: 'Eb', 6: 'Gb', 8: 'Ab', 10: 'Bb' };
+    const minor: Record<number, string> = { 1: 'C#', 3: 'Eb', 6: 'F#', 8: 'G#', 10: 'Bb' };
+    for (const [pc, name] of Object.entries(major)) {
+      expect(spell(+pc, +pc, 'ionian')).toBe(name);
+    }
+    for (const [pc, name] of Object.entries(minor)) {
+      expect(spell(+pc, +pc, 'aeolian')).toBe(name);
+    }
+  });
+
+  it('spells F# minor sharp and Gb major flat — the same pitch class', () => {
+    expect(keyNameStr(6, 'ionian')).toBe('Gb Major');
+    expect(keyNameStr(6, 'aeolian')).toBe('F# Minor');
+    expect(scaleNotesStr(6, 'aeolian').split(' · ')[0]).toBe('F#');
+  });
+
+  it('gives harmonic and melodic minor the natural-minor signature', () => {
+    for (const sc of ['aeolian', 'harmonic', 'melodic'] as ScaleId[]) {
+      expect(spell(1, 1, sc)).toBe('C#');
+      expect(keySigStr(1, sc)).toBe('4 ♯');
+    }
+  });
+
+  it('reads a mode off its parent major', () => {
+    expect(parentMajorPc(2, 'dorian')).toBe(0); // D dorian ← C major
+    expect(keySigStr(2, 'dorian')).toBe('no ♯/♭');
+    expect(parentMajorPc(6, 'aeolian')).toBe(9); // F# minor ← A major
+    expect(keySigStr(6, 'aeolian')).toBe('3 ♯');
+    expect(keySigStr(6, 'ionian')).toBe('6 ♯/♭');
+  });
+
+  it('flags only the six-accidental keys as genuine ties', () => {
+    expect(isEnharmonicTie(6, 'ionian')).toBe(true); // F# / Gb major
+    expect(isEnharmonicTie(3, 'aeolian')).toBe(true); // Eb / D# minor
+    expect(isEnharmonicTie(6, 'aeolian')).toBe(false); // F# minor, plainly
+    expect(isEnharmonicTie(1, 'ionian')).toBe(false); // Db major, plainly
+    // Exactly one tie per scale — the wheel has one spot six steps out.
+    for (const sc of Object.keys(SCALES) as ScaleId[]) {
+      const ties = Array.from({ length: 12 }, (_, pc) => isEnharmonicTie(pc, sc)).filter(Boolean);
+      expect(ties).toHaveLength(1);
+    }
+  });
+});
+
+describe('key picker labels', () => {
+  // The bug this all started from: the picker's chip said F♯ while every note
+  // the app spelled underneath it said Gb.
+  it('labels every chip the way spell() writes that key', () => {
+    for (const sc of Object.keys(SCALES) as ScaleId[]) {
+      for (let pc = 0; pc < 12; pc++) {
+        const [note, acc] = keyLabel(pc, sc);
+        const plain = note + (acc === '♭' ? 'b' : acc === '♯' ? '#' : '');
+        expect(plain).toBe(spell(pc, pc, sc));
+      }
+    }
+  });
+  it('splits the accidental off so the letters can line up', () => {
+    expect(keyLabel(0, 'ionian')).toEqual(['C', '']);
+    expect(keyLabel(6, 'ionian')).toEqual(['G', '♭']);
+    expect(keyLabel(6, 'aeolian')).toEqual(['F', '♯']);
+  });
+});
+
+describe('key signatures', () => {
+  it('counts the accidentals of every major key', () => {
+    const sigs = ['no ♯/♭', '5 ♭', '2 ♯', '3 ♭', '4 ♯', '1 ♭', '6 ♯/♭', '1 ♯', '4 ♭', '3 ♯', '2 ♭', '5 ♯'];
+    sigs.forEach((sig, pc) => expect(keySigStr(pc, 'ionian')).toBe(sig));
+  });
+  it('counts them for minor keys off the relative major', () => {
+    expect(keySigStr(9, 'aeolian')).toBe('no ♯/♭'); // A minor
+    expect(keySigStr(0, 'aeolian')).toBe('3 ♭'); // C minor
+    expect(keySigStr(10, 'aeolian')).toBe('5 ♭'); // Bb minor
+    expect(keySigStr(8, 'aeolian')).toBe('5 ♯'); // G# minor
   });
 });
 

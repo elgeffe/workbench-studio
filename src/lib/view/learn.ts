@@ -24,7 +24,7 @@ import type { PaletteChip } from './types';
 function jc(s: WorkbenchStore, iv: number, q: string, opts: Partial<ChordDef> = {}): Chord {
   const r = mod12(s.tonicPc + iv);
   const intervals = opts.intervals || INT[q];
-  const name = opts.name || spell(r, s.tonicPc) + (SUF[q] !== undefined ? SUF[q] : '');
+  const name = opts.name || spell(r, s.tonicPc, s.scale) + (SUF[q] !== undefined ? SUF[q] : '');
   const ch: Chord = { rootPc: r, intervals, name, fn: opts.fn || 'T' };
   if (opts.midis) ch.midis = opts.midis.map((m) => m + s.tonicPc);
   return ch;
@@ -33,18 +33,18 @@ function jc(s: WorkbenchStore, iv: number, q: string, opts: Partial<ChordDef> = 
 export function buildLearn(s: WorkbenchStore) {
   const t = s.tonicPc;
 
-  const JZ = jazzChapters(t);
+  const JZ = jazzChapters(t, s.scale);
   const jzi = Math.min(s.jazzCh || 0, JZ.length - 1);
   const jazzNav = JZ.map((c, i) => ({ name: c.name, tag: c.tag, i, border: i === jzi ? '#c2562e' : '#cbb792', bg: i === jzi ? '#fbeede' : '#f6efe0', fg: i === jzi ? '#c2562e' : '#5c4a30' }));
   const jzc: JazzChapter = JZ[jzi];
   const jazzBlocks = jzc.blocks.map((b) => {
     if (b.kind === 'chords') {
-      const items = (b.rows || []).map((r) => { const ch = jc(s, r.iv, r.q || 'maj', r); return { name: ch.name!, sub: r.sub || gPcs(ch).map((p) => spell(p, t)).join(' '), fnColor: FNCOLOR[ch.fn || 'T'], tint: FNTINT[ch.fn || 'T'], ch }; });
+      const items = (b.rows || []).map((r) => { const ch = jc(s, r.iv, r.q || 'maj', r); return { name: ch.name!, sub: r.sub || gPcs(ch).map((p) => spell(p, t, s.scale)).join(' '), fnColor: FNCOLOR[ch.fn || 'T'], tint: FNTINT[ch.fn || 'T'], ch }; });
       return { kind: 'chords' as const, items };
     }
     if (b.kind === 'seq') {
       const chs = (b.rows || []).map((r) => jc(s, r.iv, r.q || 'maj', r));
-      const items = chs.map((ch, i) => ({ name: (b.rows || [])[i].name || ch.name!, sub: gPcs(ch).map((p) => spell(p, t)).join(' '), fnColor: FNCOLOR[ch.fn || 'T'], tint: FNTINT[ch.fn || 'T'], ch }));
+      const items = chs.map((ch, i) => ({ name: (b.rows || [])[i].name || ch.name!, sub: gPcs(ch).map((p) => spell(p, t, s.scale)).join(' '), fnColor: FNCOLOR[ch.fn || 'T'], tint: FNTINT[ch.fn || 'T'], ch }));
       return { kind: 'seq' as const, label: b.label || '', items, seqChords: chs };
     }
     return { kind: b.kind, text: b.text || '' };
@@ -55,25 +55,25 @@ export function buildLearn(s: WorkbenchStore) {
   // playable and each placeable into the progression you are building next
   // door. Learning them here and using them there is the same set of chips.
   const jzDia: PaletteChip[] = [0, 1, 2, 3, 4, 5, 6].map((d) => {
-    const r = (t + MAJOR[d]) % 12, q = DIA_SEV[d], fn = FN[d], nm = cname(r, q, t);
+    const r = (t + MAJOR[d]) % 12, q = DIA_SEV[d], fn = FN[d], nm = cname(r, q, t, s.scale);
     const ch: Chord = { rootPc: r, intervals: INT[q], name: nm, roman: ROMAN7[d], fn };
     return { name: nm, roman: ROMAN7[d], fnColor: FNCOLOR[fn], tint: FNTINT[fn], border: FNCOLOR[fn], ch };
   });
   const jzBorrow: PaletteChip[] = jzBorrowDefs.map((d) => {
-    const r = (t + d.iv) % 12, nm = cname(r, d.q!, t);
+    const r = (t + d.iv) % 12, nm = cname(r, d.q!, t, s.scale);
     const ch: Chord = { rootPc: r, intervals: INT[d.q!], name: nm, roman: d.roman, fn: 'S' };
     return { name: nm, roman: d.roman || '', ch };
   });
   const jzSecondary: PaletteChip[] = jzSecondaryDefs.map((d) => {
-    const r = (t + d.iv) % 12, nm = cname(r, 'dom7', t);
+    const r = (t + d.iv) % 12, nm = cname(r, 'dom7', t, s.scale);
     const ch: Chord = { rootPc: r, intervals: INT.dom7, name: nm, roman: 'V7/' + d.tgt, fn: 'D' };
     return { name: nm, roman: 'V7/' + d.tgt, ch };
   });
-  const quickProgs = quickProgDefs(t).map((p) => ({ name: p.name, defs: p.defs }));
+  const quickProgs = quickProgDefs(t, s.scale).map((p) => ({ name: p.name, defs: p.defs }));
 
   // ---- the classical palette (was Workshop → CLASSICAL) ----
   const clDia: PaletteChip[] = [0, 1, 2, 3, 4, 5, 6].map((d) => {
-    const r = (t + MAJOR[d]) % 12, q = DIA_TRI[d], fn = FN[d], nm = cname(r, q, t);
+    const r = (t + MAJOR[d]) % 12, q = DIA_TRI[d], fn = FN[d], nm = cname(r, q, t, s.scale);
     const ch: Chord = { rootPc: r, intervals: INT[q], name: nm, roman: ROMAN[d], fn };
     return { name: nm, roman: ROMAN[d], fnColor: FNCOLOR[fn], tint: FNTINT[fn], border: FNCOLOR[fn], ch };
   });
@@ -92,7 +92,7 @@ export function buildLearn(s: WorkbenchStore) {
 
   // A one-line subject for each area, shown under the Learn eyebrow.
   const learnSubject: Record<LearnTab, string> = {
-    theory: 'harmony you can play — in ' + spell(t, t),
+    theory: 'harmony you can play — in ' + spell(t, t, s.scale),
     rhythm: 'how drum patterns are built',
     bass: 'the moves behind a bassline',
     patterns: 'scales, arpeggios and shapes on the neck',

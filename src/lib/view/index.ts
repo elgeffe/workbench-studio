@@ -2,10 +2,13 @@
 // from per-mode builders. Components read `store.view.*` — nothing here
 // mutates state or touches audio.
 import {
-  INT, SCALES, FNCOLOR, FNTINT, FNNAME, FNWHY, KEYSIG, KEYLABEL, KEYCHAR,
+  INT, SCALES, FNCOLOR, FNTINT, FNNAME, FNWHY, KEYCHAR,
   type Chord, type ScaleId,
 } from '../engine/constants';
-import { spell, cname, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr, diatonicList, subsFor } from '../engine/theory';
+import {
+  spell, spellOther, cname, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr,
+  diatonicList, subsFor, keyLabel, keySigStr, isEnharmonicTie, fmtKey,
+} from '../engine/theory';
 import { patternDefs, PAT_GROUPS } from '../engine/data';
 import type { WorkbenchStore, Mode, Part } from '../store.svelte';
 import type { DiatonicView, LitInfo } from './types';
@@ -52,7 +55,7 @@ export function computeView(s: WorkbenchStore) {
   // transport — pressing either starts/stops the whole band.
   const transportOn = s.jzPlaying || s.drPlaying;
 
-  const { wedges, circleLabel, circleHint } = buildCircle(t, s.circleView, s.circleDir);
+  const { wedges, circleLabel, circleHint } = buildCircle(t, s.circleView, s.circleDir, s.scale);
 
   // diatonic chips
   const diatonic: DiatonicView[] = dia.map((c) => {
@@ -72,11 +75,11 @@ export function computeView(s: WorkbenchStore) {
   if (ac) {
     const ps = gPcs(ac);
     const labels = ac.degLabels || ['R', '3', '5', '7', '9', '11', '13'];
-    acNotes = ps.map((p, i) => ({ name: spell(p, t), deg: labels[i] || '', bd: i === 0 ? '#c2562e' : '#3f6b5f' }));
+    acNotes = ps.map((p, i) => ({ name: spell(p, t, s.scale), deg: labels[i] || '', bd: i === 0 ? '#c2562e' : '#3f6b5f' }));
   }
-  const subs = ac ? subsFor(ac, t).map((sub) => {
+  const subs = ac ? subsFor(ac, t, s.scale).map((sub) => {
     const ch = { rootPc: sub.rootPc, intervals: sub.intervals, name: sub.name, roman: sub.roman, fn: sub.fn } as Chord;
-    return { name: sub.name, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], notes: gPcs(ch).map((p) => spell(p, t)), ch };
+    return { name: sub.name, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], notes: gPcs(ch).map((p) => spell(p, t, s.scale)), ch };
   }) : [];
 
   const patterns = buildPatterns(s, lit.activePat);
@@ -87,17 +90,28 @@ export function computeView(s: WorkbenchStore) {
 
   return {
     // header / scale
-    keyName: keyNameStr(t, s.scale), keySig: KEYSIG[sigPc] || '',
-    centerKey: s.circleView === 'min' ? spell(t, t) + 'm' : spell(t, t),
+    keyName: keyNameStr(t, s.scale), keySig: keySigStr(t, s.scale),
+    // The wheel's own signature tracks which ring it is reading from, which is
+    // the circle view's business and not the scale's.
+    circleSig: keySigStr(sigPc, 'ionian'),
+    centerKey: s.circleView === 'min' ? spell(t, t, s.scale) + 'm' : spell(t, t, s.scale),
     scaleNotes: scaleNotesStr(t, s.scale), scaleCaption: SCALES[s.scale].char,
     modeList: (Object.keys(SCALES) as ScaleId[]).map(scaleChip),
     // the tonic's own character — the "colour" of the key, above the scale's
-    keyCharName: KEYLABEL[t].join(''), keyChar: KEYCHAR[t],
-    // direct key picker — chromatic, labelled with each key's usual spelling
-    keyChips: KEYLABEL.map(([note, acc], pc) => ({
-      pc, note, acc, label: note + acc, char: KEYCHAR[pc], active: t === pc,
-      bg: t === pc ? '#c2562e' : '#f1e6cf', fg: t === pc ? '#fff' : '#5c4a30', border: t === pc ? '#c2562e' : '#d8c7a8',
-    })),
+    keyCharName: keyLabel(t, s.scale).join(''), keyChar: KEYCHAR[t],
+    // On the one key per scale where both spellings cost six accidentals,
+    // neither name is more correct, so the caption says so outright rather than
+    // the chip quietly picking a side.
+    keyAlt: isEnharmonicTie(t, s.scale) ? fmtKey(spellOther(t, t, s.scale)) : '',
+    // Direct key picker — chromatic, each chip spelled the way this scale
+    // would actually write it, so the chips always agree with the notes below.
+    keyChips: Array.from({ length: 12 }, (_, pc) => {
+      const [note, acc] = keyLabel(pc, s.scale);
+      return {
+        pc, note, acc, label: note + acc, char: KEYCHAR[pc], active: t === pc,
+        bg: t === pc ? '#c2562e' : '#f1e6cf', fg: t === pc ? '#fff' : '#5c4a30', border: t === pc ? '#c2562e' : '#d8c7a8',
+      };
+    }),
     // scale-type picker split into the four everyday scales + the modes
     scalePrimary: (['ionian', 'aeolian', 'harmonic', 'melodic'] as ScaleId[]).map(scaleChip),
     scaleModes: (['dorian', 'phrygian', 'lydian', 'mixolydian', 'locrian'] as ScaleId[]).map(scaleChip),
@@ -134,7 +148,7 @@ export function computeView(s: WorkbenchStore) {
     viewMajBg: s.circleView === 'min' ? 'transparent' : '#3f6b5f', viewMajFg: s.circleView === 'min' ? '#5c4a30' : '#fff',
     viewMinBg: s.circleView === 'min' ? '#3f6b5f' : 'transparent', viewMinFg: s.circleView === 'min' ? '#fff' : '#5c4a30',
     hasActive: !!ac, noActive: !ac,
-    acName: ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '', acRoman: ac ? ac.roman || '' : '',
+    acName: ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '', acRoman: ac ? ac.roman || '' : '',
     acFnName: ac ? FNNAME[ac.fn || 'T'] : '', acFnColor: ac ? FNCOLOR[ac.fn || 'T'] : '#3f6b5f',
     acNotes, acWhy: ac ? FNWHY[ac.fn || 'T'] : '', subs,
     // chords (genres, palettes, progression strip, inspector)
@@ -167,8 +181,8 @@ export function computeView(s: WorkbenchStore) {
     ...buildReading(s),
     // dock / instruments
     dockExpanded: s.dockOpen, dockChevron: s.dockOpen ? '▼ HIDE' : '▲ SHOW',
-    dockName: s.patternsOpen && patterns.patLibTab ? spell(t, t) + ' ' + lit.activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t) : '—',
-    dockNotes: s.patternsOpen && patterns.patLibTab ? patterns.patNotes + '   ·   over ' + patterns.view.patChordName : ac ? gPcs(ac).map((p) => spell(p, t)).join('  ·  ') : 'pick a chord to see it on the fretboards',
+    dockName: s.patternsOpen && patterns.patLibTab ? spell(t, t, s.scale) + ' ' + lit.activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '—',
+    dockNotes: s.patternsOpen && patterns.patLibTab ? patterns.patNotes + '   ·   over ' + patterns.view.patChordName : ac ? gPcs(ac).map((p) => spell(p, t, s.scale)).join('  ·  ') : 'pick a chord to see it on the fretboards',
     ...inst,
     fingerBg: s.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: s.fingerOn ? '#fff' : '#5c4a30',
     // The six tabs, in the order the studio is meant to be used: explore the
