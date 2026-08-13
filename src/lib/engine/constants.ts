@@ -65,16 +65,9 @@ export const FNWHY: Record<Fn, string> = {
   S: 'Departure — it lifts away from home and leans the music forward, setting up the dominant.',
   D: 'Tension — it holds the tritone (the 3rd and 7th) that strains to snap back to the tonic. This pull IS functional harmony.',
 };
-export const KEYSIG: Record<number, string> = {
-  0: 'no ♯/♭', 7: '1 ♯', 2: '2 ♯', 9: '3 ♯', 4: '4 ♯', 11: '5 ♯', 6: '6 ♯/♭', 1: '5 ♭', 8: '4 ♭', 3: '3 ♭', 10: '2 ♭', 5: '1 ♭',
-};
-// The chromatic keys in their usual spelling, letter and accidental kept
-// apart: the picker centres the letter and hangs the ♭/♯ off it, so every
-// chip puts its letter on the same centre line.
-export const KEYLABEL: Array<[string, string]> = [
-  ['C', ''], ['D', '♭'], ['D', ''], ['E', '♭'], ['E', ''], ['F', ''],
-  ['F', '♯'], ['G', ''], ['A', '♭'], ['A', ''], ['B', '♭'], ['B', ''],
-];
+// Key signatures and key spellings are no longer tables: both depend on the
+// scale as well as the tonic (F♯ minor vs G♭ major are the same pitch class),
+// so they are computed in theory.ts — see `keyLabel` and `keySigStr` there.
 
 // What each key *feels* like. In equal temperament every key holds the same
 // intervals, so this is register, instrument resonance and a couple of

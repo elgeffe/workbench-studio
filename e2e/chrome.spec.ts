@@ -67,6 +67,38 @@ test.describe('desktop chrome', () => {
     await expect(button).toContainText('Eb Minor');
   });
 
+  // The picker used to label pitch class 6 "F♯" off a fixed table while every
+  // note the app spelled underneath it came out "Gb". Chips and notes are now
+  // both derived from the key signature, so they cannot drift apart again.
+  test('the key picker spells its chips the way the current scale writes them', async ({ page }) => {
+    const button = page.getByTestId('key-button');
+    await button.click();
+    const picker = page.getByTestId('key-picker');
+    const chips = picker.locator('.wb-keychip');
+
+    // Major: six flats ties with six sharps, so the picker names both.
+    await chips.nth(6).click();
+    await expect(button).toContainText('Gb Major');
+    await expect(chips.nth(6)).toHaveText('G♭');
+    await expect(picker).toContainText('6 ♯/♭');
+    await expect(picker).toContainText('also written F♯');
+
+    // Minor: the same pitch class is plainly F♯ — 3 sharps, no tie, no alt.
+    await picker.getByRole('button', { name: 'aeolian' }).click();
+    await expect(button).toContainText('F# Minor');
+    await expect(chips.nth(6)).toHaveText('F♯');
+    await expect(picker).toContainText('3 ♯');
+    await expect(picker).not.toContainText('also written');
+
+    // C♯ minor (4♯) vs D♭ major (5♭) — the whole row flips with the scale…
+    await expect(chips.nth(1)).toHaveText('C♯');
+    await picker.getByRole('button', { name: 'ionian' }).click();
+    await expect(chips.nth(1)).toHaveText('D♭');
+    // …except E♭ and B♭, which stay flat in both.
+    await expect(chips.nth(3)).toHaveText('E♭');
+    await expect(chips.nth(10)).toHaveText('B♭');
+  });
+
   test('the Circle tab keeps its scale row inline — it is that tab’s subject', async ({ page }) => {
     // Circle is the default tab
     await expect(page.getByRole('button', { name: 'lydian', exact: true })).toBeVisible();

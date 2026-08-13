@@ -103,12 +103,12 @@ export function buildBass(s: WorkbenchStore) {
   const half = s.chordSlot === 'half';
   // With no changes loaded the line resolves against the key's own dom7 — the
   // same fallback a cell tap previews with — so the row reads rather than blanks.
-  const chs = s.jzChanges.length ? s.jzChanges : [bassFallbackChord(s.tonicPc)];
+  const chs = s.jzChanges.length ? s.jzChanges : [bassFallbackChord(s.tonicPc, s.scale)];
   // Playing, the bar carries the change it was laid out over. Stopped, the tab
   // shows what the loop would play from here: the change selected in Chords.
   const first = live ? s.bsFirst : Math.max(s.jzSel, 0);
   const notes = bassBarNotes(s.bassLine, chs, first, half, s.tonicPc);
-  const chName = (i: number) => chs[i].name || cname(chs[i].rootPc, chs[i].quality || 'maj', s.tonicPc);
+  const chName = (i: number) => chs[i].name || cname(chs[i].rootPc, chs[i].quality || 'maj', s.tonicPc, s.scale);
 
   // A bass note rings on through the rests behind it, so the row underlines the
   // steps it is still sounding over: what you see is how long you hold it.
@@ -129,7 +129,7 @@ export function buildBass(s: WorkbenchStore) {
       // a rest that follows a note already let go.
       tail: n.midi !== undefined ? BASS_ROLE_META[role!].color : held.get(n.s) || 'transparent',
       // Ghosts have no pitch to name — they are the drum in the bassline.
-      name: n.g ? '×' : n.midi === undefined ? '' : spell(n.midi, s.tonicPc),
+      name: n.g ? '×' : n.midi === undefined ? '' : spell(n.midi, s.tonicPc, s.scale),
       // The octave separates a root from the octave pop above it, which spell
       // the same. Small, because it is the second question you ask of a note.
       oct: n.midi === undefined ? '' : String(midiOctave(n.midi)),
@@ -171,7 +171,7 @@ export function buildBass(s: WorkbenchStore) {
     bassBarCount, bassNoteCells, bassChordSpans,
     bassNowOn: !!sounding,
     bassNowCount: sounding ? BAR_COUNT[sounding.s] : '',
-    bassNowNote: sounding ? (sounding.g ? 'ghost' : spell(sounding.midi!, s.tonicPc) + midiOctave(sounding.midi!)) : '',
+    bassNowNote: sounding ? (sounding.g ? 'ghost' : spell(sounding.midi!, s.tonicPc, s.scale) + midiOctave(sounding.midi!)) : '',
     bassNowDeg: sounding && sounding.d ? BASS_TOK_LABEL[sounding.d] : '',
     bassNowRole: soundingRole ? BASS_ROLE_META[soundingRole].name : '',
     bassNowColor: soundingRole ? BASS_ROLE_META[soundingRole].color : '#7a6b50',

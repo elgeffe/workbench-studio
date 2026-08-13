@@ -17,7 +17,7 @@ export function buildInstruments(s: WorkbenchStore, { root, litSet, chordSet, dr
     if (pc === root) { bg = '#c2562e'; glow = '0 0 0 2px rgba(194,86,46,.3)'; }
     else if (isDrop) { bg = '#b3a68f'; }
     else if (!chordSet.has(pc)) { bg = '#97a59c'; }
-    return { pc, showLit: isLit || isDrop, dot: false, barreThru: false, litOpacity: isDrop ? '0.4' : '1', finger: '', dotColor: '', note: spell(pc, s.tonicPc), bg, glow };
+    return { pc, showLit: isLit || isDrop, dot: false, barreThru: false, litOpacity: isDrop ? '0.4' : '1', finger: '', dotColor: '', note: spell(pc, s.tonicPc, s.scale), bg, glow };
   };
   const buildFret = (opens: number[], labels: string[]): FretRow[] =>
     opens.map((o, si) => ({ label: labels[si], openDot: null, cells: Array.from({ length: frets }, (_, f) => cell(o, f)) }));
@@ -78,7 +78,7 @@ export function buildInstruments(s: WorkbenchStore, { root, litSet, chordSet, dr
     if (k.white) {
       pianoWhite.push({
         left: (wIdx * wp).toFixed(3), width: wp.toFixed(3), pc: k.pc,
-        note: isLit || isDrop ? spell(k.pc, s.tonicPc) : '',
+        note: isLit || isDrop ? spell(k.pc, s.tonicPc, s.scale) : '',
         bg: dim ? '#e7d9bf' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#e0d4bc' : '#f4ecdb',
         fg: dim ? '#c4b290' : isLit ? '#fff' : isDrop ? '#a2957a' : '#b9a988', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
       });
@@ -86,7 +86,7 @@ export function buildInstruments(s: WorkbenchStore, { root, litSet, chordSet, dr
     } else {
       pianoBlack.push({
         left: (wIdx * wp - wp * 0.31).toFixed(3), width: (wp * 0.62).toFixed(3), pc: k.pc,
-        note: isLit || isDrop ? spell(k.pc, s.tonicPc) : '',
+        note: isLit || isDrop ? spell(k.pc, s.tonicPc, s.scale) : '',
         bg: dim ? '#4a3a28' : isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#5a4c39' : '#241a10',
         fg: dim ? '#8c7a5e' : isLit ? '#fff' : isDrop ? '#9a8a6d' : '#7a6a4e', dot: !!mk, dotColor: mk ? mk.color : '', finger: mk ? mk.finger : '',
       });

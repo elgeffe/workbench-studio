@@ -3,7 +3,7 @@
 
 import { spell, cname } from './theory';
 import { FRET_TABS } from './fretpatterns';
-import type { Fn } from './constants';
+import type { Fn, ScaleId } from './constants';
 
 export interface ChordDef {
   iv: number;
@@ -312,8 +312,8 @@ export interface JazzChapter {
   blocks: JazzBlock[];
 }
 
-export function jazzChapters(tonicPc: number): JazzChapter[] {
-  const sp = (pc: number) => spell(pc, tonicPc);
+export function jazzChapters(tonicPc: number, scale: ScaleId = 'ionian'): JazzChapter[] {
+  const sp = (pc: number) => spell(pc, tonicPc, scale);
   return [
     { key: 'ext', name: 'Extensions', tag: 'COLOR',
       intro: 'Jazz keeps stacking thirds past the 7th — adding the 9th, 11th and 13th. These are colour notes: they don’t change what the chord *does*, they change how rich it sounds. Click each to hear the colour deepen.',
@@ -517,11 +517,11 @@ export function jazzChapters(tonicPc: number): JazzChapter[] {
 
 // ---- Workshop palette definitions (quick progressions, cadences, etc.) ----
 
-export const quickProgDefs = (tonicPc: number): Array<{ name: string; defs: ChordDef[] }> => [
+export const quickProgDefs = (tonicPc: number, scale: ScaleId = 'ionian'): Array<{ name: string; defs: ChordDef[] }> => [
   { name: 'ii–V–I', defs: [{ iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj7', roman: 'Imaj7', fn: 'T' }] },
   { name: 'ii–V', defs: [{ iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
   { name: 'I–vi–ii–V', defs: [{ iv: 0, q: 'maj7', roman: 'Imaj7', fn: 'T' }, { iv: 9, q: 'min7', roman: 'vi7', fn: 'T' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }] },
-  { name: 'Minor ii–V–i', defs: [{ iv: 2, q: 'm7b5', roman: 'iiø7', fn: 'S' }, { iv: 7, intervals: [0, 4, 7, 10, 13], name: cname((tonicPc + 7) % 12, 'dom7', tonicPc) + '♭9', roman: 'V7♭9', fn: 'D' }, { iv: 0, q: 'min7', roman: 'i7', fn: 'T' }] },
+  { name: 'Minor ii–V–i', defs: [{ iv: 2, q: 'm7b5', roman: 'iiø7', fn: 'S' }, { iv: 7, intervals: [0, 4, 7, 10, 13], name: cname((tonicPc + 7) % 12, 'dom7', tonicPc, scale) + '♭9', roman: 'V7♭9', fn: 'D' }, { iv: 0, q: 'min7', roman: 'i7', fn: 'T' }] },
 ];
 
 export const cadenceDefs: Array<{ name: string; defs: ChordDef[] }> = [

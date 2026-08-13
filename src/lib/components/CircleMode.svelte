@@ -52,7 +52,7 @@
         {/if}
       {/each}
       <div class="serif" style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);font-weight:600;font-size:29px;color:#f1e7d3;pointer-events:none;white-space:nowrap">{v.centerKey}</div>
-      <div class="mono" style="position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);font-size:9.5px;letter-spacing:.08em;color:#d8a86f;pointer-events:none">{v.keySig}</div>
+      <div class="mono" style="position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);font-size:9.5px;letter-spacing:.08em;color:#d8a86f;pointer-events:none">{v.circleSig}</div>
     </div>
     <div class="caption" style="font-size:11.5px;color:#9c8460">Outer ring: major keys · inner ring: relative minors</div>
     <div class="mono" style="display:flex;gap:13px;flex-wrap:wrap;justify-content:center;font-size:9px;letter-spacing:.08em;color:#7a6b50">

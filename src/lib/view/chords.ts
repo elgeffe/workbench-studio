@@ -38,7 +38,7 @@ export function buildChords(s: WorkbenchStore) {
 
   // colour / borrowed chords
   const colorChords: PaletteChip[] = colorChordDefs(t).map((c) => {
-    const nm = cname(c.rootPc, c.quality, t);
+    const nm = cname(c.rootPc, c.quality, t, s.scale);
     const ch: Chord = { rootPc: c.rootPc, intervals: INT[c.quality], name: nm, roman: c.roman, fn: 'S' };
     return { name: nm, roman: c.roman, ch };
   });
@@ -47,7 +47,7 @@ export function buildChords(s: WorkbenchStore) {
   const jzChangesView: ChordChip[] = s.jzChanges.map((c, i) => {
     const playing = s.jzStep === i, selected = !s.jzPlaying && s.jzSel === i, hl = playing || selected;
     const fc = FNCOLOR[c.fn || 'T'];
-    return { name: c.name || '', roman: c.roman || '', notes: jzNotes(c, s.jzVoicing, t), fnColor: fc, border: fc, bg: hl ? '#fbeede' : FNTINT[c.fn || 'T'], shadow: hl ? '0 0 0 2px ' + fc : '0 1px 2px rgba(60,40,16,.12)', ch: c };
+    return { name: c.name || '', roman: c.roman || '', notes: jzNotes(c, s.jzVoicing, t, s.scale), fnColor: fc, border: fc, bg: hl ? '#fbeede' : FNTINT[c.fn || 'T'], shadow: hl ? '0 0 0 2px ' + fc : '0 1px 2px rgba(60,40,16,.12)', ch: c };
   });
 
   // ---- the inspector for the selected chord ----
@@ -63,7 +63,7 @@ export function buildChords(s: WorkbenchStore) {
   if (s.jzSel >= 0 && s.jzChanges[s.jzSel]) {
     const sc = s.jzChanges[s.jzSel];
     exploreOpen = true; selName = sc.name || ''; selRoman = sc.roman || '';
-    const R = sc.rootPc, fam = jFamily(gI(sc)), sp = spell(R, t);
+    const R = sc.rootPc, fam = jFamily(gI(sc)), sp = spell(R, t, s.scale);
     const mkExt = (suf: string, ints: number[]) => ({ label: sp + suf, ch: { rootPc: R, intervals: ints, name: sp + suf, fn: sc.fn, roman: sc.roman } as Chord });
     // Colour options follow the chord's family, plus the two plain triads so
     // you can always get back to the bones of it.
@@ -71,8 +71,8 @@ export function buildChords(s: WorkbenchStore) {
     else if (fam === 'min') extChips = [mkExt('m', INT.min), mkExt('m7', INT.min7), mkExt('m9', INT.min9), mkExt('m13', INT.min13)];
     else if (fam === 'dom') extChips = [mkExt('', INT.maj), mkExt('7', INT.dom7), mkExt('9', INT.dom9), mkExt('13', INT.dom13), mkExt('7♭9', [0, 4, 7, 10, 13]), mkExt('7♯9', [0, 4, 7, 10, 15])];
     else extChips = [mkExt('°', INT.dim), mkExt('ø7', INT.m7b5), mkExt('ø9', INT.m9b5)];
-    invChips = [{ label: 'Root', w: 0 }, { label: '1st', w: 1 }, { label: '2nd', w: 2 }].map((o) => ({ label: o.label, ch: invChord(sc, o.w, t) }));
-    buildSubs = subsFor(sc, t).map((sub) => ({ name: sub.name!, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], ch: { rootPc: sub.rootPc, intervals: sub.intervals, name: sub.name, roman: sub.roman, fn: sub.fn } as Chord }));
+    invChips = [{ label: 'Root', w: 0 }, { label: '1st', w: 1 }, { label: '2nd', w: 2 }].map((o) => ({ label: o.label, ch: invChord(sc, o.w, t, s.scale) }));
+    buildSubs = subsFor(sc, t, s.scale).map((sub) => ({ name: sub.name!, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], ch: { rootPc: sub.rootPc, intervals: sub.intervals, name: sub.name, roman: sub.roman, fn: sub.fn } as Chord }));
   }
 
   // what to reach for next
