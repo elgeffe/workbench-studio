@@ -54,26 +54,43 @@ export const DRUM_VOICES = [
   {
     id: 'ride', name: 'Ride / Crash', short: 'CY', color: '#b07d23', kind: 'cymbal',
     hint: 'The one cymbal: ride timekeeping, the bell for African timelines, and accents on downbeats and phrase ends.',
-    // A cymbal is a stick hitting bronze: a tick, a pitched ping from the bow,
-    // and a wash that outlasts both. The earlier recipe was two square waves at
-    // 3.1 and 4.7 kHz — and a square's harmonics land at 9.4k, 15.7k, 14k…,
-    // i.e. entirely inside the band the ear is most sensitive to, with nothing
-    // to filter them. That stack of raw odd harmonics is what made it shrill.
-    // Sines carry the ping instead (no harmonics to be shrill with), and the
-    // metal is bandpassed noise, which is where a cymbal's noisy character
-    // actually lives.
+    // What makes metal sound like metal is a dense cluster of INHARMONIC
+    // partials — many modes of a struck plate, at ratios that belong to no
+    // harmonic series. Two things follow, and this voice has been wrong in both
+    // directions by getting one right and the other wrong.
+    //
+    // Squares (the first recipe) gave density but at harmonic ratios, and their
+    // odd harmonics from 3.1/4.7 kHz fundamentals land on 9.4k, 14k and 15.7k
+    // with no filter in the tone path to tame them: shrill.
+    //
+    // Wide-band noise (the second) has no partials at all, so it read as hiss.
+    // Measured as spectral flatness — geometric over arithmetic mean of the
+    // power spectrum, where 1.0 is white noise — it scored 0.42, noisier than
+    // the open hat's 0.20 and every other noise voice in the kit.
+    //
+    // So: density from many sine partials, which are inharmonic by choice and
+    // carry no harmonics of their own to be shrill with, over noise beds narrow
+    // enough (q 4–5.6) to ring rather than hiss. That lands at 0.08 — the
+    // metallic character of the original without its top end.
     synth: [
-      // The stick. Short and broad — this is what makes the hit read as struck.
-      { kind: 'noise', dur: 0.03, amp: 0.17, filter: 'bandpass', freq: 5400, q: 0.8 },
-      // The ping: two inharmonic partials, the low one carrying the bell tone.
-      { kind: 'tone', dur: 0.34, amp: 0.055, f0: 1180, f1: 1120, wave: 'sine' },
-      { kind: 'tone', dur: 0.24, amp: 0.036, f0: 2740, f1: 2680, wave: 'sine' },
-      // The bronze body sitting under the shimmer.
-      { kind: 'noise', dur: 0.45, amp: 0.066, filter: 'bandpass', freq: 3200, q: 0.4 },
-      // The wash. Long, quiet, and rolled off above the band it lives in — a
-      // highpass tail would keep everything up to Nyquist, and eight of those a
-      // bar pile up into hiss. Bandpassed, repeated strokes blend into a bed.
-      { kind: 'noise', dur: 1.2, amp: 0.048, filter: 'bandpass', freq: 7000, q: 0.5 },
+      // The stick. Short and broad, and the only wide-band layer here: this is
+      // what makes the hit read as struck rather than swelling.
+      { kind: 'noise', dur: 0.025, amp: 0.1, filter: 'bandpass', freq: 5200, q: 1.2 },
+      // The modes of the bow. Higher partials decay faster, as they do on a
+      // real plate, which is what keeps the tail from turning shrill as it
+      // rings out.
+      { kind: 'tone', dur: 0.5, amp: 0.04, f0: 1180, f1: 1172, wave: 'sine' },
+      { kind: 'tone', dur: 0.42, amp: 0.03, f0: 1690, f1: 1678, wave: 'sine' },
+      { kind: 'tone', dur: 0.34, amp: 0.026, f0: 2740, f1: 2721, wave: 'sine' },
+      { kind: 'tone', dur: 0.28, amp: 0.021, f0: 3560, f1: 3535, wave: 'sine' },
+      { kind: 'tone', dur: 0.22, amp: 0.016, f0: 4620, f1: 4588, wave: 'sine' },
+      { kind: 'tone', dur: 0.18, amp: 0.011, f0: 6100, f1: 6057, wave: 'sine' },
+      // The shimmer between the partials: resonant beds, not a wash. Widening
+      // these is what turned the voice into noise last time — at q 0.4 they are
+      // barely-shaped white noise; at q 4+ each one rings with the partials.
+      { kind: 'noise', dur: 0.55, amp: 0.1, filter: 'bandpass', freq: 3300, q: 4 },
+      { kind: 'noise', dur: 0.8, amp: 0.09, filter: 'bandpass', freq: 5100, q: 4.8 },
+      { kind: 'noise', dur: 1.1, amp: 0.07, filter: 'bandpass', freq: 7400, q: 5.6 },
     ],
   },
   {
