@@ -96,7 +96,7 @@
           class="serif click" role="button" tabindex="0"
           style="font-size:{chipFont};font-weight:{c.weight};padding:{chipPad};border-radius:13px;border:1.5px solid {c.border};background:{c.bg};color:{c.fg};white-space:nowrap"
           onclick={() => pickItem(c.id)} onkeydown={(e) => e.key === 'Enter' && pickItem(c.id)}
-        >{c.name}{#if c.meta} <span class="mono" style="font-size:8px;color:{c.fg === '#fff' ? '#e7d9ba' : '#a08a64'}">{c.meta}</span>{/if}</div>
+        >{c.name}{#if c.meta}&nbsp;<span class="mono" style="font-size:8px;color:{c.fg === '#fff' ? '#e7d9ba' : '#a08a64'}">{c.meta}</span>{/if}</div>
       {/each}
     </div>
     {#if blurb}

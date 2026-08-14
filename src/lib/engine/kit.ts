@@ -54,10 +54,26 @@ export const DRUM_VOICES = [
   {
     id: 'ride', name: 'Ride / Crash', short: 'CY', color: '#b07d23', kind: 'cymbal',
     hint: 'The one cymbal: ride timekeeping, the bell for African timelines, and accents on downbeats and phrase ends.',
+    // A cymbal is a stick hitting bronze: a tick, a pitched ping from the bow,
+    // and a wash that outlasts both. The earlier recipe was two square waves at
+    // 3.1 and 4.7 kHz — and a square's harmonics land at 9.4k, 15.7k, 14k…,
+    // i.e. entirely inside the band the ear is most sensitive to, with nothing
+    // to filter them. That stack of raw odd harmonics is what made it shrill.
+    // Sines carry the ping instead (no harmonics to be shrill with), and the
+    // metal is bandpassed noise, which is where a cymbal's noisy character
+    // actually lives.
     synth: [
-      { kind: 'tone', dur: 0.4, amp: 0.055, f0: 3150, f1: 3100, wave: 'square' },
-      { kind: 'tone', dur: 0.32, amp: 0.045, f0: 4680, f1: 4600, wave: 'square' },
-      { kind: 'noise', dur: 0.45, amp: 0.08, filter: 'highpass', freq: 8000 },
+      // The stick. Short and broad — this is what makes the hit read as struck.
+      { kind: 'noise', dur: 0.03, amp: 0.17, filter: 'bandpass', freq: 5400, q: 0.8 },
+      // The ping: two inharmonic partials, the low one carrying the bell tone.
+      { kind: 'tone', dur: 0.34, amp: 0.055, f0: 1180, f1: 1120, wave: 'sine' },
+      { kind: 'tone', dur: 0.24, amp: 0.036, f0: 2740, f1: 2680, wave: 'sine' },
+      // The bronze body sitting under the shimmer.
+      { kind: 'noise', dur: 0.45, amp: 0.066, filter: 'bandpass', freq: 3200, q: 0.4 },
+      // The wash. Long, quiet, and rolled off above the band it lives in — a
+      // highpass tail would keep everything up to Nyquist, and eight of those a
+      // bar pile up into hiss. Bandpassed, repeated strokes blend into a bed.
+      { kind: 'noise', dur: 1.2, amp: 0.048, filter: 'bandpass', freq: 7000, q: 0.5 },
     ],
   },
   {
@@ -81,10 +97,13 @@ export const DRUM_VOICES = [
   {
     id: 'cowbell', name: 'Cowbell / Block', short: 'CB', color: '#7d8a4f', kind: 'perc',
     hint: 'The 808 bell and the clave/agogo timeline sound.',
+    // Levelled down against the rest of the kit. Two squares put a lot of
+    // harmonic energy in the 500 Hz–5 kHz band the ear weights most heavily, so
+    // the bell read far louder than its amplitude suggested next to the drums.
     synth: [
-      { kind: 'tone', dur: 0.3, amp: 0.13, f0: 540, f1: 535, wave: 'square' },
-      { kind: 'tone', dur: 0.26, amp: 0.11, f0: 800, f1: 795, wave: 'square' },
-      { kind: 'noise', dur: 0.02, amp: 0.06, filter: 'highpass', freq: 5000 },
+      { kind: 'tone', dur: 0.3, amp: 0.085, f0: 540, f1: 535, wave: 'square' },
+      { kind: 'tone', dur: 0.26, amp: 0.07, f0: 800, f1: 795, wave: 'square' },
+      { kind: 'noise', dur: 0.02, amp: 0.04, filter: 'highpass', freq: 5000 },
     ],
   },
   {

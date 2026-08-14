@@ -37,7 +37,7 @@
   </div>
 
   <div style="border-top:1px solid #e0cfae;padding-top:10px">
-    <div class="mono" style="font-size:9px;letter-spacing:.08em;color:#7a6b50;margin-bottom:6px">{v.scaleNotes}{#if v.keySig} · {v.keySig}{/if}</div>
+    <div class="mono" style="font-size:9px;letter-spacing:.08em;color:#7a6b50;margin-bottom:6px">{v.scaleNotes}{#if v.keySig}&nbsp;· {v.keySig}{/if}</div>
     <!-- Two captions: what the key colours the music like, then what the scale
          does. Key first — it is the choice made one row above. -->
     <!-- On a six-accidental key both spellings are equally correct, so the

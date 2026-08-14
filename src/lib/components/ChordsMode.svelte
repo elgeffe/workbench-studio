@@ -86,7 +86,7 @@
   <div class="eyebrow" style="margin-bottom:14px">Chords · {v.keyName}</div>
 
   <!-- progression strip -->
-  <div class="eyebrow" style="margin-bottom:7px">Your progression{#if v.jzChangesView.length > 1} · {store.isDesktop ? 'drag to reorder' : 'long-press to reorder'}{/if}</div>
+  <div class="eyebrow" style="margin-bottom:7px">Your progression{#if v.jzChangesView.length > 1}&nbsp;· {store.isDesktop ? 'drag to reorder' : 'long-press to reorder'}{/if}</div>
   <div bind:this={stripEl} style="display:flex;gap:8px;overflow-x:auto;min-height:78px;padding:11px;background:#ece0c6;border:1px dashed #cbb792;border-radius:9px;margin-bottom:12px;align-items:center">
     {#if v.jzEmpty}
       <span class="caption" style="font-size:14px;color:#9a8763;max-width:440px">Empty — load a starting point below, or tap a chord to pre-hear it and its <b>+</b> to place it. Tap a placed chord to edit it.</span>
