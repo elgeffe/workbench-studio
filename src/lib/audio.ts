@@ -305,7 +305,8 @@ export class AudioEngine {
   /** A noise burst through a filter with an exponential decay envelope. */
   private noiseHit(t: number, dur: number, amp: number, type: DrumFilter, freq: number, q = 1): void {
     const ctx = this.actx!;
-    const src = ctx.createBufferSource(); src.buffer = this.noise(); src.loop = true;
+    const buf = this.noise();
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
     const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
@@ -313,7 +314,13 @@ export class AudioEngine {
     g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
     g.gain.linearRampToValueAtTime(0, t + dur + 0.02);
     src.connect(f); f.connect(g); g.connect(this.drumBus!);
-    src.start(t); src.stop(t + dur + 0.05);
+    // Enter the loop at a random point. The noise buffer is one fixed second,
+    // so starting at 0 every time makes every hit of a voice bit-identical and
+    // its own layers perfectly correlated — which is why a repeated cymbal read
+    // as one sample retriggering rather than metal being struck again. Same
+    // spectrum, different sample: the machine-gun quality goes, nothing else
+    // about the voice changes.
+    src.start(t, Math.random() * buf.duration); src.stop(t + dur + 0.05);
     this.track(src, t);
   }
 

@@ -1,9 +1,15 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
-// The environment ships a pinned Chromium build under PLAYWRIGHT_BROWSERS_PATH
-// (browser download is disabled). Point Playwright straight at that binary so
-// it never tries to fetch a version-matched build.
-const CHROMIUM = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// Some sandboxes ship a pinned Chromium under PLAYWRIGHT_BROWSERS_PATH with
+// browser download disabled; there, Playwright has to be pointed straight at
+// that binary so it never tries to fetch a version-matched build. A CI runner
+// has no such binary — it installs its own — so the path is used only when it
+// actually exists, and otherwise Playwright resolves the browser itself.
+// PLAYWRIGHT_CHROMIUM_PATH overrides the location for any other environment
+// that pins one somewhere else.
+const PINNED = process.env.PLAYWRIGHT_CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const launchOptions = existsSync(PINNED) ? { executablePath: PINNED } : {};
 
 export default defineConfig({
   testDir: './e2e',
@@ -14,10 +20,10 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
-    launchOptions: { executablePath: CHROMIUM },
+    launchOptions,
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { executablePath: CHROMIUM } } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions } },
   ],
   webServer: {
     command: 'npm run dev',

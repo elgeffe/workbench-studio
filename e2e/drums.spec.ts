@@ -19,6 +19,14 @@ test.describe('drums groovebox', () => {
     // rock variations are not jazz variations
     await expect(variations.getByText('Medium swing')).toBeHidden();
 
+    // A chip reads "<name> <bpm>", and the gap has to survive compilation:
+    // Svelte trims whitespace at the edges of a block, so a plain space written
+    // as the first thing inside the {#if} that renders the tempo disappears and
+    // the chip runs the two together ("Straight 8ths104").
+    for (const chip of await variations.locator('div[role=button]').all()) {
+      await expect(chip).toHaveText(/\S[\s ]\d+$/);
+    }
+
     // switching genre swaps the whole variation row and loads the first pattern
     await page.getByTestId('drum-genres').getByRole('button', { name: /^Jazz\s+\d+$/ }).click();
     await expect(variations.getByText('Medium swing')).toBeVisible();
