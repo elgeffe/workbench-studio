@@ -16,9 +16,9 @@ export interface Wedge {
   nameL: string; nameT: string; numL: string; numT: string;
   pc: number; ring: 'maj' | 'min';
 }
-export interface FretCell { pc: number; showLit: boolean; dot: boolean; barreThru: boolean; litOpacity: string; finger: string; dotColor: string; note: string; bg: string; glow: string }
-export interface FretRow { label: string; openDot: { color: string } | null; cells: FretCell[] }
-export interface PianoKey { left: string; width: string; note: string; bg: string; fg: string; dot: boolean; dotColor: string; finger: string; pc: number }
+export interface FretCell { pc: number; showLit: boolean; litOpacity: string; note: string; bg: string; glow: string }
+export interface FretRow { label: string; cells: FretCell[] }
+export interface PianoKey { left: string; width: string; note: string; bg: string; fg: string; pc: number }
 
 /** What the instruments should light up right now (chord or pattern driven). */
 export interface LitInfo { root: number; litSet: Set<number>; chordSet: Set<number>; dropSet: Set<number>; activePat: Pattern }
