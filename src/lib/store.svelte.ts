@@ -151,8 +151,6 @@ export class WorkbenchStore {
   patCat = $state('Scales');
   patId = $state('major');
   jazzCh = $state(0);
-  fingerOn = $state(true);
-  jzInv = $state(0);
 
   // How long each change holds. This is a setting of its own, not a side effect
   // of the style: BASS used to silently give every chord a full bar, which read
@@ -486,8 +484,6 @@ export class WorkbenchStore {
       if (send) this.midi.sendPitched('bass', [midi], this.toPerf(t), dur * 1000);
     });
   }
-  toggleFinger(): void { this.fingerOn = !this.fingerOn; }
-  setJzInv(i: number): void { this.jzInv = i; }
   setVoicing(v: 'full' | 'shell'): void { this.jzVoicing = v; }
   setPatCat(g: string): void {
     const first = patternDefs().find((p) => p.group === g);

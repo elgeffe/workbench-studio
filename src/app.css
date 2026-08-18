@@ -268,13 +268,11 @@ input[type='range'] { accent-color: var(--accent); }
 .fret-lane { position: relative; flex: 1; display: flex; border-left: 3px solid #5c3b22; border-radius: 2px; background: linear-gradient(#e3cfa9, #d8c197); }
 .fret-cell { flex: 1; border-right: 1px solid rgba(92,59,34,.22); display: flex; align-items: center; justify-content: center; position: relative; }
 .fret-note { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; color: #fff; }
-.fret-dot { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; color: #fff; border: 2px solid #fff5e6; position: relative; z-index: 2; }
 
 /* piano */
 .piano { position: relative; width: 100%; background: var(--dark); border-radius: 5px; padding: 5px; }
 .pkey-white { position: absolute; top: 0; bottom: 0; border: 1px solid #b7a47f; border-radius: 0 0 3px 3px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px; font-family: var(--mono); font-weight: 700; font-size: 7px; cursor: pointer; }
 .pkey-black { position: absolute; top: 0; height: 60%; border-radius: 0 0 3px 3px; z-index: 3; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; font-family: var(--mono); font-weight: 700; font-size: 6px; cursor: pointer; }
-.pkey-dot { position: absolute; left: 50%; transform: translateX(-50%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; border: 2px solid #fff5e6; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
 
 /* ---------- the genre picker, expanded in place (desktop) ----------
    Continues the summary bar rather than floating over the page: the bar drops

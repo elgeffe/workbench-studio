@@ -15,11 +15,7 @@
         style="left:{k.left}%;width:{k.width}%;background:{k.bg};color:{k.fg}"
         onclick={() => store.selectNote(k.pc)}
         onkeydown={(e) => e.key === 'Enter' && store.selectNote(k.pc)}
-      >{k.note}
-        {#if k.dot}
-          <div class="pkey-dot" style="bottom:15px;width:16px;height:16px;font-size:9px;background:{k.dotColor}">{k.finger}</div>
-        {/if}
-      </div>
+      >{k.note}</div>
     {/each}
     {#each black as k, i (i)}
       <div
@@ -27,11 +23,7 @@
         style="left:{k.left}%;width:{k.width}%;background:{k.bg};color:{k.fg}"
         onclick={() => store.selectNote(k.pc)}
         onkeydown={(e) => e.key === 'Enter' && store.selectNote(k.pc)}
-      >{k.note}
-        {#if k.dot}
-          <div class="pkey-dot" style="bottom:8px;width:14px;height:14px;font-size:8px;background:{k.dotColor};border-width:1.5px;z-index:5">{k.finger}</div>
-        {/if}
-      </div>
+      >{k.note}</div>
     {/each}
   </div>
 </div>

@@ -184,7 +184,6 @@ export function computeView(s: WorkbenchStore) {
     dockName: s.patternsOpen && patterns.patLibTab ? spell(t, t, s.scale) + ' ' + lit.activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '—',
     dockNotes: s.patternsOpen && patterns.patLibTab ? patterns.patNotes + '   ·   over ' + patterns.view.patChordName : ac ? gPcs(ac).map((p) => spell(p, t, s.scale)).join('  ·  ') : 'pick a chord to see it on the fretboards',
     ...inst,
-    fingerBg: s.fingerOn ? '#3f6b5f' : '#f6efe0', fingerFg: s.fingerOn ? '#fff' : '#5c4a30',
     // The six tabs, in the order the studio is meant to be used: explore the
     // key, lay a beat, write the changes, put a line under them, practise,
     // learn why any of it works. Six labels fit a 390pt phone at full size.

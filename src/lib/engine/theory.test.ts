@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  spell, cname, diatonicList, subsFor, jazzVoicing, invChord, mod12, gPcs,
+  spell, cname, diatonicList, subsFor, invChord, mod12, gPcs,
   playedIntervals, playedPcs, droppedPcs, keyLabel, keySigStr, isEnharmonicTie,
   parentMajorPc, keyNameStr, scaleNotesStr,
 } from './theory';
@@ -152,13 +152,6 @@ describe('substitutions', () => {
 });
 
 describe('voicings', () => {
-  it('builds a complete jazz voicing for Cmaj7', () => {
-    const voi = jazzVoicing({ rootPc: 0, intervals: INT.maj7 }, 0);
-    expect(voi.guitar.length).toBeGreaterThanOrEqual(3);
-    expect(voi.bass).toHaveLength(3);
-    expect(voi.piano.length).toBeGreaterThanOrEqual(3);
-    expect(voi.piano[0].role).toBe('R');
-  });
   it('names inversions with a slash bass', () => {
     const root = invChord({ rootPc: 0, intervals: INT.maj, name: 'C' }, 0, 0);
     const first = invChord({ rootPc: 0, intervals: INT.maj, name: 'C' }, 1, 0);
