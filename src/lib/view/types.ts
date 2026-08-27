@@ -8,7 +8,7 @@ export interface DiatonicView extends DiatonicChord {
   fnColor: string; fnName: string; fnTint: string;
   bg: string; border: string; wsBg: string; wsBorder: string; wsShadow: string; shadow: string;
 }
-export interface ChordChip { name: string; roman: string; notes: string; fnColor: string; border: string; bg: string; shadow: string; ch: Chord }
+export interface ChordChip { name: string; roman: string; notes: string; fnColor: string; border: string; bg: string; shadow: string; ch: Chord; newKey?: boolean; outside?: boolean }
 export interface PaletteChip { name: string; roman: string; fnColor?: string; tint?: string; border?: string; ch: Chord }
 export interface Wedge {
   d: string; fill: string; stroke: string; strokeW: string;

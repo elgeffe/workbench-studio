@@ -6,6 +6,7 @@
 import { INT, SUF, MAJOR, CIRCLE, SCALES, type Chord, type ScaleId } from './engine/constants';
 import { mod12, spell, cname, gI, gMidis, chordMidis, diatonicList, jChVoiced } from './engine/theory';
 import { patternDefs, progsIn, type ChordDef } from './engine/data';
+import { parseChanges } from './engine/symbols';
 import { type Diagram } from './engine/fretpatterns';
 import { genEarTarget, type EarLevel, type EarTarget } from './engine/ear';
 import {
@@ -161,6 +162,15 @@ export class WorkbenchStore {
 
   jzChanges = $state<Chord[]>([]);
   jzSel = $state(-1);
+  // What is in the chord-entry box, and what the last entry could not read.
+  // Transcribing a page means typing chords that are nowhere near the current
+  // key, so this is deliberately not filtered by it.
+  jzEntry = $state('');
+  jzEntryBad = $state<string[]>([]);
+  // How readily the analysis is allowed to hear a modulation. The default suits
+  // standards; a static vamp reads better held down, a dense reharmonisation
+  // higher.
+  jzSwitchCost = $state(11);
   jzVoicing = $state<'full' | 'shell'>('full');
   jzPlaying = $state(false);
   jzStep = $state(-1);
@@ -561,6 +571,32 @@ export class WorkbenchStore {
     this.activeChord = jChVoiced(c, this.jzVoicing);
     if (!this.jzPlaying) this.playChord(jChVoiced(c, this.jzVoicing), 0.02);
   }
+  /**
+   * Place chords typed as text — a line lifted straight off a chart. Anything
+   * unreadable is collected in `jzEntryBad` rather than dropped silently, so
+   * the box can say which token it choked on.
+   */
+  addTyped(text: string): void {
+    const parsed = parseChanges(text);
+    const bad: string[] = [];
+    const toks = String(text || '').split(/[|,;\n\r\t]+|\s+/).map((t) => t.trim()).filter((t) => t && t !== '%' && t !== '-');
+    const add: Chord[] = [];
+    parsed.forEach((p, i) => {
+      if (!p) { bad.push(toks[i] ?? '?'); return; }
+      add.push({ rootPc: p.rootPc, intervals: p.intervals, name: p.name, roman: '', fn: 'T' });
+    });
+    this.jzEntryBad = bad;
+    if (!add.length) return;
+    this.jzChanges = [...this.jzChanges, ...add];
+    this.jzSel = this.jzChanges.length - 1;
+    this.jzEntry = '';
+    const last = this.jzChanges[this.jzSel];
+    this.activeChord = jChVoiced(last, this.jzVoicing);
+    if (!this.jzPlaying) this.playChord(jChVoiced(last, this.jzVoicing), 0.02);
+  }
+  setJzEntry(v: string): void { this.jzEntry = v; }
+  setSwitchCost(v: number): void { this.jzSwitchCost = v; }
+
   addProg(defs: ChordDef[]): void {
     const arr = this.jzChanges.slice();
     defs.forEach((d) => arr.push(this.chFromDef(d)));

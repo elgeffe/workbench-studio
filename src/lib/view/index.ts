@@ -6,8 +6,9 @@ import {
   type Chord, type ScaleId,
 } from '../engine/constants';
 import {
-  spell, spellOther, cname, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr,
-  diatonicList, subsFor, keyLabel, keySigStr, isEnharmonicTie, fmtKey,
+  spell, spellOther, cname, gI, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr,
+  diatonicList, subsFor, keyLabel, keySigStr, isEnharmonicTie, fmtKey, chordAlias,
+  spellChordTones, prefFlat,
 } from '../engine/theory';
 import { patternDefs, PAT_GROUPS } from '../engine/data';
 import type { WorkbenchStore, Mode, Part } from '../store.svelte';
@@ -73,14 +74,17 @@ export function computeView(s: WorkbenchStore) {
   // the substitutions the Circle offers for it.
   let acNotes: Array<{ name: string; deg: string; bd: string }> = [];
   if (ac) {
-    const ps = gPcs(ac);
     const labels = ac.degLabels || ['R', '3', '5', '7', '9', '11', '13'];
-    acNotes = ps.map((p, i) => ({ name: spell(p, t, s.scale), deg: labels[i] || '', bd: i === 0 ? '#c2562e' : '#3f6b5f' }));
+    // Spelled by thirds, so an altered chord shows the letters the page uses.
+    const names = spellChordTones(ac.rootPc, gI(ac), prefFlat(t, s.scale));
+    acNotes = names.map((name, i) => ({ name, deg: labels[i] || '', bd: i === 0 ? '#c2562e' : '#3f6b5f' }));
   }
   const subs = ac ? subsFor(ac, t, s.scale).map((sub) => {
     const ch = { rootPc: sub.rootPc, intervals: sub.intervals, name: sub.name, roman: sub.roman, fn: sub.fn } as Chord;
-    return { name: sub.name, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], notes: gPcs(ch).map((p) => spell(p, t, s.scale)), ch };
+    return { name: sub.name, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], notes: spellChordTones(ch.rootPc, gI(ch), prefFlat(t, s.scale)), ch };
   }) : [];
+
+  const acName = ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '';
 
   const patterns = buildPatterns(s, lit.activePat);
   const inst = buildInstruments(s, lit);
@@ -148,7 +152,9 @@ export function computeView(s: WorkbenchStore) {
     viewMajBg: s.circleView === 'min' ? 'transparent' : '#3f6b5f', viewMajFg: s.circleView === 'min' ? '#5c4a30' : '#fff',
     viewMinBg: s.circleView === 'min' ? '#3f6b5f' : 'transparent', viewMinFg: s.circleView === 'min' ? '#fff' : '#5c4a30',
     hasActive: !!ac, noActive: !ac,
-    acName: ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '', acRoman: ac ? ac.roman || '' : '',
+    acName: acName, acRoman: ac ? ac.roman || '' : '',
+    // The fake-book spelling of the same chord, when it differs from ours.
+    acAlias: chordAlias(acName),
     acFnName: ac ? FNNAME[ac.fn || 'T'] : '', acFnColor: ac ? FNCOLOR[ac.fn || 'T'] : '#3f6b5f',
     acNotes, acWhy: ac ? FNWHY[ac.fn || 'T'] : '', subs,
     // chords (genres, palettes, progression strip, inspector)

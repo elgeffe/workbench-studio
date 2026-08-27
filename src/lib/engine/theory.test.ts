@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   spell, cname, diatonicList, subsFor, invChord, mod12, gPcs,
   playedIntervals, playedPcs, droppedPcs, keyLabel, keySigStr, isEnharmonicTie,
-  parentMajorPc, keyNameStr, scaleNotesStr,
+  parentMajorPc, keyNameStr, scaleNotesStr, spellScale, spellChordTones,
 } from './theory';
 import { INT, SCALES, type ScaleId } from './constants';
 
@@ -206,5 +206,47 @@ describe('best-practice note dropping for extended chords', () => {
     const c9 = { rootPc: 0, intervals: INT.dom9 };
     expect(playedPcs(c9)).toEqual([0, 4, 10, 2]); // C E B♭ D
     expect(droppedPcs(c9)).toEqual([7]); // G is shown greyed, not played
+  });
+});
+
+describe('spelling a scale by letter, not by pitch class', () => {
+  it('uses each letter once so no scale repeats or skips one', () => {
+    // E locrian ♮2, the scale over Alone Together's Em7♭5. By pitch class in a
+    // flat key this comes out E Gb G A Bb C D — two G's and no F.
+    expect(spellScale(4, [0, 2, 3, 5, 6, 8, 10], true)).toEqual(['E', 'F#', 'G', 'A', 'Bb', 'C', 'D']);
+  });
+  it('spells the plain major and minor scales as written', () => {
+    expect(spellScale(0, SCALES.ionian.int)).toEqual(['C', 'D', 'E', 'F', 'G', 'A', 'B']);
+    expect(spellScale(10, SCALES.ionian.int, true)).toEqual(['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A']);
+    expect(spellScale(6, SCALES.ionian.int)).toEqual(['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#']);
+  });
+  it('writes harmonic minor\'s raised 7th as a sharp, not the flat enharmonic', () => {
+    // D harmonic minor's leading tone is C♯. Spelling it D♭ would put a D and a
+    // D♭ in one scale.
+    expect(spellScale(2, SCALES.harmonic.int, true)).toEqual(['D', 'E', 'F', 'G', 'A', 'Bb', 'C#']);
+  });
+  it('leaves the six- and eight-note scales on plain names', () => {
+    expect(spellScale(0, [0, 2, 4, 6, 8, 10])).toHaveLength(6);
+    expect(spellScale(0, [0, 1, 3, 4, 6, 7, 9, 10])).toHaveLength(8);
+  });
+});
+
+describe('spelling chord tones by thirds', () => {
+  it('spells an altered dominant the way the page writes it', () => {
+    // D7♭9 is D F♯ A C E♭. By pitch class in a flat key it comes out D Gb A C Eb.
+    expect(spellChordTones(2, [0, 4, 7, 10, 13], true)).toEqual(['D', 'F#', 'A', 'C', 'Eb']);
+  });
+  it('spells a half-diminished chord with a flat fifth, not a sharp fourth', () => {
+    expect(spellChordTones(4, INT.m7b5, true)).toEqual(['E', 'G', 'Bb', 'D']);
+  });
+  it('tells a ♯11 from a ♭5 by whether the natural fifth is there', () => {
+    expect(spellChordTones(0, [0, 4, 7, 11, 18])).toEqual(['C', 'E', 'G', 'B', 'F#']); // ♯11
+    expect(spellChordTones(0, [0, 4, 6, 10])).toEqual(['C', 'E', 'Gb', 'Bb']); // ♭5
+  });
+  it('keeps its letters when the fifth is dropped from a shell voicing', () => {
+    expect(spellChordTones(2, [0, 3, 10], true)).toEqual(['D', 'F', 'C']);
+  });
+  it('falls back rather than printing a double sharp', () => {
+    expect(spellChordTones(3, INT.dim7).every((n) => n.length <= 3)).toBe(true);
   });
 });

@@ -44,12 +44,14 @@ export const INT: Record<string, number[]> = {
   maj13: [0, 4, 7, 11, 14, 21], min9: [0, 3, 7, 10, 14], min11: [0, 3, 7, 10, 14, 17],
   min13: [0, 3, 7, 10, 14, 17, 21], dom9: [0, 4, 7, 10, 14], dom11: [0, 4, 7, 10, 14, 17],
   dom13: [0, 4, 7, 10, 14, 21], m9b5: [0, 3, 6, 10, 14], m11b5: [0, 3, 6, 10, 14, 17], dom7sus: [0, 5, 7, 10],
+  minmaj7: [0, 3, 7, 11], minmaj9: [0, 3, 7, 11, 14],
 };
 
 export const SUF: Record<string, string> = {
   maj: '', min: 'm', dim: '°', aug: '+', sus4: 'sus4', maj7: 'maj7', min7: 'm7', dom7: '7', m7b5: 'ø7',
   dim7: '°7', maj6: '6', min6: 'm6', maj9: 'maj9', maj11: 'maj11', maj13: 'maj13', min9: 'm9', min11: 'm11',
   min13: 'm13', dom9: '9', dom11: '11', dom13: '13', m9b5: 'ø9', m11b5: 'ø11', dom7sus: '7sus4',
+  minmaj7: 'm(maj7)', minmaj9: 'm(maj9)',
 };
 
 export const DIA_TRI = ['maj', 'min', 'min', 'maj', 'maj', 'min', 'dim'];
