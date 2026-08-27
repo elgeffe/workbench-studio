@@ -156,8 +156,7 @@ export function keyNameStr(tonicPc: number, scale: ScaleId): string {
 }
 
 export function scaleNotesStr(tonicPc: number, scale: ScaleId): string {
-  const SI = SCALES[scale].int;
-  return SI.map((i) => spell((tonicPc + i) % 12, tonicPc, scale)).join(' · ');
+  return spellScale(tonicPc, SCALES[scale].int, prefFlat(tonicPc, scale)).join(' · ');
 }
 
 export function relMinorStr(tonicPc: number, scale: ScaleId = 'ionian'): string {
@@ -191,12 +190,56 @@ function sevenSuf(q: string, t7: number): string {
   if (q === 'aug') return t7 === 10 ? '+7' : '+maj7';
   return 'maj7';
 }
-function extSuf(q: string, t7: number, ext: string): string {
-  if (q === 'maj') return (t7 === 10 ? '' : 'maj') + ext;
-  if (q === 'min') return 'm' + ext;
-  if (q === 'dim') return 'ø' + ext;
-  if (q === 'aug') return '+' + ext;
-  return ext;
+// The extensions of a chord are only *natural* when the scale happens to make
+// them so, and outside the major scale it often doesn't. D harmonic minor's V
+// stacks A–C♯–E–G–B♭ — the 9th is a ♭9 — so calling it "A9" names a chord with
+// a B♮ in it that nobody played. The realbook writes A7(♭9), and so should we.
+//
+// So a name is built from the intervals actually present, not from the
+// requested extension level: walk up the stack, take the highest extension
+// that is natural *and* has nothing altered beneath it as the chord's number,
+// and hang every altered tone off the end as its own ♭/♯ figure.
+const NATURAL_EXT: Record<number, number> = { 9: 14, 11: 17, 13: 21 };
+const EXT_FIGURE: Record<number, Record<number, string>> = {
+  9: { 13: '♭9', 15: '♯9' },
+  11: { 18: '♯11' },
+  13: { 20: '♭13' },
+};
+
+// Upper tones sit at fixed slots because diatonicList always stacks a full
+// chord: index 4 is the 9th, 5 the 11th, 6 the 13th, present up to `ext`.
+function extParts(intervals: number[]): { num: number; alts: string } {
+  let num = 7; // nothing natural above the 7th until we find one
+  let broken = false; // an alteration below this point caps the chord's number
+  const alts: string[] = [];
+  [9, 11, 13].forEach((deg, i) => {
+    const iv = intervals[i + 4];
+    if (iv === undefined) return;
+    if (iv === NATURAL_EXT[deg]) { if (!broken) num = deg; return; }
+    alts.push(EXT_FIGURE[deg]?.[iv] ?? '');
+    broken = true;
+  });
+  return { num, alts: alts.join('') };
+}
+
+// The same family names as sevenSuf, but with the seventh's figure left open
+// for a 9/11/13 to be dropped into: "Cmaj_" → Cmaj9, "Cm(maj_)" → Cm(maj9).
+function extBase(q: string, t7: number): string {
+  if (q === 'maj') return (t7 === 10 ? '' : 'maj') + '_';
+  if (q === 'min') return t7 === 11 ? 'm(maj_)' : 'm_';
+  // ° and ø are not interchangeable: ° is a diminished 7th (9 semitones), ø a
+  // minor 7th over the same triad. extSuf used to print ø for both.
+  if (q === 'dim') return (t7 === 9 ? '°' : 'ø') + '_';
+  if (q === 'aug') return (t7 === 10 ? '+' : '+maj') + '_';
+  return '_';
+}
+
+function extSuf(q: string, t7: number, intervals: number[]): string {
+  const { num, alts } = extParts(intervals);
+  // Nothing natural above it means the chord is still a seventh that happens to
+  // carry alterations — Aø7♭9, not Aø9.
+  const base = num === 7 ? sevenSuf(q, t7) : extBase(q, t7).replace('_', String(num));
+  return base + alts;
 }
 
 export interface DiatonicChord extends Chord {
@@ -213,6 +256,10 @@ export function diatonicList(tonicPc: number, scale: ScaleId, ext: string): Diat
   const counts: Record<string, number> = { triad: 3, '7': 4, '9': 5, '11': 6, '13': 7 };
   const count = counts[ext] || 3;
   const SI = SCALES[scale].int;
+  // Roots come from the scale's own letters rather than from pitch-class
+  // spelling: D harmonic minor's leading-tone chord is built on C♯, and calling
+  // it D♭°7 puts a D and a D♭ in the same seven-chord list.
+  const degNames = spellScale(tonicPc, SI, prefFlat(tonicPc, scale));
   const allDeg = ['R', '3', '5', '7', '9', '11', '13'];
   const baseNum = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
   return SI.map((deg, i) => {
@@ -229,13 +276,13 @@ export function diatonicList(tonicPc: number, scale: ScaleId, ext: string): Diat
     let suffix: string;
     if (ext === 'triad') suffix = triadSuf(q);
     else if (ext === '7') suffix = sevenSuf(q, t7);
-    else suffix = extSuf(q, t7, ext);
+    else suffix = extSuf(q, t7, intervals);
     const diff = SI[i] - MAJOR[i];
     const acc = diff < 0 ? '♭' : diff > 0 ? '♯' : '';
     let num = baseNum[i];
     if (q === 'min' || q === 'dim' || q === 'mins5') num = num.toLowerCase();
     const roman = acc + num + (q === 'dim' ? '°' : '') + (q === 'aug' ? '+' : '');
-    return { rootPc: r, intervals, name: spell(r, tonicPc, scale) + suffix, roman, fn: FN[i], degLabels: allDeg.slice(0, count) };
+    return { rootPc: r, intervals, name: degNames[i] + suffix, roman, fn: FN[i], degLabels: allDeg.slice(0, count) };
   });
 }
 
@@ -321,7 +368,8 @@ export function jChVoiced(ch: Chord, voicing: string): Chord {
 }
 
 export function jzNotes(ch: Chord, voicing: string, tonicPc: number, scale: ScaleId = 'ionian'): string {
-  return gPcs(jChVoiced(ch, voicing)).map((p) => spell(p, tonicPc, scale)).join(' ');
+  const v = jChVoiced(ch, voicing);
+  return spellChordTones(v.rootPc, gI(v), prefFlat(tonicPc, scale)).join(' ');
 }
 
 // classical inversion voicing of the selected chord
@@ -341,3 +389,100 @@ export function invChord(ch: Chord, which: number, tonicPc: number, scale: Scale
   return { rootPc: ch.rootPc, intervals: gI(ch), name, roman: ch.roman, fn: ch.fn, midis: mids };
 }
 
+
+// ---- realbook spelling ----
+//
+// This app names chords with the classical symbols — ø for half-diminished,
+// ° for fully diminished, + for augmented. Fake books overwhelmingly use the
+// arithmetic spellings instead, so the Eø7 on the wheel is the Em7♭5 printed
+// on the page and the two never look like the same chord. They are, and the
+// detail panels say so rather than making you work it out.
+//
+// Longest suffix first, so ø7 is matched before ø.
+const ALIAS: Array<[string, string]> = [
+  ['ø7', 'm7♭5'], ['ø9', 'm9♭5'], ['ø11', 'm11♭5'], ['ø', 'm7♭5'],
+  ['°7', 'dim7'], ['°', 'dim'],
+  ['+maj7', 'maj7♯5'], ['+7', '7♯5'], ['+', 'aug'],
+];
+
+/** How a fake book would print this chord, or null when it agrees already. */
+export function chordAlias(name: string): string | null {
+  for (const [sym, alt] of ALIAS) {
+    const at = name.indexOf(sym);
+    if (at < 0) continue;
+    // The symbol has to start the suffix — a ° inside "C°7♭9" is the suffix,
+    // but we must not rewrite one that is already part of a longer match.
+    const out = name.slice(0, at) + alt + name.slice(at + sym.length);
+    return out === name ? null : out;
+  }
+  return null;
+}
+
+// ---- spelling a scale ----
+//
+// `spell` answers "what is this pitch class called in this key", which is the
+// right question for a chord tone and the wrong one for a scale. A scale uses
+// each letter exactly once, so E locrian ♮2 is E F♯ G A B♭ C D — spelling it by
+// pitch class in a flat key gives E G♭ G A B♭ C D, with two G's and no F, which
+// no reader will accept. The letter comes from the degree's position; the
+// accidental is then whatever makes that letter land on the right pitch.
+const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+const LETTER_PC = [0, 2, 4, 5, 7, 9, 11];
+
+export function spellScale(rootPc: number, intervals: number[], flat = false): string[] {
+  // Only a seven-note scale has one letter per degree. The diminished scales
+  // have eight and the whole-tone six, so they keep plain pitch-class names.
+  if (intervals.length !== 7) {
+    return intervals.map((iv) => (flat ? CF : CS)[mod12(rootPc + iv)]);
+  }
+  const rootName = (flat ? CF : CS)[mod12(rootPc)];
+  const li = LETTERS.indexOf(rootName[0]);
+  return intervals.map((iv, i) => {
+    const at = (li + i) % 7;
+    let acc = mod12(mod12(rootPc + iv) - LETTER_PC[at]);
+    if (acc > 6) acc -= 12; // 11 semitones up is one semitone down
+    return LETTERS[at] + (acc > 0 ? '#'.repeat(acc) : 'b'.repeat(-acc));
+  });
+}
+
+// Chord tones take their letters the same way, but stepping by thirds rather
+// than by seconds: a D7♭9 is spelled D F♯ A C E♭ because its letters are D-F-A-
+// C-E. Spelled by pitch class in a flat key it comes out D G♭ A C E♭, which is
+// the right sound with the wrong name — and the name is exactly what a player
+// is trying to match against the page.
+//
+// Which third a tone *is* has to come from its interval rather than its
+// position, because a shell voicing drops the fifth and an altered chord can
+// skip degrees. The two ambiguous cases are 6 and 8 semitones: over a seventh
+// chord that still has its natural fifth they are a ♯11 and a ♭13, otherwise
+// they are the chord's own ♭5 and ♯5.
+// Which rung of the stack a tone sits on: 0 root, 1 third, 2 fifth, 3 seventh,
+// 4 ninth, 5 eleventh, 6 thirteenth. The letter is then two steps per rung.
+const THIRD_RUNG: Record<number, number> = {
+  0: 0, 1: 4, 2: 4, 3: 1, 4: 1, 5: 5, 7: 2, 10: 3, 11: 3,
+  13: 4, 14: 4, 15: 4, 17: 5, 18: 5, 20: 6, 21: 6,
+};
+
+export function spellChordTones(rootPc: number, intervals: number[], flat = false): string[] {
+  const has = (x: number) => intervals.includes(x);
+  const upper = (has(10) || has(11)) && has(7); // a seventh chord with its fifth intact
+  const dimTriad = has(3) && has(6);            // …so 9 semitones is a °7, not a 6th
+  const rootName = (flat ? CF : CS)[mod12(rootPc)];
+  const li = LETTERS.indexOf(rootName[0]);
+  return intervals.map((iv) => {
+    let rung = THIRD_RUNG[iv];
+    if (rung === undefined) {
+      rung = iv === 6 ? (upper ? 5 : 2)       // ♯11 over a seventh chord, else ♭5
+        : iv === 8 ? (upper ? 6 : 2)          // ♭13 over a seventh chord, else ♯5
+        : iv === 9 ? (dimTriad ? 3 : 6)       // °7 on a diminished triad, else a 6th
+        : 0;
+    }
+    const at = (li + 2 * rung) % 7;
+    let acc = mod12(mod12(rootPc + iv) - LETTER_PC[at]);
+    if (acc > 6) acc -= 12;
+    // Beyond a double accidental the letter spelling stops helping anyone, so
+    // fall back to the plain name rather than printing C𝄪♯.
+    if (acc < -2 || acc > 2) return (flat ? CF : CS)[mod12(rootPc + iv)];
+    return LETTERS[at] + (acc > 0 ? '#'.repeat(acc) : 'b'.repeat(-acc));
+  });
+}

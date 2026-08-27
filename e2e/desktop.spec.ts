@@ -56,7 +56,7 @@ test.describe('desktop layout', () => {
 
   test('chords: loading a starting point fills the progression', async ({ page }) => {
     await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'chords' }).click();
-    await expect(page.getByText(/Empty — load a starting point/)).toBeVisible();
+    await expect(page.getByText(/Empty — type the changes above/)).toBeVisible();
     // the starting-point shelves stay behind a summary bar so they don't bury
     // the strip; on desktop they expand in place
     await page.getByTestId('ws-picker-summary').click();
@@ -66,7 +66,7 @@ test.describe('desktop layout', () => {
     await picker.getByText('12-Bar Blues').click();
     // expanded in place it stays open, so the next one is one tap away
     await expect(picker).toBeVisible();
-    await expect(page.getByText(/Empty — load a starting point/)).toBeHidden();
+    await expect(page.getByText(/Empty — type the changes above/)).toBeHidden();
     // the blues progression places I7 chords into the strip
     await expect(page.getByText('I7').first()).toBeVisible();
   });

@@ -17,7 +17,7 @@ test.describe('load the whole style', () => {
 
     // start from a blank progression and an empty bassline
     await tabs.getByRole('tab', { name: 'chords' }).click();
-    await expect(page.getByText(/Empty — load a starting point/)).toBeVisible();
+    await expect(page.getByText(/Empty — type the changes above/)).toBeVisible();
     await tabs.getByRole('tab', { name: 'bass' }).click();
     await expect(page.getByText(/Empty — load a groove above/)).toBeVisible();
 
@@ -31,7 +31,7 @@ test.describe('load the whole style', () => {
     await expect(page.getByTestId('drum-picker-summary')).toContainText('Disco & Boogie');
     // …the progression came with it…
     await tabs.getByRole('tab', { name: 'chords' }).click();
-    await expect(page.getByText(/Empty — load a starting point/)).toBeHidden();
+    await expect(page.getByText(/Empty — type the changes above/)).toBeHidden();
     await expect(page.getByTestId('ws-picker-summary')).toContainText('Disco & Boogie');
     // …and so did the bassline
     await tabs.getByRole('tab', { name: 'bass' }).click();

@@ -15,11 +15,40 @@
 
 {#if v.exploreOpen}
   <div style="background:#f3ead4;border:1px solid #e0cfae;border-radius:10px;padding:14px 15px;margin-bottom:16px">
-    <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:11px;flex-wrap:wrap">
+    <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:4px;flex-wrap:wrap">
       <span class="mono" style="font-size:9px;letter-spacing:.12em;color:#8a7350">EDITING</span>
       <span style="font-size:21px;font-weight:700;color:#2c261d;line-height:1">{v.selName}</span>
       <span class="mono" style="font-size:10px;color:#7a6b50">{v.selRoman}</span>
+      {#if v.selAlias}
+        <span class="mono" style="font-size:10px;color:#8a7350">also written <b style="color:#5c4a30">{v.selAlias}</b></span>
+      {/if}
     </div>
+
+    <!-- The answer to "what do I play over this". Its key centre is the local
+         one from the analysis, not whatever the app's key is set to, which is
+         the whole reason this is worth having. -->
+    {#if v.selKey}
+      <div style="background:#fbf6ea;border:1px solid #e0cfae;border-radius:8px;padding:11px 13px;margin-bottom:13px">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:7px">
+          <span class="mono" style="font-size:9px;letter-spacing:.12em;color:#8a7350">IN</span>
+          <span data-testid="sel-key" style="font-size:16px;font-weight:700;color:#2c261d">{v.selKey}</span>
+          <span class="mono" style="font-size:10px;color:#7a6b50">— {v.selRole}</span>
+          {#if v.selOutside}
+            <span class="mono" style="font-size:8px;letter-spacing:.06em;color:#fff;background:#b07d23;padding:3px 7px;border-radius:9px">OUTSIDE THE KEY</span>
+          {/if}
+        </div>
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <span class="mono" style="font-size:9px;letter-spacing:.12em;color:#8a7350">PLAY</span>
+          <span data-testid="sel-scale" style="font-size:17px;font-weight:700;color:#c2562e">{v.selScale}</span>
+        </div>
+        <div class="mono" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px">
+          {#each v.selScaleNotes as n, i (i)}
+            <span style="font-size:11.5px;font-weight:700;color:#2c261d;background:#efe2c8;border:1px solid #d8c7a8;border-radius:4px;padding:3px 7px">{n}</span>
+          {/each}
+        </div>
+        <div class="caption" style="font-size:12.5px;color:#5c4a30;max-width:520px">{v.selScaleWhy}</div>
+      </div>
+    {/if}
 
     <div class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350;margin-bottom:7px">COLOUR · change in place</div>
     {#if teaching}

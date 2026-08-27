@@ -85,20 +85,62 @@
 <div>
   <div class="eyebrow" style="margin-bottom:14px">Chords · {v.keyName}</div>
 
-  <!-- progression strip -->
-  <div class="eyebrow" style="margin-bottom:7px">Your progression{#if v.jzChangesView.length > 1}&nbsp;· {store.isDesktop ? 'drag to reorder' : 'long-press to reorder'}{/if}</div>
-  <div bind:this={stripEl} style="display:flex;gap:8px;overflow-x:auto;min-height:78px;padding:11px;background:#ece0c6;border:1px dashed #cbb792;border-radius:9px;margin-bottom:12px;align-items:center">
-    {#if v.jzEmpty}
-      <span class="caption" style="font-size:14px;color:#9a8763;max-width:440px">Empty — load a starting point below, or tap a chord to pre-hear it and its <b>+</b> to place it. Tap a placed chord to edit it.</span>
+  <!-- Type the changes off the page. The diatonic chips below only offer chords
+       from the current key, which is exactly the wrong palette for a standard —
+       so this takes any chord, in any spelling, and works out the key from what
+       you enter rather than making you set it first. -->
+  <div class="eyebrow" style="margin-bottom:7px">Enter changes · type them as the page writes them</div>
+  <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+    <input
+      class="mono"
+      style="flex:1 1 320px;min-width:220px;font-size:14px;padding:11px 13px;border-radius:8px;border:1.5px solid {v.jzEntryBad.length ? '#c2562e' : '#cbb792'};background:#fbf6ea;color:#2c261d"
+      placeholder="Cm7 F7 | BbMaj7 EbMaj7 | Am7b5 D7 | Gm7"
+      aria-label="Enter chord changes"
+      value={v.jzEntry}
+      oninput={(e) => store.setJzEntry((e.currentTarget as HTMLInputElement).value)}
+      onkeydown={(e) => { if (e.key === 'Enter') { store.addTyped((e.currentTarget as HTMLInputElement).value); } }}
+    />
+    <div class="mono click" data-testid="add-typed" style="flex:none;font-size:11px;letter-spacing:.06em;color:#fff;background:#c2562e;padding:11px 17px;border-radius:7px;box-shadow:0 4px 0 #9a3f1f" role="button" tabindex="0" onclick={() => store.addTyped(store.jzEntry)} onkeydown={(e) => e.key === 'Enter' && store.addTyped(store.jzEntry)}>+ ADD</div>
+  </div>
+  <div class="caption" style="font-size:12.5px;color:{v.jzEntryBad.length ? '#c2562e' : '#9a8763'};margin-bottom:13px">
+    {#if v.jzEntryBad.length}
+      Could not read {v.jzEntryBad.join(', ')} — everything else was placed.
+    {:else}
+      Any spelling works: <b>Em7b5</b>, <b>Eø7</b> and <b>E-7b5</b> are the same chord. Bar lines optional.
     {/if}
-    {#each v.jzChangesView as s, i (i)}
+  </div>
+
+  <!-- progression strip -->
+  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:7px;flex-wrap:wrap">
+    <div class="eyebrow">Your progression{#if v.jzChangesView.length > 1}&nbsp;· {store.isDesktop ? 'drag to reorder' : 'long-press to reorder'}{/if}</div>
+    {#if v.keySummary}
+      <span class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350">{v.keySummary}</span>
+    {/if}
+  </div>
+
+  <!-- Grouped by key centre, which is the thing the circle of fifths could never
+       show you: where one key stops and the next begins. The label sits in the
+       same scroll container as its chords so the two cannot drift apart. -->
+  <div bind:this={stripEl} style="display:flex;gap:14px;overflow-x:auto;min-height:78px;padding:11px;background:#ece0c6;border:1px dashed #cbb792;border-radius:9px;margin-bottom:12px;align-items:stretch">
+    {#if v.jzEmpty}
+      <span class="caption" style="font-size:14px;color:#9a8763;max-width:440px;align-self:center">Empty — type the changes above, load a starting point below, or tap a chord to pre-hear it and its <b>+</b> to place it. Tap a placed chord to edit it.</span>
+    {/if}
+    {#each v.keyGroups as g, gi (gi)}
+    <div style="flex:none;display:flex;flex-direction:column;gap:5px">
+      <div class="mono" style="background:{g.bg};border:1px solid {g.border};color:{g.fg};border-radius:5px;padding:3px 7px;font-size:9.5px;letter-spacing:.08em;text-align:center;white-space:nowrap">{g.label}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+    {#each g.chips as s (s.i)}
+      {@const i = s.i}
       <div class="click" data-chip={i} style="position:relative;flex:none;min-width:86px;border-radius:8px;border:1.5px solid {s.border};background:{s.bg};box-shadow:{dragging && dragFrom === i ? '0 10px 22px -6px rgba(60,40,16,.5)' : s.shadow};padding:0 12px 8px;text-align:center;overflow:visible;cursor:grab;touch-action:none;user-select:none;transition:transform .08s ease;transform:{dragging && dragFrom === i ? 'scale(1.06)' : 'scale(1)'};z-index:{dragging && dragFrom === i ? 5 : 1};opacity:{dragging && dragFrom === i ? 0.9 : 1};outline:{dragging && dragOver === i && dragFrom !== i ? '2px solid #c2562e' : 'none'};outline-offset:2px" role="button" tabindex="0" onpointerdown={(e) => onPointerDown(e, i)} onpointermove={onPointerMove} onpointerup={(e) => onPointerUp(e, i)} onpointercancel={onPointerCancel} onkeydown={(e) => e.key === 'Enter' && store.jzSelect(i)}>
         <div style="height:4px;margin:0 -12px 6px;background:{s.fnColor};border-radius:8px 8px 0 0"></div>
-        <div class="mono" style="font-size:8.5px;color:{s.fnColor}">{s.roman}</div>
+        <div class="mono" style="font-size:8.5px;color:{s.fnColor}">{s.roman}{#if s.outside}<span title="outside the key" style="color:#b07d23"> ✳</span>{/if}</div>
         <div style="font-size:16px;font-weight:700;color:#2c261d;line-height:1.05;white-space:nowrap">{s.name}</div>
         <div class="mono" style="font-size:8px;color:#8a7350;margin-top:2px;white-space:nowrap">{s.notes}</div>
         <div class="mono" data-x style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#c2562e;color:#fff;font-size:12px;line-height:17px;text-align:center;border:1.5px solid #f5edda" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.jzRemove(i); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.jzRemove(i); } }}>×</div>
       </div>
+    {/each}
+      </div>
+    </div>
     {/each}
   </div>
 

@@ -8,12 +8,29 @@
 // is where their explanatory copy belongs. What is left here is the tool: the
 // chords of the key, and everything you can do to one you have placed.
 import { INT, FNCOLOR, FNTINT, FNNAME, type Chord, type Fn } from '../engine/constants';
-import { spell, cname, gI, subsFor, colorChordDefs, jzNotes, jFamily, invChord } from '../engine/theory';
+import { spell, cname, gI, subsFor, colorChordDefs, jzNotes, jFamily, invChord, chordAlias, spellScale, prefFlat, mod12 } from '../engine/theory';
+import { analyseChanges, keySpans, type AnalysedChord } from '../engine/keycenters';
+import { chordScale, roleOf } from '../engine/chordscale';
 import { genreDefs } from '../engine/data';
 import { genreById } from '../engine/genres';
 import { genreShelves, itemChips } from './picker';
 import type { WorkbenchStore } from '../store.svelte';
 import type { ChordChip, PaletteChip } from './types';
+
+// Tonic / subdominant / dominant, from the analysed degree rather than from
+// whatever was stamped on the chord when it was placed.
+function degreeFn(a: AnalysedChord): Fn {
+  const d = a.degree;
+  if (a.family === 'dom' && d !== 7) return 'D'; // a secondary dominant is still a dominant
+  if (a.mode === 'major') {
+    if (d === 7 || d === 11) return 'D';
+    if (d === 2 || d === 5) return 'S';
+    return 'T';
+  }
+  if (d === 7 || d === 11 || d === 10) return 'D';
+  if (d === 2 || d === 5 || d === 8) return 'S';
+  return 'T';
+}
 
 export function buildChords(s: WorkbenchStore) {
   const t = s.tonicPc;
@@ -43,12 +60,49 @@ export function buildChords(s: WorkbenchStore) {
     return { name: nm, roman: c.roman, ch };
   });
 
+  // ---- what key each chord is actually in ----
+  //
+  // The rest of this tab reads `s.tonicPc`, the one key the app is set to. A
+  // transcribed chart does not have one key, so the strip is numbered from this
+  // analysis instead: every chord gets the numeral it has in its *local* centre,
+  // which is the only reading under which a page makes sense.
+  const analysis = analyseChanges(s.jzChanges, s.jzSwitchCost);
+  const spans = keySpans(analysis);
+  const keyOf = (a: AnalysedChord) =>
+    spell(a.tonicPc, a.tonicPc, a.mode === 'minor' ? 'aeolian' : 'ionian') + (a.mode === 'minor' ? ' minor' : ' major');
+
   // the progression strip
   const jzChangesView: ChordChip[] = s.jzChanges.map((c, i) => {
     const playing = s.jzStep === i, selected = !s.jzPlaying && s.jzSel === i, hl = playing || selected;
-    const fc = FNCOLOR[c.fn || 'T'];
-    return { name: c.name || '', roman: c.roman || '', notes: jzNotes(c, s.jzVoicing, t, s.scale), fnColor: fc, border: fc, bg: hl ? '#fbeede' : FNTINT[c.fn || 'T'], shadow: hl ? '0 0 0 2px ' + fc : '0 1px 2px rgba(60,40,16,.12)', ch: c };
+    const a = analysis[i];
+    // Function follows the analysed degree, so a chord borrowed from another key
+    // is coloured by the job it does *there* rather than mislabelled here.
+    const fn: Fn = a ? degreeFn(a) : (c.fn || 'T');
+    const fc = FNCOLOR[fn];
+    return {
+      name: c.name || '', roman: a ? a.roman : (c.roman || ''),
+      notes: jzNotes(c, s.jzVoicing, a ? a.tonicPc : t, a ? (a.mode === 'minor' ? 'aeolian' : 'ionian') : s.scale),
+      fnColor: fc, border: fc,
+      bg: hl ? '#fbeede' : FNTINT[fn],
+      shadow: hl ? '0 0 0 2px ' + fc : '0 1px 2px rgba(60,40,16,.12)',
+      ch: c,
+      // Marks where a new centre begins, and chords that sit outside their key.
+      newKey: !!a && a.starts && i > 0,
+      outside: !!a && !a.fits,
+    };
   });
+
+  // The strip is grouped by key centre rather than laid out flat, so the label
+  // above each run and the chords under it cannot drift apart when the strip
+  // scrolls — the chips are variable-width, so a separately-scrolling ribbon
+  // would only line up by accident.
+  const keyGroups = spans.map((sp) => ({
+    label: spell(sp.tonicPc, sp.tonicPc, sp.mode === 'minor' ? 'aeolian' : 'ionian') + (sp.mode === 'minor' ? ' minor' : ' major'),
+    bg: sp.mode === 'minor' ? '#e2ece6' : '#f7e8d6',
+    fg: sp.mode === 'minor' ? '#2d5c48' : '#8f3c1c',
+    border: sp.mode === 'minor' ? '#a3c4b1' : '#e0ab7e',
+    chips: jzChangesView.slice(sp.start, sp.end + 1).map((c, k) => ({ ...c, i: sp.start + k })),
+  }));
 
   // ---- the inspector for the selected chord ----
   // Every move is offered on every chord now. It used to be rationed by the
@@ -57,13 +111,37 @@ export function buildChords(s: WorkbenchStore) {
   // musical reason. The teaching of *when* to reach for each one is Learn's
   // job; here they are simply available.
   let exploreOpen = false, selName = '', selRoman = '';
+  // What the selected chord *is*, in the key it actually belongs to: the centre,
+  // its job there, the scale to play over it and why that scale. This is the
+  // readout that replaces hunting around the wheel.
+  let selKey = '', selRole = '', selScale = '', selScaleNotes: string[] = [];
+  let selScaleWhy = '', selAlias: string | null = null, selOutside = false, selTyped = '';
   let extChips: Array<{ label: string; ch: Chord }> = [];
   let invChips: Array<{ label: string; ch: Chord }> = [];
   let buildSubs: Array<{ name: string; tag: string; why: string; fnColor: string; ch: Chord }> = [];
   if (s.jzSel >= 0 && s.jzChanges[s.jzSel]) {
     const sc = s.jzChanges[s.jzSel];
     exploreOpen = true; selName = sc.name || ''; selRoman = sc.roman || '';
-    const R = sc.rootPc, fam = jFamily(gI(sc)), sp = spell(R, t, s.scale);
+    const R = sc.rootPc, fam = jFamily(gI(sc));
+    const a = analysis[s.jzSel];
+    // Everything about the selected chord is spelled in the key it actually
+    // belongs to, not in whatever key the app is set to — otherwise Blue Bossa's
+    // A♭7 offers you G♯7 the moment you open its colour chips.
+    const keyTonic = a ? a.tonicPc : t;
+    const keyScale = a ? (a.mode === 'minor' ? 'aeolian' : 'ionian') : s.scale;
+    const sp = spell(R, keyTonic, keyScale);
+    if (a) {
+      const scale = chordScale(a, gI(sc));
+      const flat = prefFlat(keyTonic, keyScale);
+      selKey = keyOf(a);
+      selRole = roleOf(a);
+      selScale = sp + ' ' + scale.name;
+      selScaleNotes = spellScale(mod12(a.tonicPc + a.degree), scale.intervals, flat);
+      selScaleWhy = scale.why;
+      selOutside = !a.fits;
+    }
+    selAlias = chordAlias(sc.name || '');
+    selTyped = sc.name || '';
     const mkExt = (suf: string, ints: number[]) => ({ label: sp + suf, ch: { rootPc: R, intervals: ints, name: sp + suf, fn: sc.fn, roman: sc.roman } as Chord });
     // Colour options follow the chord's family, plus the two plain triads so
     // you can always get back to the bones of it.
@@ -97,6 +175,13 @@ export function buildChords(s: WorkbenchStore) {
     wsPickerOpen: s.picker === 'progressions',
     jzChangesView, jzEmpty: s.jzChanges.length === 0,
     exploreOpen, selName, selRoman, extChips, invChips, buildSubs,
+    selKey, selRole, selScale, selScaleNotes, selScaleWhy, selAlias, selOutside, selTyped,
+    keyGroups, jzEntry: s.jzEntry, jzEntryBad: s.jzEntryBad,
+    keyCount: spans.length,
+    keySummary: spans.length === 0 ? ''
+      : spans.length === 1 ? 'One key throughout'
+      : `${spans.length} key centres`,
+    switchCost: s.jzSwitchCost,
     suggestText,
   };
 }

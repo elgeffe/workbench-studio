@@ -100,6 +100,9 @@
       <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
         <div style="flex:none">
           <div style="font-size:42px;font-weight:700;line-height:.95;letter-spacing:-.01em">{v.acName}</div>
+          {#if v.acAlias}
+            <div class="mono" style="font-size:11px;color:#8a7350;margin-top:5px">also written <b style="color:#5c4a30">{v.acAlias}</b></div>
+          {/if}
           <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
             <span class="mono" style="font-size:13px;color:#5c4a30">{v.acRoman}</span>
             <span class="mono" style="font-size:10px;letter-spacing:.06em;color:#fff;background:{v.acFnColor};padding:3px 8px;border-radius:10px">{v.acFnName}</span>
