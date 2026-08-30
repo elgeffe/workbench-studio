@@ -8,7 +8,7 @@ import {
 import {
   spell, spellOther, cname, gI, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr,
   diatonicList, subsFor, keyLabel, keySigStr, isEnharmonicTie, fmtKey, chordAlias,
-  spellChordTones, prefFlat,
+  spellChordTones, prefFlat, isRest,
 } from '../engine/theory';
 import { patternDefs, PAT_GROUPS } from '../engine/data';
 import type { WorkbenchStore, Mode, Part } from '../store.svelte';
@@ -36,7 +36,9 @@ function litInfo(s: WorkbenchStore): LitInfo {
     const chordSet = new Set(INT[activePat.chord].map((i) => (t + i) % 12));
     return { root: t, litSet, chordSet, dropSet: new Set<number>(), activePat };
   }
-  const ac = s.activeChord;
+  // A rest lights nothing: it has no notes, which is the whole point of it, so
+  // the instruments go dark for the length of the silence.
+  const ac = isRest(s.activeChord) ? null : s.activeChord;
   // Lit = the notes we actually voice (after best-practice dropping); the
   // dropped chord tones still belong to the chord, so we surface them greyed
   // out rather than hiding them. chordSet keeps the full stack for colouring.
@@ -52,6 +54,7 @@ export function computeView(s: WorkbenchStore) {
   const lit = litInfo(s);
   const dia = diatonicList(t, s.scale, s.ext);
   const ac = s.activeChord;
+  const acRest = isRest(ac);
   // The play buttons in Drums and Workshop show the state of the ONE shared
   // transport — pressing either starts/stops the whole band.
   const transportOn = s.jzPlaying || s.drPlaying;
@@ -73,18 +76,18 @@ export function computeView(s: WorkbenchStore) {
   // active readout — the chord the instruments are lighting, spelled out, with
   // the substitutions the Circle offers for it.
   let acNotes: Array<{ name: string; deg: string; bd: string }> = [];
-  if (ac) {
+  if (ac && !acRest) {
     const labels = ac.degLabels || ['R', '3', '5', '7', '9', '11', '13'];
     // Spelled by thirds, so an altered chord shows the letters the page uses.
     const names = spellChordTones(ac.rootPc, gI(ac), prefFlat(t, s.scale));
     acNotes = names.map((name, i) => ({ name, deg: labels[i] || '', bd: i === 0 ? '#c2562e' : '#3f6b5f' }));
   }
-  const subs = ac ? subsFor(ac, t, s.scale).map((sub) => {
+  const subs = ac && !acRest ? subsFor(ac, t, s.scale).map((sub) => {
     const ch = { rootPc: sub.rootPc, intervals: sub.intervals, name: sub.name, roman: sub.roman, fn: sub.fn } as Chord;
     return { name: sub.name, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], notes: spellChordTones(ch.rootPc, gI(ch), prefFlat(t, s.scale)), ch };
   }) : [];
 
-  const acName = ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '';
+  const acName = !ac ? '' : acRest ? ac.name || '' : ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale);
 
   const patterns = buildPatterns(s, lit.activePat);
   const inst = buildInstruments(s, lit);
@@ -155,8 +158,15 @@ export function computeView(s: WorkbenchStore) {
     acName: acName, acRoman: ac ? ac.roman || '' : '',
     // The fake-book spelling of the same chord, when it differs from ours.
     acAlias: chordAlias(acName),
-    acFnName: ac ? FNNAME[ac.fn || 'T'] : '', acFnColor: ac ? FNCOLOR[ac.fn || 'T'] : '#3f6b5f',
-    acNotes, acWhy: ac ? FNWHY[ac.fn || 'T'] : '', subs,
+    // A rest has no function to name and no tones to spell — it is labelled as
+    // what it is, in the muted colour the strip gives it.
+    acFnName: !ac ? '' : acRest ? 'Rest' : FNNAME[ac.fn || 'T'],
+    acFnColor: !ac ? '#3f6b5f' : acRest ? '#8a7350' : FNCOLOR[ac.fn || 'T'],
+    acNotes,
+    acWhy: !ac ? '' : acRest
+      ? 'Silence. The bar still passes — the drums roll on and the count keeps running — but no chord sounds and the bass sits out with it. Space is a chord voicing too.'
+      : FNWHY[ac.fn || 'T'],
+    subs,
     // chords (genres, palettes, progression strip, inspector)
     ...buildChords(s),
     // bass (grooves, the 16-step editor, the part mix)

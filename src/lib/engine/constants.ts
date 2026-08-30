@@ -106,4 +106,11 @@ export interface Chord {
   fn?: Fn;
   degLabels?: string[];
   midis?: number[];
+  /**
+   * A silent slot — a bar (or half bar) where the band drops out. It holds its
+   * place in the progression and its share of the time, but has no root, no
+   * intervals and no key, so everything that sounds, names or analyses a chord
+   * steps over it. See `isRest` / `restChord` in theory.ts.
+   */
+  rest?: boolean;
 }

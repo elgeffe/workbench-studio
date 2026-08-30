@@ -8,7 +8,7 @@
 // is where their explanatory copy belongs. What is left here is the tool: the
 // chords of the key, and everything you can do to one you have placed.
 import { INT, FNCOLOR, FNTINT, FNNAME, type Chord, type Fn } from '../engine/constants';
-import { spell, cname, gI, subsFor, colorChordDefs, jzNotes, jFamily, invChord, chordAlias, spellScale, prefFlat, mod12 } from '../engine/theory';
+import { spell, cname, gI, subsFor, colorChordDefs, jzNotes, jFamily, invChord, chordAlias, spellScale, prefFlat, mod12, isRest, REST_NAME } from '../engine/theory';
 import { analyseChanges, keySpans, type AnalysedChord } from '../engine/keycenters';
 import { chordScale, roleOf } from '../engine/chordscale';
 import { genreDefs } from '../engine/data';
@@ -66,15 +66,30 @@ export function buildChords(s: WorkbenchStore) {
   // transcribed chart does not have one key, so the strip is numbered from this
   // analysis instead: every chord gets the numeral it has in its *local* centre,
   // which is the only reading under which a page makes sense.
+  // Rests are not analysed — silence belongs to no key — so the reading comes
+  // back with one entry per sounding chord, each carrying the slot it came
+  // from. Everything below looks its chord up by slot rather than by position.
   const analysis = analyseChanges(s.jzChanges, s.jzSwitchCost);
   const spans = keySpans(analysis);
+  const bySlot = new Map<number, AnalysedChord>(analysis.map((a) => [a.i, a]));
   const keyOf = (a: AnalysedChord) =>
     spell(a.tonicPc, a.tonicPc, a.mode === 'minor' ? 'aeolian' : 'ionian') + (a.mode === 'minor' ? ' minor' : ' major');
 
   // the progression strip
   const jzChangesView: ChordChip[] = s.jzChanges.map((c, i) => {
     const playing = s.jzStep === i, selected = !s.jzPlaying && s.jzSel === i, hl = playing || selected;
-    const a = analysis[i];
+    // A silent slot reads as a slot, not as a chord: no numeral, no notes, no
+    // function colour — a dashed, muted card marked the way a chart marks it.
+    if (isRest(c)) {
+      return {
+        name: REST_NAME, roman: 'REST', notes: 'silence',
+        fnColor: '#8a7350', border: '#b3a68f',
+        bg: hl ? '#f0e6cf' : '#e6dcc4',
+        shadow: hl ? '0 0 0 2px #8a7350' : 'inset 0 0 0 1px rgba(138,115,80,.12)',
+        ch: c, rest: true,
+      };
+    }
+    const a = bySlot.get(i);
     // Function follows the analysed degree, so a chord borrowed from another key
     // is coloured by the job it does *there* rather than mislabelled here.
     const fn: Fn = a ? degreeFn(a) : (c.fn || 'T');
@@ -96,13 +111,29 @@ export function buildChords(s: WorkbenchStore) {
   // above each run and the chords under it cannot drift apart when the strip
   // scrolls — the chips are variable-width, so a separately-scrolling ribbon
   // would only line up by accident.
-  const keyGroups = spans.map((sp) => ({
-    label: spell(sp.tonicPc, sp.tonicPc, sp.mode === 'minor' ? 'aeolian' : 'ionian') + (sp.mode === 'minor' ? ' minor' : ' major'),
-    bg: sp.mode === 'minor' ? '#e2ece6' : '#f7e8d6',
-    fg: sp.mode === 'minor' ? '#2d5c48' : '#8f3c1c',
-    border: sp.mode === 'minor' ? '#a3c4b1' : '#e0ab7e',
-    chips: jzChangesView.slice(sp.start, sp.end + 1).map((c, k) => ({ ...c, i: sp.start + k })),
-  }));
+  //
+  // A run covers the slots the analysis gave it *plus* the silence around them:
+  // rests carry no key, but they are still part of the phrase they interrupt,
+  // so each run runs on until the next one begins. That way every slot lands in
+  // exactly one group and a silent bar cannot fall off the end of the strip.
+  const nSlots = s.jzChanges.length;
+  const keyGroups = spans.length
+    ? spans.map((sp, k) => {
+      const start = k === 0 ? 0 : sp.start;
+      const end = k === spans.length - 1 ? nSlots - 1 : spans[k + 1].start - 1;
+      return {
+        label: spell(sp.tonicPc, sp.tonicPc, sp.mode === 'minor' ? 'aeolian' : 'ionian') + (sp.mode === 'minor' ? ' minor' : ' major'),
+        bg: sp.mode === 'minor' ? '#e2ece6' : '#f7e8d6',
+        fg: sp.mode === 'minor' ? '#2d5c48' : '#8f3c1c',
+        border: sp.mode === 'minor' ? '#a3c4b1' : '#e0ab7e',
+        chips: jzChangesView.slice(start, end + 1).map((c, j) => ({ ...c, i: start + j })),
+      };
+    })
+    // Nothing but silence: there is no key to label, so the run says so.
+    : nSlots ? [{
+      label: 'Silence', bg: '#ece3cc', fg: '#7a6b50', border: '#cbb792',
+      chips: jzChangesView.map((c, i) => ({ ...c, i })),
+    }] : [];
 
   // ---- the inspector for the selected chord ----
   // Every move is offered on every chord now. It used to be rationed by the
@@ -119,11 +150,17 @@ export function buildChords(s: WorkbenchStore) {
   let extChips: Array<{ label: string; ch: Chord }> = [];
   let invChips: Array<{ label: string; ch: Chord }> = [];
   let buildSubs: Array<{ name: string; tag: string; why: string; fnColor: string; ch: Chord }> = [];
-  if (s.jzSel >= 0 && s.jzChanges[s.jzSel]) {
+  // A selected rest opens the inspector too, but there is nothing to recolour,
+  // invert or substitute — so it says what the slot is and leaves the moves out
+  // rather than offering moves that would have to do nothing.
+  let selRest = false;
+  if (s.jzSel >= 0 && isRest(s.jzChanges[s.jzSel])) {
+    exploreOpen = true; selRest = true; selName = REST_NAME; selRoman = 'REST';
+  } else if (s.jzSel >= 0 && s.jzChanges[s.jzSel]) {
     const sc = s.jzChanges[s.jzSel];
     exploreOpen = true; selName = sc.name || ''; selRoman = sc.roman || '';
     const R = sc.rootPc, fam = jFamily(gI(sc));
-    const a = analysis[s.jzSel];
+    const a = bySlot.get(s.jzSel);
     // Everything about the selected chord is spelled in the key it actually
     // belongs to, not in whatever key the app is set to — otherwise Blue Bossa's
     // A♭7 offers you G♯7 the moment you open its colour chips.
@@ -156,7 +193,11 @@ export function buildChords(s: WorkbenchStore) {
   // what to reach for next
   const filled = s.jzChanges;
   let suggestText = 'Tap a chord to pre-hear it; tap its + to place it. Functional flow: Tonic → Subdominant → Dominant → back to Tonic.';
-  if (filled.length) {
+  if (filled.length && isRest(filled[filled.length - 1])) {
+    // After silence the ear has nothing left ringing, so nothing is owed: the
+    // next chord is heard as a fresh start rather than as a resolution.
+    suggestText = 'The progression ends on a silent slot — the ear resets across it, so anything can follow. Coming back to the chord it started on is what makes the hole sound intended rather than dropped.';
+  } else if (filled.length) {
     const last = filled[filled.length - 1].fn || 'T';
     const nextMap: Record<Fn, string> = {
       T: 'a Subdominant (ii, IV) to set off, or jump to the Dominant for drama',
@@ -174,7 +215,7 @@ export function buildChords(s: WorkbenchStore) {
     wsGenreCount: GEN.length, colorChords,
     wsPickerOpen: s.picker === 'progressions',
     jzChangesView, jzEmpty: s.jzChanges.length === 0,
-    exploreOpen, selName, selRoman, extChips, invChips, buildSubs,
+    exploreOpen, selRest, selName, selRoman, extChips, invChips, buildSubs,
     selKey, selRole, selScale, selScaleNotes, selScaleWhy, selAlias, selOutside, selTyped,
     keyGroups, jzEntry: s.jzEntry, jzEntryBad: s.jzEntryBad,
     keyCount: spans.length,

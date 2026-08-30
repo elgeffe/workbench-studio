@@ -4,7 +4,7 @@
 // read as `store.view.*` — no handler closures leak out of the store.
 
 import { INT, SUF, MAJOR, CIRCLE, SCALES, type Chord, type ScaleId } from './engine/constants';
-import { mod12, spell, cname, gI, gMidis, chordMidis, diatonicList, jChVoiced } from './engine/theory';
+import { mod12, spell, cname, gI, gMidis, chordMidis, diatonicList, jChVoiced, isRest, restChord } from './engine/theory';
 import { patternDefs, progsIn, type ChordDef } from './engine/data';
 import { parseChanges } from './engine/symbols';
 import { type Diagram } from './engine/fretpatterns';
@@ -15,7 +15,7 @@ import {
 } from './engine/reading';
 import {
   BASS_PATTERNS, BASS_TRICKS, bassGenreOf, bassPatternsIn, bassChordIndexAt, bassFallbackChord,
-  bassLineSteps, bassRootMidi, resolveBassStep, type BassCell, type BassStep, type DegTok,
+  bassLineSteps, bassRootMidi, nextSounding, resolveBassStep, type BassCell, type BassStep, type DegTok,
 } from './engine/bass';
 import { Playhead, type PlayheadBar } from './engine/playhead';
 import {
@@ -282,7 +282,7 @@ export class WorkbenchStore {
     this.audio.playMidis(midis, dur ?? 1.2, stagger ?? 0, at);
   }
   playChord(ch: Chord | null, stagger = 0.018, at?: number): void {
-    if (!ch) return;
+    if (!ch || isRest(ch)) return; // a rest is a slot of silence — nothing to sound
     this.playMidis(gMidis(ch), 1.3, stagger, at);
   }
 
@@ -454,9 +454,15 @@ export class WorkbenchStore {
   // The chord (and the one after) the bass should currently resolve against.
   private bassContext(): { ch: Chord; next: Chord } {
     const chs = this.jzChanges;
-    const i = this.jzSel >= 0 ? this.jzSel : 0;
-    const ch: Chord = chs.length ? chs[i] : bassFallbackChord(this.tonicPc, this.scale);
-    const next = chs.length ? chs[(i + 1) % chs.length] : ch;
+    const at = this.jzSel >= 0 ? this.jzSel : 0;
+    // Editing a cell with a rest selected still has to preview *something*, so
+    // the preview resolves against the next slot that sounds; if the whole
+    // progression is silence, it falls back to the key's own 7th, exactly as an
+    // empty progression does.
+    const i = chs.length && isRest(chs[at]) ? nextSounding(chs, at) : at;
+    const sounding = chs.length && !isRest(chs[i]);
+    const ch: Chord = sounding ? chs[i] : bassFallbackChord(this.tonicPc, this.scale);
+    const next = sounding ? chs[nextSounding(chs, i)] : ch;
     return { ch, next };
   }
   playTrick(id: string): void {
@@ -483,6 +489,7 @@ export class WorkbenchStore {
     const stepSec = this.barMs() / 16000;
     steps.forEach((st) => {
       const { ch, next } = chordAt(st.s);
+      if (isRest(ch)) return; // the band drops out for a silent slot, bass included
       const t = at + st.s * stepSec;
       // A ghost is a pitchless thud from a damped string — there is no note to
       // send, so it stays an internal-only detail of the line.
@@ -511,6 +518,7 @@ export class WorkbenchStore {
 
   // ---- build a chord relative to the current tonic ----
   private chFromDef(d: ChordDef): Chord {
+    if (d.rest) return restChord(); // a library progression can write silence into a bar
     const r = mod12(this.tonicPc + d.iv);
     return {
       rootPc: r,
@@ -572,6 +580,20 @@ export class WorkbenchStore {
     if (!this.jzPlaying) this.playChord(jChVoiced(c, this.jzVoicing), 0.02);
   }
   /**
+   * Place a silent slot — the bar the band sits out. It is placed like a chord
+   * because it *is* one as far as the progression is concerned: it takes a
+   * slot, it can be dragged, and the loop counts it. Nothing is previewed, for
+   * the obvious reason.
+   */
+  addRest(): void {
+    const c = restChord();
+    this.jzChanges = [...this.jzChanges, c];
+    this.jzSel = this.jzChanges.length - 1;
+    // Held as the active chord like any other placed slot, so the readout can
+    // name the silence — the instruments go dark because it has no notes.
+    this.activeChord = c;
+  }
+  /**
    * Place chords typed as text — a line lifted straight off a chart. Anything
    * unreadable is collected in `jzEntryBad` rather than dropped silently, so
    * the box can say which token it choked on.
@@ -583,7 +605,7 @@ export class WorkbenchStore {
     const add: Chord[] = [];
     parsed.forEach((p, i) => {
       if (!p) { bad.push(toks[i] ?? '?'); return; }
-      add.push({ rootPc: p.rootPc, intervals: p.intervals, name: p.name, roman: '', fn: 'T' });
+      add.push(p.rest ? restChord() : { rootPc: p.rootPc, intervals: p.intervals, name: p.name, roman: '', fn: 'T' });
     });
     this.jzEntryBad = bad;
     if (!add.length) return;
@@ -591,7 +613,7 @@ export class WorkbenchStore {
     this.jzSel = this.jzChanges.length - 1;
     this.jzEntry = '';
     const last = this.jzChanges[this.jzSel];
-    this.activeChord = jChVoiced(last, this.jzVoicing);
+    this.activeChord = isRest(last) ? last : jChVoiced(last, this.jzVoicing);
     if (!this.jzPlaying) this.playChord(jChVoiced(last, this.jzVoicing), 0.02);
   }
   setJzEntry(v: string): void { this.jzEntry = v; }
@@ -602,7 +624,7 @@ export class WorkbenchStore {
     defs.forEach((d) => arr.push(this.chFromDef(d)));
     this.jzChanges = arr;
     this.jzSel = arr.length - 1;
-    this.activeChord = jChVoiced(arr[this.jzSel], this.jzVoicing);
+    this.activeChord = isRest(arr[this.jzSel]) ? arr[this.jzSel] : jChVoiced(arr[this.jzSel], this.jzVoicing);
   }
   /** Replace the strip with a starting point. `name` labels it in the picker summary. */
   setProgression(defs: ChordDef[], name = ''): void {
@@ -611,7 +633,7 @@ export class WorkbenchStore {
     this.jzChanges = arr;
     this.jzSel = 0;
     this.jzStep = -1;
-    this.activeChord = arr.length ? jChVoiced(arr[0], this.jzVoicing) : null;
+    this.activeChord = !arr.length ? null : isRest(arr[0]) ? arr[0] : jChVoiced(arr[0], this.jzVoicing);
   }
   jzRemove(i: number): void {
     const arr = this.jzChanges.slice();
@@ -636,7 +658,9 @@ export class WorkbenchStore {
     const ch = this.jzChanges[i];
     if (!ch) return;
     this.jzSel = i;
-    this.activeChord = jChVoiced(ch, this.jzVoicing);
+    // Selecting a rest is how you inspect (or delete) the silence: nothing
+    // sounds, and the instruments go dark to show you why.
+    this.activeChord = isRest(ch) ? ch : jChVoiced(ch, this.jzVoicing);
     if (!this.jzPlaying) this.playChord(jChVoiced(ch, this.jzVoicing), 0.02);
   }
   jzClear(): void {
@@ -654,7 +678,7 @@ export class WorkbenchStore {
     if (ch.midis) nc.midis = ch.midis;
     arr[i] = nc;
     this.jzChanges = arr;
-    this.activeChord = jChVoiced(arr[i], this.jzVoicing);
+    this.activeChord = isRest(arr[i]) ? arr[i] : jChVoiced(arr[i], this.jzVoicing);
     // The live loop reads this.jzChanges directly, so it already picks up the
     // swap on its next tick. If the chord being replaced is the one sounding
     // right now, re-strike it so the change is heard immediately.
@@ -664,6 +688,7 @@ export class WorkbenchStore {
     const i = this.jzSel;
     if (i < 0) return;
     const t = this.jzChanges[i];
+    if (isRest(t)) return; // silence has no root to approach
     const R = t.rootPc;
     const v: Chord = { rootPc: (R + 7) % 12, intervals: INT.dom7, name: cname((R + 7) % 12, 'dom7', this.tonicPc, this.scale), roman: 'V7/' + (t.roman || 'x'), fn: 'D' };
     const arr = this.jzChanges.slice();
@@ -676,6 +701,7 @@ export class WorkbenchStore {
     const i = this.jzSel;
     if (i < 0) return;
     const t = this.jzChanges[i];
+    if (isRest(t)) return; // silence has no root to approach
     const R = t.rootPc;
     const ii: Chord = { rootPc: (R + 2) % 12, intervals: INT.min7, name: cname((R + 2) % 12, 'min7', this.tonicPc, this.scale), roman: 'ii7', fn: 'S' };
     const v: Chord = { rootPc: (R + 7) % 12, intervals: INT.dom7, name: cname((R + 7) % 12, 'dom7', this.tonicPc, this.scale), roman: 'V7', fn: 'D' };
@@ -711,6 +737,16 @@ export class WorkbenchStore {
     const i = this.jIdx % chs.length;
     const ch = chs[i];
     this.jzStep = i;
+    // A rest holds its slot and nothing else: the playhead walks through it,
+    // the drums keep rolling under it, and the chords, the hardware and the
+    // instrument lighting all drop out for its length. The chord stays the
+    // active one so the panel can say what the silence is — see the readout
+    // in view/index.ts, which reads `isRest` and goes dark.
+    if (isRest(ch)) {
+      this.activeChord = ch;
+      this.jIdx = i + 1;
+      return;
+    }
     const voiced = jChVoiced(ch, this.jzVoicing);
     this.activeChord = voiced;
     // A muted chord part still lights the instruments and still moves the
@@ -753,7 +789,9 @@ export class WorkbenchStore {
     const half = this.chordSlot === 'half';
     this.scheduleBassSteps(steps, at, (s) => {
       const i = bassChordIndexAt(s, first, half, chs.length);
-      return { ch: chs[i], next: chs[(i + 1) % chs.length] };
+      // Approach notes aim through a silent slot at the change on the far side
+      // of it, so a walk-up still lands where the ear expects it to.
+      return { ch: chs[i], next: chs[nextSounding(chs, i)] };
     }, true);
     // The line is written straight, so the head walks it straight — the swing
     // in the drum grid is the kit's own feel, not the band's clock.

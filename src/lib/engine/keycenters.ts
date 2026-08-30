@@ -29,7 +29,7 @@
 // per-chord, is the point — it is why a lone Gm7 reads as i in Autumn Leaves
 // and as ii-of-F eight bars into Alone Together.
 
-import { mod12 } from './theory';
+import { mod12, isRest } from './theory';
 import type { Chord } from './constants';
 
 export type KeyMode = 'major' | 'minor';
@@ -173,12 +173,23 @@ const OPENS_TONIC = 4;
 /**
  * Analyse a progression into key centres.
  *
- * Returns one entry per chord, each naming the local key, the chord's roman
- * numeral in it, and whether it opens a new centre. `switchCost` tunes how
- * eagerly the reading modulates — raise it to keep a tune in one key, lower it
- * to let every ii–V pull its own centre.
+ * Returns one entry per *sounding* chord — a rest is silence, not harmony, so
+ * it is stepped over rather than analysed, and each entry carries the index it
+ * came from in `i`. A silent bar in the middle of a run therefore neither
+ * breaks the key nor votes for a new one: the ii–V either side of it still
+ * reads as one cadence, exactly as it does on the page.
+ *
+ * Each entry names the local key, the chord's roman numeral in it, and whether
+ * it opens a new centre. `switchCost` tunes how eagerly the reading modulates —
+ * raise it to keep a tune in one key, lower it to let every ii–V pull its own
+ * centre.
  */
-export function analyseChanges(chords: Chord[], switchCost = SWITCH): AnalysedChord[] {
+export function analyseChanges(all: Chord[], switchCost = SWITCH): AnalysedChord[] {
+  // The reading runs over the sounding chords only; `at[k]` maps position k in
+  // that reading back to the slot it occupies in the progression.
+  const at: number[] = [];
+  const chords: Chord[] = [];
+  all.forEach((c, i) => { if (!isRest(c)) { at.push(i); chords.push(c); } });
   const n = chords.length;
   if (!n) return [];
 
@@ -287,7 +298,7 @@ export function analyseChanges(chords: Chord[], switchCost = SWITCH): AnalysedCh
     const degree = mod12(s.chord.rootPc - key.tonicPc);
     const scale = key.mode === 'major' ? MAJOR_PCS : MINOR_PCS;
     return {
-      i,
+      i: at[i],
       tonicPc: key.tonicPc,
       mode: key.mode,
       degree,

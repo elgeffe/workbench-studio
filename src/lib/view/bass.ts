@@ -14,7 +14,7 @@ import {
 // one bar, "1 e & a 2 e & a…", whichever part is written on it.
 import { DRUM_COUNT as BAR_COUNT } from '../engine/drums';
 import { FNCOLOR, FNTINT } from '../engine/constants';
-import { cname, spell } from '../engine/theory';
+import { cname, spell, isRest } from '../engine/theory';
 import { genreById } from '../engine/genres';
 import { genreShelves, itemChips } from './picker';
 import type { WorkbenchStore } from '../store.svelte';
@@ -108,7 +108,7 @@ export function buildBass(s: WorkbenchStore) {
   // shows what the loop would play from here: the change selected in Chords.
   const first = live ? s.bsFirst : Math.max(s.jzSel, 0);
   const notes = bassBarNotes(s.bassLine, chs, first, half, s.tonicPc);
-  const chName = (i: number) => chs[i].name || cname(chs[i].rootPc, chs[i].quality || 'maj', s.tonicPc, s.scale);
+  const chName = (i: number) => chs[i].name || (isRest(chs[i]) ? '' : cname(chs[i].rootPc, chs[i].quality || 'maj', s.tonicPc, s.scale));
 
   // A bass note rings on through the rests behind it, so the row underlines the
   // steps it is still sounding over: what you see is how long you hold it.
@@ -153,13 +153,26 @@ export function buildBass(s: WorkbenchStore) {
   }
   const bassChordSpans = spans.map(({ start, n, i }) => {
     const fn = chs[i].fn || 'T';
+    // Silence gets a band of its own: the line drops out under it, and a band
+    // that looked like a chord would say the opposite.
+    const rest = isRest(chs[i]);
+    const color = rest ? '#8a7350' : FNCOLOR[fn];
     const hot = live && s.bsStep >= start && s.bsStep < start + n;
     return {
       start, name: chName(i), ...band(start, n),
-      bg: hot ? '#fbeede' : FNTINT[fn], border: FNCOLOR[fn],
-      shadow: hot ? '0 0 0 2px ' + FNCOLOR[fn] : 'none',
+      bg: hot ? '#f0e6cf' : rest ? '#e6dcc4' : FNTINT[fn],
+      border: color,
+      shadow: hot ? '0 0 0 2px ' + color : 'none',
     };
   });
+
+  // What the bar sits over, for the hint below: the change (or the silence)
+  // under its first half, and under its second when the two differ.
+  const firstIdx = bassChordIndexAt(0, first, half, chs.length);
+  const secondIdx = bassChordIndexAt(8, first, half, chs.length);
+  const twoBands = half && chs.length > 1 && secondIdx !== firstIdx;
+  const overName = (i: number) => (isRest(chs[i]) ? 'a silent slot' : chName(i));
+  const barSilent = isRest(chs[firstIdx]) && (!twoBands || isRest(chs[secondIdx]));
 
   // The readout: the note under the playhead — which is the last one struck,
   // since a bass note rings on through the rests that follow it.
@@ -180,7 +193,8 @@ export function buildBass(s: WorkbenchStore) {
     // Stopped, say where the row's reading comes from rather than leaving it
     // looking like something that should be moving and isn't.
     bassTrackHint: s.jzChanges.length
-      ? 'Over ' + chName(bassChordIndexAt(0, first, half, chs.length)) + (half && chs.length > 1 ? ' then ' + chName(bassChordIndexAt(8, first, half, chs.length)) : '') + ' — press PLAY to follow the bar as it goes.'
+      ? 'Over ' + overName(firstIdx) + (twoBands ? ' then ' + overName(secondIdx) : '') + ' — '
+        + (barSilent ? 'the line sits this bar out; the time still passes under it.' : 'press PLAY to follow the bar as it goes.')
       : 'No changes loaded — these are the notes over ' + chName(0) + ', the key’s own 7th chord.',
     bassShelves, bassGenreChips, bassGrooves,
     bassLegend: (Object.keys(BASS_ROLE_META) as BassRole[]).map((r) => ({ name: BASS_ROLE_META[r].name, color: BASS_ROLE_META[r].color })),

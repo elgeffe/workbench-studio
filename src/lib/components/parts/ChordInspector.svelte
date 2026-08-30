@@ -13,7 +13,24 @@
   const v = $derived(store.view);
 </script>
 
-{#if v.exploreOpen}
+<!-- A silent slot has nothing to recolour, invert or substitute — so instead of
+     a panel of moves that would all do nothing, it says what the slot is and
+     how to get rid of it. -->
+{#if v.exploreOpen && v.selRest}
+  <div data-testid="rest-inspector" style="background:#ece3cc;border:1px dashed #b3a68f;border-radius:10px;padding:14px 15px;margin-bottom:16px">
+    <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:6px;flex-wrap:wrap">
+      <span class="mono" style="font-size:9px;letter-spacing:.12em;color:#8a7350">EDITING</span>
+      <span style="font-size:21px;color:#5c4a30;line-height:1">𝄽</span>
+      <span style="font-size:19px;font-weight:700;color:#2c261d;line-height:1">{v.selName}</span>
+      <span class="mono" style="font-size:10px;color:#7a6b50">{v.selRoman}</span>
+    </div>
+    <div class="caption" style="font-size:13.5px;color:#5c4a30;max-width:520px">
+      A silent slot. It holds its place in the loop and its share of the time — the
+      drums roll on and the count keeps running — but no chord sounds and the bass
+      sits out with it. Drag it to move the hole; tap its <b>×</b> to close it up.
+    </div>
+  </div>
+{:else if v.exploreOpen}
   <div style="background:#f3ead4;border:1px solid #e0cfae;border-radius:10px;padding:14px 15px;margin-bottom:16px">
     <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:4px;flex-wrap:wrap">
       <span class="mono" style="font-size:9px;letter-spacing:.12em;color:#8a7350">EDITING</span>

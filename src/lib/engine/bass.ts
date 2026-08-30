@@ -5,7 +5,7 @@
 // look ahead ('A' walks a half-step under the NEXT chord's root), so a single
 // pattern transposes correctly through any progression.
 
-import { mod12, gI, cname } from './theory';
+import { mod12, gI, cname, isRest } from './theory';
 import { INT, type Chord, type ScaleId } from './constants';
 import { FAMILIES, GENRES } from './genres';
 import { ROCK_POP_BASSLINES } from './basslines/rockpop';
@@ -131,6 +131,22 @@ export function bassChordIndexAt(s: number, first: number, half: boolean, n: num
 }
 
 /**
+ * The next slot that actually sounds, walking forward from `i` and wrapping.
+ *
+ * A line's approach notes aim at the change that is *coming* — so when the
+ * next slot is silence, they have to look through it to the chord on the far
+ * side, or a walk into a rest would target a chord that never arrives. Returns
+ * `i` itself when nothing in the progression sounds.
+ */
+export function nextSounding(chs: Chord[], i: number): number {
+  for (let k = 1; k <= chs.length; k++) {
+    const j = (i + k) % chs.length;
+    if (!isRest(chs[j])) return j;
+  }
+  return i;
+}
+
+/**
  * The chord a line resolves against when no changes are loaded: the key's own
  * dominant 7th. Editing a cell previews against it, so the tab reads the notes
  * off the same fallback rather than going blank.
@@ -146,11 +162,15 @@ export function bassBarNotes(line: BassCell[], chs: Chord[], first: number, half
     const i = bassChordIndexAt(s, first, half, chs.length);
     const note: BassBarNote = { s, chordIdx: i };
     if (!cell || !chs.length) return note;
+    // Silence is silence for the whole band: over a rest the line drops out
+    // too, so the row draws nothing under those steps — what you see is what
+    // the transport will play.
+    if (isRest(chs[i])) return note;
     if (cell.g) { note.g = true; return note; }
     if (!cell.d) return note;
     note.d = cell.d;
     note.l = rings.get(s);
-    note.midi = resolveBassStep(cell.d, chs[i], chs[(i + 1) % chs.length], tonicPc);
+    note.midi = resolveBassStep(cell.d, chs[i], chs[nextSounding(chs, i)], tonicPc);
     return note;
   });
 }
