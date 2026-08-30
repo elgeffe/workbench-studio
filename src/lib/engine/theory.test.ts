@@ -3,6 +3,7 @@ import {
   spell, cname, diatonicList, subsFor, invChord, mod12, gPcs,
   playedIntervals, playedPcs, droppedPcs, keyLabel, keySigStr, isEnharmonicTie,
   parentMajorPc, keyNameStr, scaleNotesStr, spellScale, spellChordTones,
+  restChord, isRest, gMidis, REST_NAME,
 } from './theory';
 import { INT, SCALES, type ScaleId } from './constants';
 
@@ -250,3 +251,23 @@ describe('spelling chord tones by thirds', () => {
     expect(spellChordTones(3, INT.dim7).every((n) => n.length <= 3)).toBe(true);
   });
 });
+
+describe('a rest', () => {
+  it('is a chord slot that carries no notes and no root', () => {
+    const r = restChord();
+    expect(isRest(r)).toBe(true);
+    expect(r.name).toBe(REST_NAME);
+    expect(r.intervals).toEqual([]);
+    expect(r.rootPc).toBeLessThan(0); // there is no root to spell or light up
+  });
+  it('has nothing to sound, so nothing can be played from it', () => {
+    expect(gMidis(restChord())).toEqual([]);
+    expect(playedPcs(restChord())).toEqual([]);
+    expect(gPcs(restChord())).toEqual([]);
+  });
+  it('does not mistake a real chord for silence', () => {
+    expect(isRest({ rootPc: 0, intervals: INT.maj7 })).toBe(false);
+    expect(isRest(null)).toBe(false);
+  });
+});
+

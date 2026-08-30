@@ -14,7 +14,7 @@
 // sounding something the page never asked for.
 
 import { INT, SUF } from './constants';
-import { mod12 } from './theory';
+import { mod12, REST_NAME } from './theory';
 
 export interface ParsedChord {
   rootPc: number;
@@ -27,7 +27,15 @@ export interface ParsedChord {
   typed: string;
   /** Slash-chord bass note, when one was written. */
   bassPc: number | null;
+  /** A silent slot rather than a chord — N.C. on the page. */
+  rest?: boolean;
 }
+
+// Silence, as the books mark it: N.C. (no chord) above the staff, or `tacet`
+// where a part drops out for a section. A bar that sounds nothing is written
+// down as deliberately as one that sounds something, so it parses like any
+// other symbol rather than being flagged as a typo.
+const REST_TOKEN = /^(n\.?\s?c\.?|no\s?chord|tacet|rest|silence|silent|_+)$/i;
 
 const LETTER: Record<string, number> = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
 
@@ -108,6 +116,9 @@ function pretty(s: string): string {
 export function parseChord(text: string): ParsedChord | null {
   const raw = String(text || '').trim();
   if (!raw) return null;
+  if (REST_TOKEN.test(raw)) {
+    return { rootPc: -1, intervals: [], quality: 'rest', name: REST_NAME, typed: raw, bassPc: null, rest: true };
+  }
 
   // 6/9 is a chord quality, not a slash chord — take it out of the way first.
   let work = raw.replace(/6\/9|69/g, 'six9');
@@ -185,8 +196,9 @@ function applyAlt(intervals: number[], deg: number, semis: number): number[] {
 /**
  * Split a line of changes into symbols. Bar lines, commas, dashes used as bar
  * separators and runs of whitespace all count as gaps, so a line copied off a
- * page — `Cm7 F7 | BbMaj7 EbMaj7` — comes through as written. Unparseable
- * tokens come back as null in place, keeping the index aligned with the input.
+ * page — `Cm7 F7 | BbMaj7 EbMaj7` — comes through as written. A bar the page
+ * marks N.C. comes through as a rest. Unparseable tokens come back as null in
+ * place, keeping the index aligned with the input.
  */
 export function parseChanges(text: string): Array<ParsedChord | null> {
   return String(text || '')

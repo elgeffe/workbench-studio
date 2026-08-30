@@ -98,6 +98,29 @@ export function cname(r: number, q: string, tonicPc: number, scale: ScaleId = 'i
   return spell(r, tonicPc, scale) + SUF[q];
 }
 
+// ---- silence ----
+//
+// A bar where nothing sounds is part of the harmony, not the absence of it: a
+// stop-time break, the bar of air before the head comes back in, the hole in a
+// Dorian vamp that makes the vamp swing. So a rest is a chord in the
+// progression like any other — it takes a slot, it holds its share of the
+// time, the playhead walks through it — it simply has no root, no intervals
+// and no key. Charts write it N.C. (no chord), and so does this.
+//
+// Everything that sounds, names or analyses a chord asks `isRest` first and
+// steps over it: the transport plays nothing, the bass line drops out for the
+// slot, the key-centre reading skips it, and the instruments go dark.
+export const REST_NAME = 'N.C.';
+
+/** A silent slot. `rootPc` is -1 — there is no root to spell or light up. */
+export function restChord(): Chord {
+  return { rootPc: -1, intervals: [], name: REST_NAME, roman: '', fn: 'T', rest: true };
+}
+
+export function isRest(ch: Chord | null | undefined): boolean {
+  return !!ch && ch.rest === true;
+}
+
 export function gI(ch: Chord): number[] {
   return ch.intervals || (ch.quality ? INT[ch.quality] : undefined) || [0, 4, 7];
 }
@@ -146,6 +169,7 @@ export function droppedPcs(ch: Chord): number[] {
 }
 
 export function gMidis(ch: Chord): number[] {
+  if (isRest(ch)) return []; // nothing to sound, and no root to sound it from
   if (ch.midis) return ch.midis;
   const base = 48 + ch.rootPc;
   return [base - 12, ...playedIntervals(gI(ch)).map((i) => base + i)];

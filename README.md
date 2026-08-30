@@ -34,7 +34,7 @@ src/
       genres.ts        THE shared genre taxonomy: 8 families, 31 genres. Drums,
                        basslines and progressions all shelve off this one list,
                        so a genre means the same thing in every tab.
-      data.ts          Progression library (119 across the 31 genres), the
+      data.ts          Progression library (122 across the 31 genres), the
                        pattern library, the Learn-mode jazz curriculum
       fretpatterns.ts  Fretboard diagram library (scale boxes, chord grips)
       bass.ts          Degree resolution, walking tricks, the bassline index,
@@ -246,10 +246,13 @@ from the same genre, since all three libraries shelve off one taxonomy.
   add any of the 12 kit voices as a new row, or remove one — and cells are editable
   (rest → hit → accent). Swing lives here; tempo is the studio's.
 - **Chords** — build a progression from the diatonic and colour/borrowed palettes, or load
-  one of 119 starting points across the 31 genres. Drag to reorder. Select a placed chord
+  one of 122 starting points across the 31 genres. Drag to reorder. Select a placed chord
   and the **inspector** offers every move on it: extensions, inversions, a leading V or
   ii–V, and substitutions. Voicing (full/shell) and chord length (½ bar / 1 bar) are
-  per-progression settings.
+  per-progression settings. **Silence is a slot too**: `+ REST` (or `N.C.` typed off a
+  chart) places a bar the band sits out — the drums roll on, the count keeps running, the
+  chords and the bass drop out. It is placed, dragged and deleted like any chord, it holds
+  no key of its own, and the key-centre reading looks straight through it.
 - **Bass** — one line, which is yours: a 16-step grid of *degrees*, so it transposes itself
   through every change. The 119-groove library across 31 genres loads into it as a starting
   point rather than replacing it. Under the grid the same bar is spelled out three ways —

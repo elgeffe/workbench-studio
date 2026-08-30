@@ -144,3 +144,26 @@ describe('reading a line off the page', () => {
     expect(alone.every((c) => c !== null)).toBe(true);
   });
 });
+
+describe('silence', () => {
+  it('reads the ways a chart marks a bar with no chord', () => {
+    ['N.C.', 'NC', 'n.c.', 'nc', 'tacet', 'rest', 'silence', '_'].forEach((tok) => {
+      const p = parseChord(tok);
+      expect(p?.rest, tok).toBe(true);
+      expect(p?.name, tok).toBe('N.C.');
+      expect(p?.intervals, tok).toEqual([]);
+    });
+  });
+  it('keeps a rest in place among the changes', () => {
+    const out = parseChanges('Dm9 | G13 | N.C. | Dm9');
+    expect(out).toHaveLength(4);
+    expect(out.map((c) => !!c?.rest)).toEqual([false, false, true, false]);
+  });
+  it('does not mistake a chord for silence', () => {
+    // C is a chord; the tokens above are not, and neither is anything starting
+    // with a note letter.
+    expect(parseChord('C')?.rest).toBeUndefined();
+    expect(parseChord('Cm7')?.rest).toBeUndefined();
+  });
+});
+

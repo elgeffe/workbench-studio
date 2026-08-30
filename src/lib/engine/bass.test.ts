@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   BASS_GENRES, BASS_PATTERNS, BASS_TRICKS, BASS_TOK_LABEL,
   bassGenreOf, bassPatternsIn, bassRole, bassRootMidi, resolveBassStep,
-  bassBarNotes, bassChordIndexAt, bassFallbackChord, midiOctave,
+  bassBarNotes, bassChordIndexAt, bassFallbackChord, midiOctave, nextSounding,
   type BassCell, type BassStep,
 } from './bass';
 import { INT, type Chord } from './constants';
+import { restChord } from './theory';
 
 const ch = (rootPc: number, q: string): Chord => ({ rootPc, intervals: INT[q], fn: 'T' });
 
@@ -201,3 +202,37 @@ describe('the groove library', () => {
     });
   });
 });
+
+describe('a silent slot', () => {
+  const REST = restChord();
+
+  it('finds the next slot that actually sounds, wrapping round', () => {
+    const chs = [ch(0, 'min7'), REST, REST, ch(5, 'dom7')];
+    expect(nextSounding(chs, 0)).toBe(3);
+    expect(nextSounding(chs, 3)).toBe(0); // wraps to the top of the loop
+    expect(nextSounding([REST, REST], 0)).toBe(0); // nothing sounds anywhere
+  });
+
+  it('drops the line out under a rest', () => {
+    // Half-bar slots: Cm7 for the first beat and a half, silence for the rest.
+    const chs = [ch(0, 'min7'), REST];
+    const notes = bassBarNotes(line({ 0: { d: 'R' }, 8: { d: 'R' } }), chs, 0, true, 0);
+    expect(notes[0].midi).toBeDefined();
+    expect(notes[8].midi).toBeUndefined(); // over the rest — nothing to play
+    expect(notes[8].d).toBeUndefined();
+  });
+
+  it('silences a ghost note over a rest too', () => {
+    const notes = bassBarNotes(line({ 8: { g: true } }), [ch(0, 'min7'), restChord()], 0, true, 0);
+    expect(notes[8].g).toBeUndefined();
+  });
+
+  it('walks through the silence to the change on the far side of it', () => {
+    // 'A' approaches the NEXT chord's root from a semitone below. With a rest
+    // in between, "next" is the chord after the silence — F, so E.
+    const chs = [ch(0, 'min7'), restChord(), ch(5, 'dom7')];
+    const notes = bassBarNotes(line({ 15: { d: 'A' } }), chs, 0, false, 0);
+    expect(notes[15].midi).toBe(resolveBassStep('A', chs[0], chs[2], 0));
+  });
+});
+

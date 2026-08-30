@@ -94,7 +94,7 @@
     <input
       class="mono"
       style="flex:1 1 320px;min-width:220px;font-size:14px;padding:11px 13px;border-radius:8px;border:1.5px solid {v.jzEntryBad.length ? '#c2562e' : '#cbb792'};background:#fbf6ea;color:#2c261d"
-      placeholder="Cm7 F7 | BbMaj7 EbMaj7 | Am7b5 D7 | Gm7"
+      placeholder="Cm7 F7 | BbMaj7 EbMaj7 | Am7b5 D7 | N.C."
       aria-label="Enter chord changes"
       value={v.jzEntry}
       oninput={(e) => store.setJzEntry((e.currentTarget as HTMLInputElement).value)}
@@ -106,7 +106,7 @@
     {#if v.jzEntryBad.length}
       Could not read {v.jzEntryBad.join(', ')} — everything else was placed.
     {:else}
-      Any spelling works: <b>Em7b5</b>, <b>Eø7</b> and <b>E-7b5</b> are the same chord. Bar lines optional.
+      Any spelling works: <b>Em7b5</b>, <b>Eø7</b> and <b>E-7b5</b> are the same chord. Bar lines optional. Write <b>N.C.</b> for a bar nothing sounds on.
     {/if}
   </div>
 
@@ -123,7 +123,7 @@
        same scroll container as its chords so the two cannot drift apart. -->
   <div bind:this={stripEl} style="display:flex;gap:14px;overflow-x:auto;min-height:78px;padding:11px;background:#ece0c6;border:1px dashed #cbb792;border-radius:9px;margin-bottom:12px;align-items:stretch">
     {#if v.jzEmpty}
-      <span class="caption" style="font-size:14px;color:#9a8763;max-width:440px;align-self:center">Empty — type the changes above, load a starting point below, or tap a chord to pre-hear it and its <b>+</b> to place it. Tap a placed chord to edit it.</span>
+      <span class="caption" style="font-size:14px;color:#9a8763;max-width:440px;align-self:center">Empty — type the changes above, load a starting point below, or tap a chord to pre-hear it and its <b>+</b> to place it. Tap a placed chord to edit it, or <b>+ REST</b> for a bar that sounds nothing.</span>
     {/if}
     {#each v.keyGroups as g, gi (gi)}
     <div style="flex:none;display:flex;flex-direction:column;gap:5px">
@@ -131,11 +131,18 @@
       <div style="display:flex;gap:8px;align-items:center">
     {#each g.chips as s (s.i)}
       {@const i = s.i}
-      <div class="click" data-chip={i} style="position:relative;flex:none;min-width:86px;border-radius:8px;border:1.5px solid {s.border};background:{s.bg};box-shadow:{dragging && dragFrom === i ? '0 10px 22px -6px rgba(60,40,16,.5)' : s.shadow};padding:0 12px 8px;text-align:center;overflow:visible;cursor:grab;touch-action:none;user-select:none;transition:transform .08s ease;transform:{dragging && dragFrom === i ? 'scale(1.06)' : 'scale(1)'};z-index:{dragging && dragFrom === i ? 5 : 1};opacity:{dragging && dragFrom === i ? 0.9 : 1};outline:{dragging && dragOver === i && dragFrom !== i ? '2px solid #c2562e' : 'none'};outline-offset:2px" role="button" tabindex="0" onpointerdown={(e) => onPointerDown(e, i)} onpointermove={onPointerMove} onpointerup={(e) => onPointerUp(e, i)} onpointercancel={onPointerCancel} onkeydown={(e) => e.key === 'Enter' && store.jzSelect(i)}>
-        <div style="height:4px;margin:0 -12px 6px;background:{s.fnColor};border-radius:8px 8px 0 0"></div>
+      <div class="click" data-chip={i} data-rest={s.rest ? '1' : null} style="position:relative;flex:none;min-width:86px;border-radius:8px;border:1.5px {s.rest ? 'dashed' : 'solid'} {s.border};background:{s.bg};box-shadow:{dragging && dragFrom === i ? '0 10px 22px -6px rgba(60,40,16,.5)' : s.shadow};padding:0 12px 8px;text-align:center;overflow:visible;cursor:grab;touch-action:none;user-select:none;transition:transform .08s ease;transform:{dragging && dragFrom === i ? 'scale(1.06)' : 'scale(1)'};z-index:{dragging && dragFrom === i ? 5 : 1};opacity:{dragging && dragFrom === i ? 0.9 : 1};outline:{dragging && dragOver === i && dragFrom !== i ? '2px solid #c2562e' : 'none'};outline-offset:2px" role="button" tabindex="0" onpointerdown={(e) => onPointerDown(e, i)} onpointermove={onPointerMove} onpointerup={(e) => onPointerUp(e, i)} onpointercancel={onPointerCancel} onkeydown={(e) => e.key === 'Enter' && store.jzSelect(i)}>
+        <div style="height:4px;margin:0 -12px 6px;background:{s.fnColor};border-radius:8px 8px 0 0;opacity:{s.rest ? '.45' : '1'}"></div>
         <div class="mono" style="font-size:8.5px;color:{s.fnColor}">{s.roman}{#if s.outside}<span title="outside the key" style="color:#b07d23"> ✳</span>{/if}</div>
-        <div style="font-size:16px;font-weight:700;color:#2c261d;line-height:1.05;white-space:nowrap">{s.name}</div>
-        <div class="mono" style="font-size:8px;color:#8a7350;margin-top:2px;white-space:nowrap">{s.notes}</div>
+        <!-- A silent slot shows the rest glyph over its N.C. mark: the chart's
+             word for it, and the picture of it, in the space a chord name has. -->
+        {#if s.rest}
+          <div style="font-size:20px;line-height:1;color:#8a7350" title="a silent bar — nothing sounds here">𝄽</div>
+          <div class="mono" style="font-size:9px;color:#7a6b50;margin-top:3px;white-space:nowrap">{s.name}</div>
+        {:else}
+          <div style="font-size:16px;font-weight:700;color:#2c261d;line-height:1.05;white-space:nowrap">{s.name}</div>
+          <div class="mono" style="font-size:8px;color:#8a7350;margin-top:2px;white-space:nowrap">{s.notes}</div>
+        {/if}
         <div class="mono" data-x style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#c2562e;color:#fff;font-size:12px;line-height:17px;text-align:center;border:1.5px solid #f5edda" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); store.jzRemove(i); }} onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); store.jzRemove(i); } }}>×</div>
       </div>
     {/each}
@@ -148,6 +155,9 @@
        chords and bass together, so they live in the studio bar. -->
   <div style="display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-bottom:16px">
     <div class="mono click" style="font-size:11px;letter-spacing:.06em;color:#7a6b50;border:1px solid #cbb792;padding:10px 14px;border-radius:7px" role="button" tabindex="0" onclick={() => store.jzClear()} onkeydown={(e) => e.key === 'Enter' && store.jzClear()}>CLEAR</div>
+    <!-- Silence is a slot you place, like a chord. It goes on the end and is
+         dragged where it belongs, exactly as a chord chip is. -->
+    <div class="mono click" data-testid="add-rest" title="Place a silent slot — the band drops out for it, the time keeps running" style="font-size:11px;letter-spacing:.06em;color:#7a6b50;border:1px dashed #b3a68f;background:#e6dcc4;padding:10px 14px;border-radius:7px" role="button" tabindex="0" onclick={() => store.addRest()} onkeydown={(e) => e.key === 'Enter' && store.addRest()}>+ REST</div>
     <div style="display:flex;align-items:center;gap:7px">
       <span class="mono" style="font-size:9px;letter-spacing:.1em;color:#8a7350">VOICING</span>
       <div style="display:flex;gap:3px;background:#ece0c6;border:1px solid #cbb792;border-radius:7px;padding:2px">

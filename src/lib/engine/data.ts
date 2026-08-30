@@ -15,6 +15,8 @@ export interface ChordDef {
   sub?: string;
   midis?: number[];
   deg?: string[];
+  /** A silent slot — the band drops out for this bar. `iv` is ignored. */
+  rest?: boolean;
 }
 
 export interface Preset {
@@ -68,6 +70,9 @@ export function genreDefs(): GenreProgs[] {
       { name: 'Dorian Funk i9–IV9', tempo: 100, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
       { name: 'Funk Vamp i7–IV7', tempo: 108, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 5, q: 'dom7', roman: 'IV7', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }] },
       { name: 'P-Funk i7–♭VII9', tempo: 96, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 10, q: 'dom9', roman: '♭VII9', fn: 'S' }, { iv: 0, q: 'min7', roman: 'i7' }] },
+      // Stop time: the band hits the one, drops out for a bar, and comes back
+      // in on the IV. The silence is the arrangement.
+      { name: 'Stop-Time I9 · break bar', tempo: 102, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, rest: true }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }] },
     ] },
     { genre: 'soul', items: [
       { name: 'Soul I–iii–IV–V', tempo: 96, chords: [{ iv: 0, q: 'maj', roman: 'I' }, { iv: 4, q: 'min', roman: 'iii' }, { iv: 5, q: 'maj', roman: 'IV', fn: 'S' }, { iv: 7, q: 'maj', roman: 'V', fn: 'D' }] },
@@ -94,6 +99,9 @@ export function genreDefs(): GenreProgs[] {
       { name: 'Sampled ii–V Loop', tempo: 88, chords: [{ iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 7, q: 'dom13', roman: 'V13', fn: 'D' }, { iv: 2, q: 'min9', roman: 'ii9', fn: 'S' }, { iv: 7, q: 'dom13', roman: 'V13', fn: 'D' }] },
       { name: 'Soul Chop Imaj7–vi7', tempo: 92, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 9, q: 'min7', roman: 'vi7' }, { iv: 9, q: 'min7', roman: 'vi7' }] },
       { name: 'Dusty Minor i7–♭VImaj7–♭VII7', tempo: 86, chords: [{ iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 8, q: 'maj7', roman: '♭VImaj7', fn: 'S' }, { iv: 10, q: 'dom7', roman: '♭VII7', fn: 'D' }] },
+      // The loop with a hole cut in it — the sample drops for a bar and the
+      // drums carry the turnaround alone.
+      { name: 'Cut Loop i9 · dropped bar', tempo: 90, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'min9', roman: 'iv9', fn: 'S' }, { iv: 0, rest: true }, { iv: 0, q: 'min9', roman: 'i9' }] },
     ] },
     { genre: 'trap', items: [
       { name: 'Dark Loop i–♭VI', tempo: 140, chords: [{ iv: 0, q: 'min', roman: 'i' }, { iv: 0, q: 'min', roman: 'i' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }, { iv: 8, q: 'maj', roman: '♭VI', fn: 'S' }] },
@@ -182,6 +190,10 @@ export function genreDefs(): GenreProgs[] {
       { name: 'Circle vi–ii–V–I', tempo: 128, chords: [{ iv: 9, q: 'min7', roman: 'vi7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }] },
       { name: 'Minor ii–V–i', tempo: 118, chords: [{ iv: 2, q: 'm7b5', roman: 'iiø7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'min7', roman: 'i7' }, { iv: 0, q: 'min7', roman: 'i7' }] },
       { name: 'Bossa Nova', tempo: 128, chords: [{ iv: 0, q: 'maj7', roman: 'Imaj7' }, { iv: 2, q: 'min7', roman: 'ii7', fn: 'S' }, { iv: 7, q: 'dom7', roman: 'V7', fn: 'D' }, { iv: 0, q: 'maj7', roman: 'Imaj7' }] },
+      // Set the key to D and this is the smooth Dorian m7 vamp: i9, its bright
+      // IV, back home — and then a bar of nothing. The hole is the phrase: the
+      // ear keeps counting through it and the vamp lands harder when it returns.
+      { name: 'Dorian Vamp i9 · silent bar', tempo: 96, chords: [{ iv: 0, q: 'min9', roman: 'i9' }, { iv: 5, q: 'dom13', roman: 'IV13', fn: 'S' }, { iv: 0, q: 'min9', roman: 'i9' }, { iv: 0, rest: true }] },
     ] },
     { genre: 'souljazz', items: [
       { name: 'Boogaloo I9–IV9', tempo: 106, chords: [{ iv: 0, q: 'dom9', roman: 'I9' }, { iv: 0, q: 'dom9', roman: 'I9' }, { iv: 5, q: 'dom9', roman: 'IV9', fn: 'S' }, { iv: 0, q: 'dom9', roman: 'I9' }] },

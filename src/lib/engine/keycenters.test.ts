@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { analyseChanges, keySpans, familyOf, type AnalysedChord } from './keycenters';
 import { parseChanges } from './symbols';
-import { spell } from './theory';
+import { spell, restChord } from './theory';
 import type { Chord } from './constants';
 
 function changes(line: string): Chord[] {
@@ -129,3 +129,33 @@ describe('edges', () => {
     expect(a[1].fits).toBe(false);
   });
 });
+
+describe('silence', () => {
+  // A rest is not harmony. It takes a slot, but it must not be analysed, must
+  // not break a key centre, and must not push the numerals out of line with the
+  // chords they belong to.
+  const withRest = (line: string, at: number): Chord[] => {
+    const arr = changes(line);
+    arr.splice(at, 0, restChord());
+    return arr;
+  };
+
+  it('analyses the sounding chords only, and says which slot each came from', () => {
+    const a = analyseChanges(withRest('Dm7 G7 Cmaj7', 2));
+    expect(a).toHaveLength(3);
+    expect(a.map((x) => x.i)).toEqual([0, 1, 3]); // the rest sits at slot 2
+  });
+  it('reads the same key centres either side of a silent bar', () => {
+    expect(keysOf('Cm7 F7 BbMaj7')).toEqual(analyseChanges(withRest('Cm7 F7 BbMaj7', 2)).map(keyOf));
+  });
+  it('does not let silence break a run into two centres', () => {
+    const spans = keySpans(analyseChanges(withRest('Dm7 G7 Cmaj7 Cmaj7', 2)));
+    expect(spans).toHaveLength(1);
+    expect(spans[0].start).toBe(0);
+    expect(spans[0].end).toBe(4); // the run reaches the last chord, over the rest
+  });
+  it('returns nothing for a progression that is all silence', () => {
+    expect(analyseChanges([restChord(), restChord()])).toEqual([]);
+  });
+});
+
