@@ -81,6 +81,13 @@ export class MetronomeEngine {
 
 	onBeat: (info: BeatInfo) => void = () => {};
 	onBar: (info: BeatInfo) => void = () => {};
+	/**
+	 * Fired as each beat is *scheduled* — about SCHEDULE_AHEAD_S before it is
+	 * heard — with its exact audio time. For anything that must land on the
+	 * beat sample-accurately (the drone's key changes and groove); `onBeat` is
+	 * for drawing, when the beat is actually heard.
+	 */
+	onSchedule: (info: BeatInfo) => void = () => {};
 
 	get playing(): boolean {
 		return this._playing;
@@ -164,6 +171,7 @@ export class MetronomeEngine {
 		if (!this._playing || !this.ctx || !this.master) return;
 		while (this.nextBeatTime < this.ctx.currentTime + SCHEDULE_AHEAD_S) {
 			const info = this.computeBeat();
+			this.onSchedule(info);
 			if (!info.muted) {
 				const voice = info.accent ? VOICES.accent : VOICES.beat;
 				playClick(this.ctx, this.master, info.time, voice);

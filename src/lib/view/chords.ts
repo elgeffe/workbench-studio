@@ -9,7 +9,7 @@
 // chords of the key, and everything you can do to one you have placed.
 import { INT, FNCOLOR, FNTINT, FNNAME, type Chord, type Fn } from '../engine/constants';
 import { spell, cname, gI, subsFor, colorChordDefs, jzNotes, jFamily, invChord, chordAlias, spellScale, prefFlat, mod12, isRest, REST_NAME } from '../engine/theory';
-import { analyseChanges, keySpans, type AnalysedChord } from '../engine/keycenters';
+import { keySpans, type AnalysedChord } from '../engine/keycenters';
 import { chordScale, roleOf } from '../engine/chordscale';
 import { genreDefs } from '../engine/data';
 import { genreById } from '../engine/genres';
@@ -69,7 +69,7 @@ export function buildChords(s: WorkbenchStore) {
   // Rests are not analysed — silence belongs to no key — so the reading comes
   // back with one entry per sounding chord, each carrying the slot it came
   // from. Everything below looks its chord up by slot rather than by position.
-  const analysis = analyseChanges(s.jzChanges, s.jzSwitchCost);
+  const analysis = s.progressionAnalysis;
   const spans = keySpans(analysis);
   const bySlot = new Map<number, AnalysedChord>(analysis.map((a) => [a.i, a]));
   const keyOf = (a: AnalysedChord) =>

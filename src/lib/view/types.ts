@@ -1,5 +1,5 @@
 // View-model shapes shared by the view builders and the components.
-import type { Chord } from '../engine/constants';
+import type { Chord, ScaleId } from '../engine/constants';
 import type { DiatonicChord } from '../engine/theory';
 import type { Pattern } from '../engine/data';
 
@@ -20,8 +20,14 @@ export interface FretCell { pc: number; showLit: boolean; litOpacity: string; no
 export interface FretRow { label: string; cells: FretCell[] }
 export interface PianoKey { left: string; width: string; note: string; bg: string; fg: string; pc: number }
 
-/** What the instruments should light up right now (chord or pattern driven). */
-export interface LitInfo { root: number; litSet: Set<number>; chordSet: Set<number>; dropSet: Set<number>; activePat: Pattern }
+/**
+ * Notes arriving with the next key — a drone plan's one-bar warning before it
+ * changes key. `key` spells them the way the new key will.
+ */
+export interface IncomingInfo { set: Set<number>; root: number; key: { tonicPc: number; scale: ScaleId } }
+
+/** What the instruments should light up right now (chord, pattern or drone driven). */
+export interface LitInfo { root: number; litSet: Set<number>; chordSet: Set<number>; dropSet: Set<number>; activePat: Pattern; incoming?: IncomingInfo }
 
 /** The standard on/off selector-chip trio used across the app's chip rows. */
 export function selChip(on: boolean, onColor = '#3f6b5f'): { border: string; bg: string; fg: string } {
