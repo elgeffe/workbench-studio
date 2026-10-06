@@ -25,6 +25,8 @@ import {
 } from './engine/drums';
 import { AudioEngine } from './audio';
 import { MetronomeStore } from './metronome/store.svelte';
+import { guideForChord, type DroneGuide } from './metronome/drone/guide';
+import { analyseChanges } from './engine/keycenters';
 import { MidiStore } from './midi/store.svelte';
 import { computeView } from './view';
 import type { Wedge } from './view/types';
@@ -207,8 +209,35 @@ export class WorkbenchStore {
   // ---- practice metronome (its own engine + runes sub-store) ----
   // The click runs on its own AudioContext and keeps ticking when you browse
   // other tabs — practice against it anywhere in the studio.
-  // The drone follows the studio key unless told otherwise.
-  met = new MetronomeStore(() => ({ tonicPc: this.tonicPc, scale: this.scale }));
+  // The drone follows the studio key unless told otherwise — or, set to, the
+  // chord the Chords progression is on.
+  met = new MetronomeStore(
+    () => ({ tonicPc: this.tonicPc, scale: this.scale }),
+    () => this.chordGuide,
+  );
+
+  /**
+   * The progression's current chord as a drone guide: its root, its chord
+   * scale from the key-centre analysis, and its tones as landmarks. The chord
+   * playing, else the one selected; a rest holds the last chord before it, so
+   * the drone rides through the silence instead of jumping home. Null with no
+   * chords at all.
+   */
+  // Only re-read when the changes themselves change, not on every step.
+  progressionAnalysis = $derived(analyseChanges(this.jzChanges, this.jzSwitchCost));
+  chordGuide = $derived.by((): DroneGuide | null => {
+    const chs = this.jzChanges;
+    const n = chs.length;
+    if (!n) return null;
+    const at = this.jzPlaying && this.jzStep >= 0 ? this.jzStep : Math.max(0, this.jzSel);
+    for (let k = 0; k < n; k++) {
+      const i = (((at - k) % n) + n) % n;
+      if (isRest(chs[i])) continue;
+      const a = this.progressionAnalysis.find((x) => x.i === i);
+      return guideForChord(chs[i], a, { tonicPc: this.tonicPc, scale: this.scale });
+    }
+    return null;
+  });
 
   // ---- MIDI out (its own runes sub-store) ----
   // The band, played out to hardware — a teenage engineering EP-133 K.O. II or
@@ -747,6 +776,13 @@ export class WorkbenchStore {
       this.activeChord = ch;
       this.jIdx = i + 1;
       return;
+    }
+    // A drone following the changes moves when this chord sounds, not now:
+    // the slot is scheduled ahead, so hand over how far ahead (the two audio
+    // clocks differ, but a lead time means the same on both).
+    if (this.met.followsChords) {
+      const g = guideForChord(ch, this.progressionAnalysis.find((x) => x.i === i), { tonicPc: this.tonicPc, scale: this.scale });
+      this.met.droneChordAt(g, at - this.audio.now());
     }
     const voiced = jChVoiced(ch, this.jzVoicing);
     this.activeChord = voiced;

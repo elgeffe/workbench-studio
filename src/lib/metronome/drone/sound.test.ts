@@ -12,6 +12,7 @@ import {
 	presetById,
 	resolveSound,
 	samePlanShape,
+	scaleTriad,
 	scalePcs,
 	tonicTriadPcs,
 	voicingOffsets,
@@ -20,26 +21,31 @@ import {
 const rss = (gs: number[]) => Math.sqrt(gs.reduce((a, g) => a + g * g, 0));
 
 describe('voicingOffsets', () => {
-	it('takes the fifth and third from the scale, not a generic major chord', () => {
-		expect(voicingOffsets('root', 'ionian')).toEqual([0]);
-		expect(voicingOffsets('root-fifth', 'ionian')).toEqual([0, 7]);
-		expect(voicingOffsets('root-fifth', 'locrian')).toEqual([0, 6]);
-		expect(voicingOffsets('octaves', 'dorian')).toEqual([0, 12]);
-		expect(voicingOffsets('triad', 'ionian')).toEqual([0, 4, 7]);
-		expect(voicingOffsets('triad', 'aeolian')).toEqual([0, 3, 7]);
+	it('uses the 3rd and 5th it is given — from the scale, not a generic major chord', () => {
+		const at = (v: Parameters<typeof voicingOffsets>[0], sc: Parameters<typeof scaleTriad>[0]) => {
+			const t = scaleTriad(sc);
+			return voicingOffsets(v, t.third, t.fifth);
+		};
+		expect(at('root', 'ionian')).toEqual([0]);
+		expect(at('root-fifth', 'ionian')).toEqual([0, 7]);
+		expect(at('root-fifth', 'locrian')).toEqual([0, 6]);
+		expect(at('octaves', 'dorian')).toEqual([0, 12]);
+		expect(at('triad', 'ionian')).toEqual([0, 4, 7]);
+		expect(at('triad', 'aeolian')).toEqual([0, 3, 7]);
 	});
 });
 
 describe('droneMidis', () => {
-	it('places the tonic in the chosen register', () => {
-		expect(droneMidis(0, 'ionian', 'root', 'low')).toEqual([36]);
-		expect(droneMidis(2, 'dorian', 'root-fifth', 'mid')).toEqual([50, 57]);
-		expect(droneMidis(11, 'ionian', 'octaves', 'high')).toEqual([71, 83]);
+	it('places the root in the chosen register', () => {
+		expect(droneMidis(0, scaleTriad('ionian'), 'root', 'low')).toEqual([36]);
+		expect(droneMidis(2, scaleTriad('dorian'), 'root-fifth', 'mid')).toEqual([50, 57]);
+		expect(droneMidis(11, scaleTriad('ionian'), 'octaves', 'high')).toEqual([71, 83]);
+		expect(droneMidis(7, { third: 5, fifth: 7 }, 'triad', 'mid')).toEqual([55, 60, 62]);
 	});
 
 	it('wraps out-of-range pitch classes', () => {
-		expect(droneMidis(-1, 'ionian', 'root', 'mid')).toEqual([59]);
-		expect(droneMidis(13, 'ionian', 'root', 'mid')).toEqual([49]);
+		expect(droneMidis(-1, scaleTriad('ionian'), 'root', 'mid')).toEqual([59]);
+		expect(droneMidis(13, scaleTriad('ionian'), 'root', 'mid')).toEqual([49]);
 	});
 });
 

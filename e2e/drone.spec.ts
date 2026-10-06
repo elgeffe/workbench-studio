@@ -65,7 +65,7 @@ test.describe('metronome drone', () => {
     await page.getByTestId('metronome-drone-toggle').click();
     await expect(page.getByText('C Major · drone')).toBeVisible();
 
-    await drone.getByRole('button', { name: 'Toggle drone follows studio key' }).click();
+    await drone.getByRole('tab', { name: 'Own key' }).click();
     await drone.getByLabel('Key', { exact: true }).selectOption({ label: 'D' });
     await drone.getByLabel('Scale', { exact: true }).selectOption({ label: 'Dorian' });
 

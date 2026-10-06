@@ -346,33 +346,39 @@ export type DroneRegister = 'low' | 'mid' | 'high';
 export const REGISTER_C: Record<DroneRegister, number> = { low: 36, mid: 48, high: 60 };
 
 /**
- * Semitones above the tonic that the drone sounds. The fifth and third come
- * from the scale itself, so a Locrian drone sounds its ♭5 and a minor triad
- * drone its ♭3 — the drone is the mode's colour, not a generic major chord.
+ * Semitones above the root that the drone sounds, given the 3rd and 5th it
+ * should use. Those come from the scale or the chord being played over, so a
+ * Locrian drone sounds its ♭5 and a minor triad drone its ♭3 — the drone is
+ * the music's colour, not a generic major chord.
  */
-export function voicingOffsets(voicing: DroneVoicing, scale: ScaleId): number[] {
-	const int = SCALES[scale].int;
+export function voicingOffsets(voicing: DroneVoicing, third: number, fifth: number): number[] {
 	switch (voicing) {
 		case 'root':
 			return [0];
 		case 'root-fifth':
-			return [0, int[4]];
+			return [0, fifth];
 		case 'octaves':
 			return [0, 12];
 		case 'triad':
-			return [0, int[2], int[4]];
+			return [0, third, fifth];
 	}
 }
 
-/** MIDI notes the drone sounds for a key, voicing and register. */
+/** The 3rd and 5th of a scale, as the drone's voicing reads them. */
+export function scaleTriad(scale: ScaleId): { third: number; fifth: number } {
+	const int = SCALES[scale].int;
+	return { third: int[2], fifth: int[4] };
+}
+
+/** MIDI notes the drone sounds for a root, its 3rd and 5th, voicing and register. */
 export function droneMidis(
-	tonicPc: number,
-	scale: ScaleId,
+	rootPc: number,
+	triad: { third: number; fifth: number },
 	voicing: DroneVoicing,
 	register: DroneRegister,
 ): number[] {
-	const root = REGISTER_C[register] + (((tonicPc % 12) + 12) % 12);
-	return voicingOffsets(voicing, scale).map((o) => root + o);
+	const root = REGISTER_C[register] + (((rootPc % 12) + 12) % 12);
+	return voicingOffsets(voicing, triad.third, triad.fifth).map((o) => root + o);
 }
 
 export function midiToHz(m: number): number {

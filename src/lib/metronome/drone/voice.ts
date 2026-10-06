@@ -165,6 +165,8 @@ export class DroneVoice {
 	setPitchAt(midis: number[], time: number): void {
 		const g = this.graph;
 		if (!g || sameMidis(this.pitchAt(time), midis)) return;
+		// a later change already queued would now be out of order — drop it
+		this.pitches = this.pitches.filter((e) => e.time <= time);
 		const plan = planOscillators(g.sound, midis);
 		if (!samePlanShape(g.plan, plan)) return;
 		const glide = Math.max(0.005, g.sound.glide / 3);
@@ -192,9 +194,10 @@ export class DroneVoice {
 
 		const t = this.ctx.currentTime;
 		const glide = Math.max(0.005, sound.glide / 3);
-		// Only glide when the key really moved — a plan's change was already
-		// scheduled on its downbeat and is heard here a moment later.
-		const moved = !sameMidis(this.pitchAt(t), p.midis);
+		// Only glide when the key really moved — a plan's or a chord's change
+		// may already be queued for its exact moment, and is only being heard
+		// about here; the last pitch queued is what the drone is heading for.
+		const moved = !sameMidis(this.pitches.at(-1)?.midis ?? [], p.midis);
 		plan.forEach((o, i) => {
 			if (moved) g.oscs[i].frequency.setTargetAtTime(o.freq, t, glide);
 			g.oscs[i].detune.setTargetAtTime(o.detune, t, 0.05);
