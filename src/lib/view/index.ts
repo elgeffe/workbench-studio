@@ -11,6 +11,7 @@ import {
   spellChordTones, prefFlat, isRest,
 } from '../engine/theory';
 import { patternDefs, PAT_GROUPS } from '../engine/data';
+import { scalePcs, tonicTriadPcs } from '../metronome/drone/sound';
 import type { WorkbenchStore, Mode, Part } from '../store.svelte';
 import type { DiatonicView, LitInfo } from './types';
 import { buildCircle } from './circle';
@@ -26,6 +27,19 @@ import { buildEar, buildReading } from './practice';
 function litInfo(s: WorkbenchStore): LitInfo {
   const t = s.tonicPc;
   const activePat = patternDefs().find((p) => p.id === s.patId) || patternDefs()[0];
+  // A sounding drone is what you're playing over right now, so its scale wins:
+  // every scale tone lit, the tonic triad picked out as the landmarks, and the
+  // tonic itself as the root.
+  const guide = s.met.guide;
+  if (guide) {
+    return {
+      root: guide.tonicPc,
+      litSet: new Set(scalePcs(guide.tonicPc, guide.scale)),
+      chordSet: new Set(tonicTriadPcs(guide.tonicPc, guide.scale)),
+      dropSet: new Set<number>(),
+      activePat,
+    };
+  }
   // Only the pattern-library groups drive scale lighting; the Chord Shapes
   // and fret-diagram tabs are chord/diagram-driven, so they fall through to
   // the active-chord lighting below.
@@ -90,7 +104,9 @@ export function computeView(s: WorkbenchStore) {
   const acName = !ac ? '' : acRest ? ac.name || '' : ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale);
 
   const patterns = buildPatterns(s, lit.activePat);
-  const inst = buildInstruments(s, lit);
+  // While the drone sounds, the instruments read in its key — spelled its way.
+  const guide = s.met.guide;
+  const inst = buildInstruments(s, lit, guide ?? { tonicPc: t, scale: s.scale });
 
   const sigPc = s.circleView === 'min' ? (t + 3) % 12 : t;
   const scaleChip = (id: ScaleId) => ({ id, name: SCALES[id].short, bg: s.scale === id ? '#3f6b5f' : '#f1e6cf', fg: s.scale === id ? '#fff' : '#5c4a30', border: s.scale === id ? '#3f6b5f' : '#d8c7a8' });
@@ -197,8 +213,8 @@ export function computeView(s: WorkbenchStore) {
     ...buildReading(s),
     // dock / instruments
     dockExpanded: s.dockOpen, dockChevron: s.dockOpen ? '▼ HIDE' : '▲ SHOW',
-    dockName: s.patternsOpen && patterns.patLibTab ? spell(t, t, s.scale) + ' ' + lit.activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '—',
-    dockNotes: s.patternsOpen && patterns.patLibTab ? patterns.patNotes + '   ·   over ' + patterns.view.patChordName : ac ? gPcs(ac).map((p) => spell(p, t, s.scale)).join('  ·  ') : 'pick a chord to see it on the fretboards',
+    dockName: guide ? keyNameStr(guide.tonicPc, guide.scale) + ' · drone' : s.patternsOpen && patterns.patLibTab ? spell(t, t, s.scale) + ' ' + lit.activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '—',
+    dockNotes: guide ? scaleNotesStr(guide.tonicPc, guide.scale) : s.patternsOpen && patterns.patLibTab ? patterns.patNotes + '   ·   over ' + patterns.view.patChordName : ac ? gPcs(ac).map((p) => spell(p, t, s.scale)).join('  ·  ') : 'pick a chord to see it on the fretboards',
     ...inst,
     // The six tabs, in the order the studio is meant to be used: explore the
     // key, lay a beat, write the changes, put a line under them, practise,

@@ -5,9 +5,15 @@
 // it was right.
 import { spell } from '../engine/theory';
 import type { WorkbenchStore } from '../store.svelte';
+import type { DroneKey } from '../metronome/store.svelte';
 import type { FretCell, FretRow, PianoKey, LitInfo } from './types';
 
-export function buildInstruments(s: WorkbenchStore, { root, litSet, chordSet, dropSet }: LitInfo) {
+/** `key` spells the note names — the studio key, or a sounding drone's. */
+export function buildInstruments(
+  s: WorkbenchStore,
+  { root, litSet, chordSet, dropSet }: LitInfo,
+  key: DroneKey = { tonicPc: s.tonicPc, scale: s.scale },
+) {
   const ac = s.activeChord;
   const frets = 13;
   const cell = (open: number, f: number): FretCell => {
@@ -20,7 +26,7 @@ export function buildInstruments(s: WorkbenchStore, { root, litSet, chordSet, dr
     if (pc === root) { bg = '#c2562e'; glow = '0 0 0 2px rgba(194,86,46,.3)'; }
     else if (isDrop) { bg = '#b3a68f'; }
     else if (!chordSet.has(pc)) { bg = '#97a59c'; }
-    return { pc, showLit: isLit || isDrop, litOpacity: isDrop ? '0.4' : '1', note: spell(pc, s.tonicPc, s.scale), bg, glow };
+    return { pc, showLit: isLit || isDrop, litOpacity: isDrop ? '0.4' : '1', note: spell(pc, key.tonicPc, key.scale), bg, glow };
   };
   const buildFret = (opens: number[], labels: string[]): FretRow[] =>
     opens.map((o, si) => ({ label: labels[si], cells: Array.from({ length: frets }, (_, f) => cell(o, f)) }));
@@ -43,7 +49,7 @@ export function buildInstruments(s: WorkbenchStore, { root, litSet, chordSet, dr
     if (k.white) {
       pianoWhite.push({
         left: (wIdx * wp).toFixed(3), width: wp.toFixed(3), pc: k.pc,
-        note: isLit || isDrop ? spell(k.pc, s.tonicPc, s.scale) : '',
+        note: isLit || isDrop ? spell(k.pc, key.tonicPc, key.scale) : '',
         bg: isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#e0d4bc' : '#f4ecdb',
         fg: isLit ? '#fff' : isDrop ? '#a2957a' : '#b9a988',
       });
@@ -51,7 +57,7 @@ export function buildInstruments(s: WorkbenchStore, { root, litSet, chordSet, dr
     } else {
       pianoBlack.push({
         left: (wIdx * wp - wp * 0.31).toFixed(3), width: (wp * 0.62).toFixed(3), pc: k.pc,
-        note: isLit || isDrop ? spell(k.pc, s.tonicPc, s.scale) : '',
+        note: isLit || isDrop ? spell(k.pc, key.tonicPc, key.scale) : '',
         bg: isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#5a4c39' : '#241a10',
         fg: isLit ? '#fff' : isDrop ? '#9a8a6d' : '#7a6a4e',
       });

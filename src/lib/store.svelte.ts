@@ -207,7 +207,8 @@ export class WorkbenchStore {
   // ---- practice metronome (its own engine + runes sub-store) ----
   // The click runs on its own AudioContext and keeps ticking when you browse
   // other tabs — practice against it anywhere in the studio.
-  met = new MetronomeStore();
+  // The drone follows the studio key unless told otherwise.
+  met = new MetronomeStore(() => ({ tonicPc: this.tonicPc, scale: this.scale }));
 
   // ---- MIDI out (its own runes sub-store) ----
   // The band, played out to hardware — a teenage engineering EP-133 K.O. II or

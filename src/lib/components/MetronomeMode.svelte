@@ -3,6 +3,9 @@
   import { formatDuration } from '../metronome/timing';
   import type { GoalType, PracticeSession } from '../metronome/types';
   import type { AutomationMode } from '../metronome/store.svelte';
+  import { DRONE_PRESETS, VOICINGS, presetById, type DroneMacros, type DroneRegister } from '../metronome/drone/sound';
+  import { SCALES, type ScaleId } from '../engine/constants';
+  import { scaleNotesStr, spell } from '../engine/theory';
 
   const store = useStore();
   const met = store.met;
@@ -29,6 +32,23 @@
     { v: 3, label: 'Triplets' },
     { v: 4, label: '16ths' },
   ];
+
+  const registers: { id: DroneRegister; label: string }[] = [
+    { id: 'low', label: 'Low' },
+    { id: 'mid', label: 'Mid' },
+    { id: 'high', label: 'High' },
+  ];
+  const macroSliders: { id: keyof DroneMacros; label: string; hint: string }[] = [
+    { id: 'brightness', label: 'Brightness', hint: 'filter' },
+    { id: 'width', label: 'Width', hint: 'detune & stereo' },
+    { id: 'motion', label: 'Motion', hint: 'movement' },
+    { id: 'space', label: 'Space', hint: 'reverb & echo' },
+    { id: 'drive', label: 'Drive', hint: 'saturation' },
+  ];
+  const scaleIds = Object.keys(SCALES) as ScaleId[];
+  const pcs = Array.from({ length: 12 }, (_, i) => i);
+  const droneKey = $derived(met.droneKey);
+  const preset = $derived(presetById(met.dronePreset));
 
   function setGoal(type: GoalType) {
     met.goalType = type;
@@ -98,6 +118,9 @@
     </div>
     {#if showLive}
       <div class="live mono">playing <strong>{met.liveBpm}</strong></div>
+    {/if}
+    {#if met.droneSounding}
+      <div class="live mono" data-testid="metronome-drone-now">drone <strong>{met.droneKeyName}</strong></div>
     {/if}
 
     <div
@@ -411,6 +434,143 @@
     </div>
 
     <div class="col">
+      <!-- ---- drone ---- -->
+      <section class="card" data-testid="metronome-drone">
+        <div class="card-title">
+          <span>Drone</span>
+          {#if met.droneSounding}<span class="badge good">● {met.droneKeyName}</span>{/if}
+        </div>
+
+        <p class="hint caption" style="margin-top:0">
+          A held note to play your scales against. While it sounds, the fretboards and piano
+          show its scale.
+        </p>
+
+        <button
+          type="button"
+          class="wide-btn"
+          class:primary={met.droneSounding}
+          data-testid="metronome-drone-toggle"
+          onclick={() => met.toggleDrone()}
+        >
+          {met.droneSounding ? '■ Stop drone' : '▶ Play drone'}
+        </button>
+
+        <div class="row spread gap-top">
+          <div>
+            <div style="font-weight:700">Play with metronome</div>
+            <div class="caption" style="font-size:11px">Starts and stops with the click.</div>
+          </div>
+          <button
+            type="button"
+            class="switch"
+            class:on={met.droneWithClick}
+            aria-pressed={met.droneWithClick}
+            aria-label="Toggle drone with metronome"
+            onclick={() => met.setDroneWithClick(!met.droneWithClick)}
+          ></button>
+        </div>
+
+        <!-- key -->
+        <div class="row spread gap-top">
+          <div>
+            <div style="font-weight:700">Follow studio key</div>
+            <div class="caption" style="font-size:11px">
+              {met.droneLinkKey ? 'Change it from the key button or the Circle.' : 'The drone keeps its own key.'}
+            </div>
+          </div>
+          <button
+            type="button"
+            class="switch"
+            class:on={met.droneLinkKey}
+            aria-pressed={met.droneLinkKey}
+            aria-label="Toggle drone follows studio key"
+            onclick={() => {
+              if (met.droneLinkKey) {
+                // start the drone's own key where the studio is, so unlinking is silent
+                met.droneTonicPc = droneKey.tonicPc;
+                met.droneScale = droneKey.scale;
+              }
+              met.droneLinkKey = !met.droneLinkKey;
+            }}
+          ></button>
+        </div>
+        {#if !met.droneLinkKey}
+          <div class="fields">
+            <div class="field">
+              <label for="mt-dr-key">Key</label>
+              <select id="mt-dr-key" bind:value={met.droneTonicPc}>
+                {#each pcs as pc (pc)}
+                  <option value={pc}>{spell(pc, pc, met.droneScale)}</option>
+                {/each}
+              </select>
+            </div>
+            <div class="field">
+              <label for="mt-dr-scale">Scale</label>
+              <select id="mt-dr-scale" bind:value={met.droneScale}>
+                {#each scaleIds as id (id)}
+                  <option value={id}>{SCALES[id].short}</option>
+                {/each}
+              </select>
+            </div>
+          </div>
+        {/if}
+        <div class="key-now mono" data-testid="metronome-drone-key">
+          <strong>{met.droneKeyName}</strong> · {scaleNotesStr(droneKey.tonicPc, droneKey.scale)}
+        </div>
+
+        <!-- pitch -->
+        <div class="field">
+          <span class="lbl">Notes</span>
+          <div class="seg" role="tablist" aria-label="Drone voicing">
+            {#each VOICINGS as v (v.id)}
+              <button type="button" role="tab" aria-selected={met.droneVoicing === v.id} class:on={met.droneVoicing === v.id} onclick={() => (met.droneVoicing = v.id)}>{v.label}</button>
+            {/each}
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl">Register</span>
+          <div class="seg" role="tablist" aria-label="Drone register">
+            {#each registers as r (r.id)}
+              <button type="button" role="tab" aria-selected={met.droneRegister === r.id} class:on={met.droneRegister === r.id} onclick={() => (met.droneRegister = r.id)}>{r.label}</button>
+            {/each}
+          </div>
+        </div>
+
+        <!-- sound -->
+        <div class="field">
+          <span class="lbl">Sound</span>
+          <div class="seg presets" role="tablist" aria-label="Drone sound">
+            {#each DRONE_PRESETS as p (p.id)}
+              <button type="button" role="tab" aria-selected={met.dronePreset === p.id} class:on={met.dronePreset === p.id} onclick={() => (met.dronePreset = p.id)}>{p.name}</button>
+            {/each}
+          </div>
+          <div class="caption" style="font-size:11px">{preset.blurb}</div>
+        </div>
+
+        <details class="customize">
+          <summary class="mono">
+            Customize{#if met.droneTweaked}<span class="badge" style="margin-left:8px">tweaked</span>{/if}
+          </summary>
+          <div class="fields">
+            {#each macroSliders as m (m.id)}
+              <div class="field">
+                <label for="mt-dr-{m.id}">{m.label} — {Math.round(met.droneMacros[m.id] * 100)}</label>
+                <input id="mt-dr-{m.id}" class="slider" type="range" min="0" max="1" step="0.01" bind:value={met.droneMacros[m.id]} title={m.hint} />
+              </div>
+            {/each}
+            <div class="field" style="justify-content:flex-end">
+              <button type="button" class="chip" disabled={!met.droneTweaked} onclick={() => met.resetDroneMacros()}>Reset to preset</button>
+            </div>
+          </div>
+        </details>
+
+        <div class="field">
+          <label for="mt-dr-vol">Drone volume — {Math.round(met.droneVolume * 100)}%</label>
+          <input id="mt-dr-vol" class="slider" type="range" min="0" max="1" step="0.01" bind:value={met.droneVolume} />
+        </div>
+      </section>
+
       <!-- ---- reactive tempo (mic) ---- -->
       <section class="card" data-testid="metronome-mic">
         <div class="card-title">
@@ -685,6 +845,15 @@
   .conf { flex: 1; max-width: 160px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
   .conf-bar { width: 100%; height: 6px; border-radius: 999px; background: var(--parch2); border: 1px solid var(--line2); overflow: hidden; }
   .conf-bar > div { height: 100%; background: var(--tonic); transition: width 0.2s ease; }
+
+  /* ---- drone ---- */
+  .seg.presets button { flex: 1 0 auto; padding: 8px 10px; }
+  .key-now { margin-top: 12px; font-size: 11px; color: #5c4a30; letter-spacing: 0.02em; }
+  .customize { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .customize summary {
+    cursor: pointer; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #8a7350;
+    display: flex; align-items: center;
+  }
 
   /* ---- history ---- */
   .chip.danger { color: var(--accent-dark); border-color: rgba(154, 63, 31, 0.4); }

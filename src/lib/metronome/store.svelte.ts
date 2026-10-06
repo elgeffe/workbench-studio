@@ -5,7 +5,7 @@
 // the WorkbenchStore (`store.met`) behind the Metronome tab.
 
 import { MetronomeEngine, type BeatInfo, type MetronomeHooks } from './engine';
-import { resumeAudio } from './context';
+import { getAudioContext, resumeAudio } from './context';
 import { bpmFromTapIntervalMs, clampBpm, formatDuration } from './timing';
 import {
   gapMute,
@@ -18,6 +18,23 @@ import {
 import { MicTempoDetector } from './micTempo';
 import { addSession, aggregate, clearSessions, deleteSession, loadSessions } from './history';
 import type { GoalType, PracticeGoal, PracticeSession } from './types';
+import { DroneVoice, type DroneParams } from './drone/voice';
+import {
+  droneMidis,
+  NEUTRAL_MACROS,
+  type DroneMacros,
+  type DronePresetId,
+  type DroneRegister,
+  type DroneVoicing,
+} from './drone/sound';
+import { keyNameStr } from '../engine/theory';
+import type { ScaleId } from '../engine/constants';
+
+/** A key as the drone and the instruments read it. */
+export interface DroneKey {
+  tonicPc: number;
+  scale: ScaleId;
+}
 
 export type AutomationMode = 'off' | 'step' | 'ramp-time' | 'ramp-bars';
 
@@ -26,6 +43,9 @@ function uid(): string {
 }
 
 export class MetronomeStore {
+  /** @param studioKey the studio's key, which the drone follows by default */
+  constructor(private studioKey: () => DroneKey = () => ({ tonicPc: 0, scale: 'ionian' })) {}
+
   // ---- transport / config ----
   bpm = $state(120);
   beatsPerBar = $state(4);
@@ -81,11 +101,26 @@ export class MetronomeStore {
   // ---- history ----
   sessions = $state<PracticeSession[]>([]);
 
+  // ---- drone ----
+  droneWithClick = $state(false); // start/stop along with the metronome
+  droneLinkKey = $state(true); // follow the studio key
+  droneTonicPc = $state(0); // own key, when unlinked
+  droneScale = $state<ScaleId>('ionian');
+  droneVoicing = $state<DroneVoicing>('root-fifth');
+  droneRegister = $state<DroneRegister>('mid');
+  dronePreset = $state<DronePresetId>('warm');
+  droneMacros = $state<DroneMacros>({ ...NEUTRAL_MACROS });
+  droneVolume = $state(0.6);
+  droneSounding = $state(false);
+
   // ---- non-reactive internals ----
   private engine: MetronomeEngine | null = null;
   private mic: MicTempoDetector | null = null;
   private clockRaf: number | null = null;
   private taps: number[] = [];
+  private drone: DroneVoice | null = null;
+  /** the click started the drone, so the click's stop ends it too */
+  private droneOwnedByClick = false;
   private initialised = false;
   private cleanup: (() => void) | null = null;
 
@@ -111,11 +146,21 @@ export class MetronomeStore {
       $effect(() => {
         this.pushConfig();
       });
+      // Key, voicing, preset and sliders reach a sounding drone live.
+      $effect(() => {
+        const params = this.droneParams();
+        if (this.droneSounding) this.drone?.update(params);
+      });
+      // The echo stays on the beat as the tempo moves, ramps included.
+      $effect(() => {
+        this.drone?.setTempo(this.isPlaying ? this.liveBpm : this.bpm);
+      });
     });
   }
 
   destroy(): void {
     this.stop({ save: false });
+    this.stopDrone();
     this.stopMic();
     this.cleanup?.();
     this.cleanup = null;
@@ -220,6 +265,10 @@ export class MetronomeStore {
     await this.engine.start();
     this.isPlaying = true;
     this.runClock();
+    if (this.droneWithClick && !this.droneSounding) {
+      await this.startDrone();
+      this.droneOwnedByClick = true;
+    }
   }
 
   stop(opts: { save?: boolean; goalReached?: boolean } = {}): void {
@@ -235,6 +284,7 @@ export class MetronomeStore {
     if (wasPlaying && (opts.save ?? true) && this.sessionSeconds >= 1) {
       this.recordSession(opts.goalReached ?? false);
     }
+    if (this.droneOwnedByClick) this.stopDrone();
   }
 
   toggle(): void {
@@ -279,6 +329,85 @@ export class MetronomeStore {
       const bpm = bpmFromTapIntervalMs(sum / (this.taps.length - 1));
       if (bpm >= 20 && bpm <= 400) this.setBpm(bpm);
     }
+  }
+
+  // ----- drone -----
+
+  /** The key the drone sounds: the studio's, or its own when unlinked. */
+  get droneKey(): DroneKey {
+    return this.droneLinkKey
+      ? this.studioKey()
+      : { tonicPc: this.droneTonicPc, scale: this.droneScale };
+  }
+
+  /** What the instruments should light while the drone sounds, else null. */
+  get guide(): DroneKey | null {
+    return this.droneSounding ? this.droneKey : null;
+  }
+
+  get droneKeyName(): string {
+    const k = this.droneKey;
+    return keyNameStr(k.tonicPc, k.scale);
+  }
+
+  private droneParams(): DroneParams {
+    const k = this.droneKey;
+    return {
+      presetId: this.dronePreset,
+      // read each slider so the effect tracks them individually
+      macros: {
+        brightness: this.droneMacros.brightness,
+        width: this.droneMacros.width,
+        motion: this.droneMacros.motion,
+        space: this.droneMacros.space,
+        drive: this.droneMacros.drive,
+      },
+      midis: droneMidis(k.tonicPc, k.scale, this.droneVoicing, this.droneRegister),
+      volume: this.droneVolume,
+    };
+  }
+
+  async startDrone(): Promise<void> {
+    if (this.droneSounding) return;
+    this.init(); // the live-update effects live in init()
+    await resumeAudio();
+    this.drone ??= new DroneVoice(getAudioContext());
+    this.drone.setTempo(this.isPlaying ? this.liveBpm : this.bpm);
+    this.drone.start(this.droneParams());
+    this.droneSounding = true;
+    this.droneOwnedByClick = false;
+  }
+
+  stopDrone(): void {
+    this.drone?.stop();
+    this.droneSounding = false;
+    this.droneOwnedByClick = false;
+  }
+
+  toggleDrone(): void {
+    if (this.droneSounding) this.stopDrone();
+    else void this.startDrone();
+  }
+
+  /** Flip "play with the metronome"; a running click picks it up straight away. */
+  setDroneWithClick(on: boolean): void {
+    this.droneWithClick = on;
+    if (on && this.isPlaying && !this.droneSounding) {
+      void this.startDrone().then(() => (this.droneOwnedByClick = true));
+    } else if (!on && this.droneOwnedByClick) {
+      this.stopDrone();
+    }
+  }
+
+  resetDroneMacros(): void {
+    this.droneMacros = { ...NEUTRAL_MACROS };
+  }
+
+  get droneTweaked(): boolean {
+    const m = this.droneMacros;
+    return (Object.keys(NEUTRAL_MACROS) as (keyof DroneMacros)[]).some(
+      (k) => Math.abs(m[k] - NEUTRAL_MACROS[k]) > 0.001,
+    );
   }
 
   // ----- microphone -----
@@ -415,6 +544,7 @@ export class MetronomeStore {
     }
     if (this.gapEnabled) parts.push('gap-click');
     if (this.micActive && this.micFollow) parts.push('mic-follow');
+    if (this.droneSounding) parts.push(`drone ${this.droneKeyName}`);
     return parts.join(' · ');
   }
 
