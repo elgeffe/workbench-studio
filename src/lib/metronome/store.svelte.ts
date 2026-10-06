@@ -6,7 +6,7 @@
 
 import { MetronomeEngine, type BeatInfo, type MetronomeHooks } from './engine';
 import { getAudioContext, resumeAudio } from './context';
-import { bpmFromTapIntervalMs, clampBpm, formatDuration } from './timing';
+import { bpmFromTapIntervalMs, clampBpm, formatDuration, secondsPerBeat } from './timing';
 import {
   gapMute,
   rampTempoByBars,
@@ -27,6 +27,16 @@ import {
   type DroneRegister,
   type DroneVoicing,
 } from './drone/sound';
+import {
+  defaultPlan,
+  nextSection,
+  planAt,
+  planBpmAt,
+  planTempo,
+  planUpcoming,
+  sameKey,
+  type DronePlan,
+} from './drone/plan';
 import { keyNameStr } from '../engine/theory';
 import type { ScaleId } from '../engine/constants';
 
@@ -36,7 +46,7 @@ export interface DroneKey {
   scale: ScaleId;
 }
 
-export type AutomationMode = 'off' | 'step' | 'ramp-time' | 'ramp-bars';
+export type AutomationMode = 'off' | 'step' | 'ramp-time' | 'ramp-bars' | 'plan';
 
 function uid(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -113,6 +123,16 @@ export class MetronomeStore {
   droneVolume = $state(0.6);
   droneSounding = $state(false);
 
+  // ---- practice plan (tempo automation mode 'plan') ----
+  plan = $state<DronePlan>(defaultPlan());
+  /** where the plan is, as heard — updated on each downbeat */
+  planPos = $state<{ index: number; barInSection: number; loop: number } | null>(null);
+  /** the plan's key right now; only reassigned when it actually changes */
+  planKey = $state<DroneKey | null>(null);
+  /** the next key change and how many bars away it is */
+  planNext = $state<{ key: DroneKey; inBars: number } | null>(null);
+  planFinished = $state(false);
+
   // ---- non-reactive internals ----
   private engine: MetronomeEngine | null = null;
   private mic: MicTempoDetector | null = null;
@@ -121,6 +141,8 @@ export class MetronomeStore {
   private drone: DroneVoice | null = null;
   /** the click started the drone, so the click's stop ends it too */
   private droneOwnedByClick = false;
+  /** plain copy of the plan for the audio scheduler, refreshed with the config */
+  private planSnap: DronePlan = defaultPlan();
   private initialised = false;
   private cleanup: (() => void) | null = null;
 
@@ -138,6 +160,7 @@ export class MetronomeStore {
     this.engine = new MetronomeEngine();
     this.engine.onBeat = (info) => this.handleBeat(info);
     this.engine.onBar = (info) => this.handleBar(info);
+    this.engine.onSchedule = (info) => this.handleSchedule(info);
 
     // Reactively push config + automation hooks into the engine whenever any
     // relevant setting changes. Reading the fields inside pushConfig() makes
@@ -199,6 +222,9 @@ export class MetronomeStore {
             bars: this.rampBars,
           });
           break;
+        case 'plan':
+          hooks.tempo = planTempo(this.planSnap);
+          break;
       }
     }
 
@@ -216,6 +242,8 @@ export class MetronomeStore {
 
   private pushConfig(): void {
     if (!this.engine) return;
+    // reading the whole plan here also makes the effect track every edit to it
+    this.planSnap = $state.snapshot(this.plan) as DronePlan;
     this.engine.setConfig({
       bpm: this.bpm,
       beatsPerBar: this.beatsPerBar,
@@ -241,7 +269,44 @@ export class MetronomeStore {
     this.sessionBars = info.bar;
     if (this.goalType === 'bars' && info.bar >= this.goalBars && this.isPlaying) {
       this.finishByGoal();
+      return;
     }
+    this.followPlan(info.bar);
+  }
+
+  /** Move the plan's readout (and so the instruments) to the bar now heard. */
+  private followPlan(bar: number): void {
+    const p = this.automationMode === 'plan' ? planAt(bar, this.planSnap) : null;
+    if (!p) {
+      this.planPos = null;
+      this.planKey = null;
+      this.planNext = null;
+      return;
+    }
+    if (p.done) {
+      // a once-through plan has run out: stop like a reached goal
+      this.stop({ save: true });
+      this.planFinished = true;
+      return;
+    }
+    this.planPos = { index: p.index, barInSection: p.barInSection, loop: p.loop };
+    if (!sameKey(this.planKey, p.key)) this.planKey = p.key;
+    this.planNext = planUpcoming(bar, this.planSnap);
+  }
+
+  /**
+   * Each beat as the engine schedules it, ahead of time. Key changes and the
+   * drone's groove go onto the audio clock here, so they land exactly on the
+   * click — the readouts follow when the beat is heard, in handleBar.
+   */
+  private handleSchedule(info: BeatInfo): void {
+    const drone = this.drone;
+    if (!drone || !this.droneSounding) return;
+    if (this.automationMode === 'plan' && info.beatInBar === 0) {
+      const p = planAt(info.bar, this.planSnap);
+      if (p && !p.done) drone.setPitchAt(this.midisFor(p.key), info.time);
+    }
+    drone.beat(info.time, secondsPerBeat(info.bpm), info.beatInBar);
   }
 
   // ----- transport -----
@@ -262,13 +327,18 @@ export class MetronomeStore {
     this.sessionMaxBpm = 0;
 
     this.pushConfig();
+    this.planFinished = false;
+    this.followPlan(0);
+    // The drone starts first, in the plan's opening key, so the click's very
+    // first beats already drive its groove.
+    if (this.droneWithClick && !this.droneSounding) {
+      await this.startDrone(true);
+      this.droneOwnedByClick = true;
+    }
+    this.drone?.setExternalClock(true);
     await this.engine.start();
     this.isPlaying = true;
     this.runClock();
-    if (this.droneWithClick && !this.droneSounding) {
-      await this.startDrone();
-      this.droneOwnedByClick = true;
-    }
   }
 
   stop(opts: { save?: boolean; goalReached?: boolean } = {}): void {
@@ -284,7 +354,14 @@ export class MetronomeStore {
     if (wasPlaying && (opts.save ?? true) && this.sessionSeconds >= 1) {
       this.recordSession(opts.goalReached ?? false);
     }
+    // a drone that outlives the click keeps its groove on its own clock;
+    // one the click started goes with it (stopped first, so its own clock
+    // never gets a beat in)
     if (this.droneOwnedByClick) this.stopDrone();
+    this.drone?.setExternalClock(false);
+    this.planPos = null;
+    this.planKey = null;
+    this.planNext = null;
   }
 
   toggle(): void {
@@ -333,8 +410,14 @@ export class MetronomeStore {
 
   // ----- drone -----
 
-  /** The key the drone sounds: the studio's, or its own when unlinked. */
+  /** A plan is running and steering the key. */
+  get planActive(): boolean {
+    return this.automationMode === 'plan' && this.planKey != null;
+  }
+
+  /** The key the drone sounds: the running plan's, the studio's, or its own. */
   get droneKey(): DroneKey {
+    if (this.automationMode === 'plan' && this.planKey) return this.planKey;
     return this.droneLinkKey
       ? this.studioKey()
       : { tonicPc: this.droneTonicPc, scale: this.droneScale };
@@ -343,6 +426,16 @@ export class MetronomeStore {
   /** What the instruments should light while the drone sounds, else null. */
   get guide(): DroneKey | null {
     return this.droneSounding ? this.droneKey : null;
+  }
+
+  /** The key coming next bar, during the last bar before a plan changes key. */
+  get guideNext(): DroneKey | null {
+    if (!this.guide || !this.planActive || this.planNext?.inBars !== 1) return null;
+    return this.planNext.key;
+  }
+
+  private midisFor(k: DroneKey): number[] {
+    return droneMidis(k.tonicPc, k.scale, this.droneVoicing, this.droneRegister);
   }
 
   get droneKeyName(): string {
@@ -361,18 +454,22 @@ export class MetronomeStore {
         motion: this.droneMacros.motion,
         space: this.droneMacros.space,
         drive: this.droneMacros.drive,
+        groove: this.droneMacros.groove,
       },
-      midis: droneMidis(k.tonicPc, k.scale, this.droneVoicing, this.droneRegister),
+      midis: this.midisFor(k),
       volume: this.droneVolume,
     };
   }
 
-  async startDrone(): Promise<void> {
+  /** @param forClick the click is about to start and will drive the drone's beat */
+  async startDrone(forClick = false): Promise<void> {
     if (this.droneSounding) return;
     this.init(); // the live-update effects live in init()
     await resumeAudio();
     this.drone ??= new DroneVoice(getAudioContext());
     this.drone.setTempo(this.isPlaying ? this.liveBpm : this.bpm);
+    // decided before start(), or its own clock would get a beat in first
+    this.drone.setExternalClock(forClick || this.isPlaying);
     this.drone.start(this.droneParams());
     this.droneSounding = true;
     this.droneOwnedByClick = false;
@@ -397,6 +494,29 @@ export class MetronomeStore {
     } else if (!on && this.droneOwnedByClick) {
       this.stopDrone();
     }
+  }
+
+  // ----- plan editing -----
+
+  addPlanSection(): void {
+    this.plan.sections.push(nextSection(this.plan.sections.at(-1)));
+  }
+
+  removePlanSection(id: string): void {
+    if (this.plan.sections.length <= 1) return;
+    this.plan.sections = this.plan.sections.filter((s) => s.id !== id);
+  }
+
+  movePlanSection(id: string, dir: -1 | 1): void {
+    const list = this.plan.sections;
+    const i = list.findIndex((s) => s.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+
+  resetPlan(): void {
+    this.plan = defaultPlan();
   }
 
   resetDroneMacros(): void {
@@ -491,6 +611,11 @@ export class MetronomeStore {
       case 'ramp-time':
       case 'ramp-bars':
         return this.rampStartBpm;
+      case 'plan':
+        return planBpmAt(
+          { bar: 0, beatInBar: 0, beatsPerBar: this.beatsPerBar, baseBpm: this.bpm },
+          this.planSnap,
+        );
       default:
         return this.bpm;
     }
@@ -539,6 +664,11 @@ export class MetronomeStore {
       case 'ramp-bars':
         parts.push(`Ramp ${this.rampStartBpm}→${this.rampEndBpm} over ${this.rampBars} bars`);
         break;
+      case 'plan': {
+        const n = this.plan.sections.length;
+        parts.push(`Plan ${n} section${n === 1 ? '' : 's'}${this.plan.repeat === 'loop' ? ' · loop' : ''}`);
+        break;
+      }
       default:
         parts.push('Manual');
     }

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
 	DEFAULT_MAX_OSC,
+	grooveHits,
+	isRhythmic,
+	pluckString,
 	DRONE_PRESETS,
 	NEUTRAL_MACROS,
 	droneMidis,
@@ -108,11 +111,16 @@ describe('planOscillators', () => {
 	});
 
 	it('normalises loudness across presets and voicings', () => {
-		for (const p of DRONE_PRESETS) {
+		// Tanpura holds nothing — it only plucks — so it has no stack to level
+		for (const p of DRONE_PRESETS.filter((p) => p.sound.layers.length)) {
 			for (const midis of [[48], [48, 55], [48, 52, 55]]) {
 				expect(rss(planOscillators(p.sound, midis).map((o) => o.gain))).toBeCloseTo(1);
 			}
 		}
+	});
+
+	it('plans nothing for a plucked-only sound', () => {
+		expect(planOscillators(presetById('tanpura').sound, [48, 55])).toEqual([]);
 	});
 
 	it('thins unison rather than dropping notes when over budget', () => {
@@ -133,5 +141,43 @@ describe('samePlanShape', () => {
 		expect(samePlanShape(planOscillators(warm, [48, 55]), planOscillators(warm, [50, 57]))).toBe(true);
 		expect(samePlanShape(planOscillators(warm, [48]), planOscillators(warm, [48, 55]))).toBe(false);
 		expect(samePlanShape(planOscillators(warm, [48]), planOscillators(presetById('organ').sound, [48]))).toBe(false);
+	});
+});
+
+describe('grooveHits', () => {
+	const g = { div: 4 as const, steps: [1, 0, 0.5, 0.8], swing: 0.2, cutoff: 2, gate: 0.5, decay: 0.1 };
+
+	it('fires the bar-position steps of one beat, skipping rests', () => {
+		const hits = grooveHits(g, 10, 0.5, 0);
+		expect(hits.map((h) => h.accent)).toEqual([1, 0.5, 0.8]);
+		// step = 0.125 s; the 2nd step is even (on time), the 4th is swung late
+		expect(hits[0].time).toBeCloseTo(10);
+		expect(hits[1].time).toBeCloseTo(10.25);
+		expect(hits[2].time).toBeCloseTo(10.375 + 0.2 * 0.125);
+	});
+
+	it('reads the pattern from the bar, wrapping it', () => {
+		const long = { ...g, steps: [1, 0, 0, 0, 0, 0, 0.3, 0] };
+		expect(grooveHits(long, 0, 1, 1).map((h) => h.accent)).toEqual([0.3]);
+		expect(grooveHits(long, 0, 1, 2).map((h) => h.accent)).toEqual([1]);
+	});
+});
+
+describe('pluckString', () => {
+	it('cycles the strings beat by beat', () => {
+		const p = presetById('tanpura').sound.pluck!;
+		expect([0, 1, 2, 3, 4].map((n) => pluckString(p, n))).toEqual([-5, 0, 0, -12, -5]);
+	});
+});
+
+describe('rhythmic presets', () => {
+	it('only Funky and Tanpura need a beat to drive them', () => {
+		expect(DRONE_PRESETS.filter((p) => isRhythmic(p.sound)).map((p) => p.id)).toEqual(['funky', 'tanpura']);
+	});
+
+	it('the groove slider scales how hard the groove hits', () => {
+		const f = presetById('funky').sound;
+		expect(resolveSound(f, { ...NEUTRAL_MACROS, groove: 0 }).groove!.cutoff).toBe(0);
+		expect(resolveSound(f, { ...NEUTRAL_MACROS, groove: 1 }).groove!.cutoff).toBeCloseTo(f.groove!.cutoff * 2);
 	});
 });

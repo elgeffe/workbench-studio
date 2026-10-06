@@ -3,9 +3,9 @@
   import { formatDuration } from '../metronome/timing';
   import type { GoalType, PracticeSession } from '../metronome/types';
   import type { AutomationMode } from '../metronome/store.svelte';
-  import { DRONE_PRESETS, VOICINGS, presetById, type DroneMacros, type DroneRegister } from '../metronome/drone/sound';
+  import { DRONE_PRESETS, VOICINGS, isRhythmic, presetById, type DroneMacros, type DroneRegister } from '../metronome/drone/sound';
   import { SCALES, type ScaleId } from '../engine/constants';
-  import { scaleNotesStr, spell } from '../engine/theory';
+  import { keyNameStr, scaleNotesStr, spell } from '../engine/theory';
 
   const store = useStore();
   const met = store.met;
@@ -25,6 +25,7 @@
     { id: 'step', label: 'Step' },
     { id: 'ramp-time', label: 'Ramp / time' },
     { id: 'ramp-bars', label: 'Ramp / bars' },
+    { id: 'plan', label: 'Plan' },
   ];
   const subdivisions = [
     { v: 1, label: 'None' },
@@ -44,11 +45,32 @@
     { id: 'motion', label: 'Motion', hint: 'movement' },
     { id: 'space', label: 'Space', hint: 'reverb & echo' },
     { id: 'drive', label: 'Drive', hint: 'saturation' },
+    { id: 'groove', label: 'Groove', hint: 'how hard the rhythm hits' },
   ];
   const scaleIds = Object.keys(SCALES) as ScaleId[];
   const pcs = Array.from({ length: 12 }, (_, i) => i);
   const droneKey = $derived(met.droneKey);
   const preset = $derived(presetById(met.dronePreset));
+  // Groove only means something to a sound that moves with the beat.
+  const shownMacros = $derived(
+    macroSliders.filter((m) => m.id !== 'groove' || isRhythmic(preset.sound)),
+  );
+  const planSection = $derived(met.planPos ? met.plan.sections[met.planPos.index] : null);
+  const planReadout = $derived.by(() => {
+    const pos = met.planPos;
+    if (!pos || !planSection) return '';
+    const parts = [
+      `section ${pos.index + 1}/${met.plan.sections.length}`,
+      `bar ${pos.barInSection + 1}/${Math.max(1, planSection.bars)}`,
+    ];
+    if (pos.loop > 0) parts.push(`pass ${pos.loop + 1}`);
+    const n = met.planNext;
+    if (n) {
+      const name = keyNameStr(n.key.tonicPc, n.key.scale);
+      parts.push(n.inBars === 1 ? `${name} next bar` : `${name} in ${n.inBars} bars`);
+    }
+    return parts.join(' · ');
+  });
 
   function setGoal(type: GoalType) {
     met.goalType = type;
@@ -121,6 +143,9 @@
     {/if}
     {#if met.droneSounding}
       <div class="live mono" data-testid="metronome-drone-now">drone <strong>{met.droneKeyName}</strong></div>
+    {/if}
+    {#if planReadout}
+      <div class="live mono" class:warn={met.planNext?.inBars === 1} data-testid="metronome-plan-now">{planReadout}</div>
     {/if}
 
     <div
@@ -266,7 +291,7 @@
           {#if micOverriding}<span class="badge">mic is driving tempo</span>{/if}
         </div>
 
-        <div class="seg" role="tablist" aria-label="Automation mode">
+        <div class="seg wrap" role="tablist" aria-label="Automation mode">
           {#each autoModes as m (m.id)}
             <button
               type="button"
@@ -340,6 +365,70 @@
             <div class="field span2">
               <label for="mt-rb-bars">Over (bars)</label>
               <input id="mt-rb-bars" type="number" min="1" max="999" bind:value={met.rampBars} />
+            </div>
+          </div>
+        {:else if met.automationMode === 'plan'}
+          <p class="hint caption">
+            A run of sections, each in its own key and tempo. The click follows the tempo; the drone
+            and the fretboards follow the key, and warn you a bar before each change.
+          </p>
+          {#if met.planFinished}
+            <div style="margin-top:10px"><span class="badge good">✓ Plan complete</span></div>
+          {/if}
+          {#if !met.droneWithClick && !met.droneSounding}
+            <button type="button" class="wide-btn" data-testid="metronome-plan-drone" onclick={() => met.setDroneWithClick(true)}>
+              ♪ Play the drone with the click
+            </button>
+          {/if}
+
+          <ol class="plan" data-testid="metronome-plan">
+            {#each met.plan.sections as sec, i (sec.id)}
+              <li class="plan-row" class:now={met.planPos?.index === i}>
+                <span class="plan-n mono">{i + 1}</span>
+                <select aria-label="Section {i + 1} key" bind:value={sec.tonicPc}>
+                  {#each pcs as pc (pc)}
+                    <option value={pc}>{spell(pc, pc, sec.scale)}</option>
+                  {/each}
+                </select>
+                <select aria-label="Section {i + 1} scale" bind:value={sec.scale}>
+                  {#each scaleIds as id (id)}
+                    <option value={id}>{SCALES[id].short}</option>
+                  {/each}
+                </select>
+                <div class="plan-acts">
+                  <button type="button" class="del click" aria-label="Move section {i + 1} up" disabled={i === 0} onclick={() => met.movePlanSection(sec.id, -1)}>↑</button>
+                  <button type="button" class="del click" aria-label="Move section {i + 1} down" disabled={i === met.plan.sections.length - 1} onclick={() => met.movePlanSection(sec.id, 1)}>↓</button>
+                  <button type="button" class="del click" aria-label="Remove section {i + 1}" disabled={met.plan.sections.length <= 1} onclick={() => met.removePlanSection(sec.id)}>✕</button>
+                </div>
+                <div class="plan-nums mono">
+                  <label>bars <input type="number" min="1" max="64" aria-label="Section {i + 1} bars" bind:value={sec.bars} /></label>
+                  <label>bpm <input type="number" min="20" max="400" placeholder="main" aria-label="Section {i + 1} BPM" bind:value={sec.bpm} /></label>
+                  <label>→ <input type="number" min="20" max="400" placeholder="hold" aria-label="Section {i + 1} ramp to BPM" bind:value={sec.bpmTo} disabled={sec.bpm == null} /></label>
+                </div>
+              </li>
+            {/each}
+          </ol>
+          <div class="row" style="margin-top:10px;flex-wrap:wrap">
+            <button type="button" class="chip" data-testid="metronome-plan-add" onclick={() => met.addPlanSection()}>+ Add section (a 5th up)</button>
+            <button type="button" class="chip" onclick={() => met.resetPlan()}>Reset</button>
+          </div>
+          <p class="caption" style="font-size:11px;margin:8px 0 0">Leave BPM empty to use the main tempo; fill “→” to ramp across the section.</p>
+
+          <div class="fields">
+            <div class="field">
+              <label for="mt-pl-repeat">At the end</label>
+              <select id="mt-pl-repeat" bind:value={met.plan.repeat}>
+                <option value="loop">Loop</option>
+                <option value="once">Stop</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="mt-pl-bpm">Each pass, BPM</label>
+              <input id="mt-pl-bpm" type="number" min="-50" max="50" disabled={met.plan.repeat === 'once'} bind:value={met.plan.loopBpmDelta} />
+            </div>
+            <div class="field span2">
+              <label for="mt-pl-tr">Each pass, transpose (semitones)</label>
+              <input id="mt-pl-tr" type="number" min="-11" max="11" disabled={met.plan.repeat === 'once'} bind:value={met.plan.loopTranspose} />
             </div>
           </div>
         {:else}
@@ -518,6 +607,11 @@
         <div class="key-now mono" data-testid="metronome-drone-key">
           <strong>{met.droneKeyName}</strong> · {scaleNotesStr(droneKey.tonicPc, droneKey.scale)}
         </div>
+        {#if met.automationMode === 'plan'}
+          <div class="caption" style="font-size:11px;margin-top:4px">
+            {met.planActive ? 'The plan is choosing the key.' : 'In Plan mode the plan sets the key while the click runs.'}
+          </div>
+        {/if}
 
         <!-- pitch -->
         <div class="field">
@@ -540,12 +634,14 @@
         <!-- sound -->
         <div class="field">
           <span class="lbl">Sound</span>
-          <div class="seg presets" role="tablist" aria-label="Drone sound">
+          <div class="seg wrap" role="tablist" aria-label="Drone sound">
             {#each DRONE_PRESETS as p (p.id)}
               <button type="button" role="tab" aria-selected={met.dronePreset === p.id} class:on={met.dronePreset === p.id} onclick={() => (met.dronePreset = p.id)}>{p.name}</button>
             {/each}
           </div>
-          <div class="caption" style="font-size:11px">{preset.blurb}</div>
+          <div class="caption" style="font-size:11px">
+            {preset.blurb}{#if isRhythmic(preset.sound)} Locks to the click while it runs.{/if}
+          </div>
         </div>
 
         <details class="customize">
@@ -553,7 +649,7 @@
             Customize{#if met.droneTweaked}<span class="badge" style="margin-left:8px">tweaked</span>{/if}
           </summary>
           <div class="fields">
-            {#each macroSliders as m (m.id)}
+            {#each shownMacros as m (m.id)}
               <div class="field">
                 <label for="mt-dr-{m.id}">{m.label} — {Math.round(met.droneMacros[m.id] * 100)}</label>
                 <input id="mt-dr-{m.id}" class="slider" type="range" min="0" max="1" step="0.01" bind:value={met.droneMacros[m.id]} title={m.hint} />
@@ -780,6 +876,8 @@
     padding: 8px 6px; border-radius: 6px; border: 0; background: transparent; color: #5c4a30;
   }
   .seg button.on { background: var(--accent); color: #fff; }
+  /* rows with more or longer labels than fit: let them wrap rather than clip */
+  .seg.wrap button { flex: 1 0 auto; padding: 8px 10px; }
 
   /* ---- fields ---- */
   .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
@@ -846,8 +944,28 @@
   .conf-bar { width: 100%; height: 6px; border-radius: 999px; background: var(--parch2); border: 1px solid var(--line2); overflow: hidden; }
   .conf-bar > div { height: 100%; background: var(--tonic); transition: width 0.2s ease; }
 
+  .live.warn { color: var(--accent); font-weight: 700; }
+
+  /* ---- plan ---- */
+  .plan { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .plan-row {
+    display: grid; grid-template-columns: 18px 1fr 1.3fr auto; gap: 6px 8px; align-items: center;
+    padding: 8px; border-radius: 8px; border: 1px solid var(--line2); background: #fbf4e4;
+  }
+  .plan-row.now { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .plan-n { font-size: 11px; color: #8a7350; text-align: center; }
+  .plan-row select, .plan-nums input {
+    font-family: var(--mono); font-size: 12px; color: var(--ink); min-width: 0; width: 100%;
+    background: #fffaf0; border: 1px solid var(--line2); border-radius: 6px; padding: 6px;
+  }
+  .plan-acts { display: flex; gap: 2px; }
+  .plan-acts .del { width: 24px; height: 26px; }
+  .plan-acts .del:disabled { opacity: 0.3; }
+  .plan-nums { grid-column: 2 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .plan-nums label { display: flex; align-items: center; gap: 5px; font-size: 9px; letter-spacing: 0.08em; color: #8a7350; text-transform: uppercase; }
+  .plan-nums input:disabled { opacity: 0.45; }
+
   /* ---- drone ---- */
-  .seg.presets button { flex: 1 0 auto; padding: 8px 10px; }
   .key-now { margin-top: 12px; font-size: 11px; color: #5c4a30; letter-spacing: 0.02em; }
   .customize { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
   .customize summary {

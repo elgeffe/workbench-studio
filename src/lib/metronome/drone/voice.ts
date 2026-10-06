@@ -7,12 +7,20 @@
 //                                                                       ├─ delay ──┤─ out ─ limiter ─ speakers
 //                                                                       └─ reverb ─┘
 //
-// Changing only the key glides the running oscillators to their new pitches;
-// changing the preset or the voicing (a different stack of oscillators)
-// crossfades to a freshly built graph. Slider moves are applied in place.
+// Changing only the key glides the running oscillators to their new pitches —
+// now, or at an exact downbeat when a practice plan schedules it; changing the
+// preset or the voicing (a different stack of oscillators) crossfades to a
+// freshly built graph. Slider moves are applied in place.
+//
+// Rhythmic sounds (a groove, plucked strings) are driven a beat at a time:
+// by the metronome's scheduler while the click runs, so they sit exactly on
+// its grid, and by a small clock of the voice's own when the drone plays alone.
 
 import {
+	grooveHits,
+	midiToHz,
 	planOscillators,
+	pluckString,
 	presetById,
 	resolveSound,
 	samePlanShape,
@@ -36,6 +44,11 @@ const PRE_GAIN = 0.3;
 /** Crossfade used when the preset or voicing changes mid-drone. */
 const SWAP_S = 0.4;
 const MAX_DELAY_S = 3;
+/** Peak of one plucked string into the drive stage, before PRE_GAIN. */
+const PLUCK_LEVEL = 0.9;
+/** The voice's own clock, when no click drives it: same shape as the engine's. */
+const LOOKAHEAD_MS = 25;
+const SCHEDULE_AHEAD_S = 0.12;
 
 interface Graph {
 	presetId: string;
@@ -87,6 +100,14 @@ export class DroneVoice {
 	private impulses = new Map<number, AudioBuffer>();
 	/** tempo the echo is timed against — follows the click, ramps included */
 	private bpm = 120;
+	/** the pitches sounding from each time on — so a pluck knows its key */
+	private pitches: { time: number; midis: number[] }[] = [];
+	/** true while the metronome's scheduler is feeding beats in */
+	private external = false;
+	private clockTimer: ReturnType<typeof setTimeout> | null = null;
+	private clockNext = 0;
+	private clockBeat = 0;
+	private plucks = 0;
 
 	constructor(ctx: AudioContext) {
 		this.ctx = ctx;
@@ -112,13 +133,43 @@ export class DroneVoice {
 			return;
 		}
 		const sound = resolveSound(presetById(p.presetId).sound, p.macros);
+		this.pitches = [{ time: 0, midis: p.midis }];
+		this.plucks = 0;
 		this.graph = this.build(p, sound, sound.attack);
+		if (!this.external) this.startClock();
 	}
 
 	stop(): void {
+		this.stopClock();
 		if (!this.graph) return;
 		this.release(this.graph, this.graph.sound.release);
 		this.graph = null;
+	}
+
+	/**
+	 * Hand the beat to the metronome (true) or take it back (false). While the
+	 * click runs, `beat()` is called from its scheduler instead.
+	 */
+	setExternalClock(on: boolean): void {
+		this.external = on;
+		if (on) this.stopClock();
+		else if (this.graph) this.startClock();
+	}
+
+	/** One beat from the metronome's scheduler, ahead of time on the audio clock. */
+	beat(time: number, secondsPerBeat: number, beatInBar: number): void {
+		if (this.external) this.playBeat(time, secondsPerBeat, beatInBar);
+	}
+
+	/** Move to new pitches exactly at `time` — a plan's key change on its downbeat. */
+	setPitchAt(midis: number[], time: number): void {
+		const g = this.graph;
+		if (!g || sameMidis(this.pitchAt(time), midis)) return;
+		const plan = planOscillators(g.sound, midis);
+		if (!samePlanShape(g.plan, plan)) return;
+		const glide = Math.max(0.005, g.sound.glide / 3);
+		plan.forEach((o, i) => g.oscs[i].frequency.setTargetAtTime(o.freq, time, glide));
+		this.notePitches(midis, time);
 	}
 
 	/** Apply new settings to a running drone: glide, tweak in place, or crossfade. */
@@ -134,17 +185,22 @@ export class DroneVoice {
 			Math.abs(g.reverbSize - sound.reverb.size) > 0.01;
 		if (swap) {
 			this.release(g, SWAP_S);
+			this.notePitches(p.midis, this.ctx.currentTime);
 			this.graph = this.build(p, sound, SWAP_S);
 			return;
 		}
 
 		const t = this.ctx.currentTime;
 		const glide = Math.max(0.005, sound.glide / 3);
+		// Only glide when the key really moved — a plan's change was already
+		// scheduled on its downbeat and is heard here a moment later.
+		const moved = !sameMidis(this.pitchAt(t), p.midis);
 		plan.forEach((o, i) => {
-			g.oscs[i].frequency.setTargetAtTime(o.freq, t, glide);
+			if (moved) g.oscs[i].frequency.setTargetAtTime(o.freq, t, glide);
 			g.oscs[i].detune.setTargetAtTime(o.detune, t, 0.05);
 			g.oscPans[i].pan.setTargetAtTime(o.pan, t, 0.05);
 		});
+		if (moved) this.notePitches(p.midis, t);
 		g.plan = plan;
 		g.sound = sound;
 		this.applyTone(g, sound, p);
@@ -155,6 +211,98 @@ export class DroneVoice {
 		this.bpm = bpm;
 		const g = this.graph;
 		if (g) g.delay.delayTime.setTargetAtTime(this.delaySeconds(g.sound), this.ctx.currentTime, 0.1);
+	}
+
+	// ---- rhythm ----
+
+	private startClock(): void {
+		if (this.clockTimer != null) return;
+		this.clockNext = this.ctx.currentTime + 0.05;
+		this.clockBeat = 0;
+		this.tick();
+	}
+
+	private stopClock(): void {
+		if (this.clockTimer != null) clearTimeout(this.clockTimer);
+		this.clockTimer = null;
+	}
+
+	private tick = (): void => {
+		if (!this.graph || this.external) {
+			this.clockTimer = null;
+			return;
+		}
+		const spb = 60 / Math.max(20, this.bpm);
+		while (this.clockNext < this.ctx.currentTime + SCHEDULE_AHEAD_S) {
+			this.playBeat(this.clockNext, spb, this.clockBeat % 4);
+			this.clockNext += spb;
+			this.clockBeat++;
+		}
+		this.clockTimer = setTimeout(this.tick, LOOKAHEAD_MS);
+	};
+
+	private playBeat(time: number, spb: number, beatInBar: number): void {
+		const g = this.graph;
+		if (!g) return;
+		const { groove, pluck } = g.sound;
+		if (groove) {
+			const rest = 1 - groove.gate;
+			for (const hit of grooveHits(groove, time, spb, beatInBar)) {
+				// kick the filter open and the level up, then let both fall back
+				g.filter.detune.setTargetAtTime(groove.cutoff * hit.accent * 1200, hit.time, 0.004);
+				g.filter.detune.setTargetAtTime(0, hit.time + 0.012, groove.decay / 3);
+				g.trem.gain.setTargetAtTime(rest + groove.gate * hit.accent, hit.time, 0.003);
+				g.trem.gain.setTargetAtTime(rest, hit.time + 0.012, groove.decay / 2);
+			}
+		}
+		if (pluck) {
+			const root = this.pitchAt(time)[0] ?? 48;
+			this.pluckString(g, time, root + pluckString(pluck, this.plucks++), pluck.wave, pluck.decay, pluck.gain);
+		}
+	}
+
+	private pluckString(g: Graph, time: number, midi: number, wave: OscillatorType, decay: number, gain: number): void {
+		const ctx = this.ctx;
+		const f = midiToHz(midi);
+		const env = ctx.createGain();
+		env.gain.setValueAtTime(0.0001, time);
+		env.gain.exponentialRampToValueAtTime(Math.max(0.001, gain * PLUCK_LEVEL), time + 0.004);
+		env.gain.exponentialRampToValueAtTime(0.0001, time + decay);
+		// bright at the pluck, mellowing as it rings — the string's own filter
+		const lp = ctx.createBiquadFilter();
+		lp.type = 'lowpass';
+		lp.Q.value = 1.5;
+		lp.frequency.setValueAtTime(Math.min(16000, f * 16), time);
+		lp.frequency.exponentialRampToValueAtTime(Math.max(100, f * 3), time + decay * 0.6);
+		lp.connect(env).connect(g.pre);
+		for (const detune of [-4, 4]) {
+			const osc = ctx.createOscillator();
+			osc.type = wave;
+			osc.frequency.value = f;
+			osc.detune.value = detune;
+			osc.connect(lp);
+			osc.start(time);
+			osc.stop(time + decay + 0.05);
+		}
+	}
+
+	private notePitches(midis: number[], time: number): void {
+		const now = this.ctx.currentTime;
+		// keep what is sounding now plus anything still to come, in time order
+		const keep = this.pitches.filter((e) => e.time > now - 1 || e === this.latestBefore(now));
+		keep.push({ time, midis });
+		keep.sort((a, b) => a.time - b.time);
+		this.pitches = keep;
+	}
+
+	private latestBefore(t: number): { time: number; midis: number[] } | undefined {
+		let hit: { time: number; midis: number[] } | undefined;
+		for (const e of this.pitches) if (e.time <= t) hit = e;
+		return hit;
+	}
+
+	private pitchAt(t: number): number[] {
+		return (this.latestBefore(t) ?? this.pitches[0])?.midis ?? [];
 	}
 
 	private delaySeconds(s: DroneSound): number {
@@ -192,7 +340,8 @@ export class DroneVoice {
 		const filter = ctx.createBiquadFilter();
 		const env = ctx.createGain();
 		const trem = ctx.createGain();
-		trem.gain.value = 1;
+		// a groove rests ducked between its hits
+		trem.gain.value = sound.groove ? 1 - sound.groove.gate : 1;
 		const autopan = ctx.createStereoPanner();
 		const dry = ctx.createGain();
 		const delay = ctx.createDelay(MAX_DELAY_S);
@@ -306,4 +455,8 @@ export class DroneVoice {
 		for (const l of g.lfos) l.osc.stop(stopAt);
 		setTimeout(() => g.out.disconnect(), tail * 1000);
 	}
+}
+
+function sameMidis(a: number[], b: number[]): boolean {
+	return a.length === b.length && a.every((m, i) => m === b[i]);
 }

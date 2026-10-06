@@ -32,12 +32,28 @@ function litInfo(s: WorkbenchStore): LitInfo {
   // tonic itself as the root.
   const guide = s.met.guide;
   if (guide) {
+    const now = scalePcs(guide.tonicPc, guide.scale);
+    const next = s.met.guideNext;
+    if (!next) {
+      return {
+        root: guide.tonicPc,
+        litSet: new Set(now),
+        chordSet: new Set(tonicTriadPcs(guide.tonicPc, guide.scale)),
+        dropSet: new Set<number>(),
+        activePat,
+      };
+    }
+    // The last bar before a key change: notes that stay stay lit, notes about
+    // to leave fade out, and the ones arriving are ringed — so you can see the
+    // one or two fingers that have to move before the downbeat lands.
+    const then = new Set(scalePcs(next.tonicPc, next.scale));
     return {
       root: guide.tonicPc,
-      litSet: new Set(scalePcs(guide.tonicPc, guide.scale)),
+      litSet: new Set(now.filter((pc) => then.has(pc))),
       chordSet: new Set(tonicTriadPcs(guide.tonicPc, guide.scale)),
-      dropSet: new Set<number>(),
+      dropSet: new Set(now.filter((pc) => !then.has(pc))),
       activePat,
+      incoming: { set: new Set([...then].filter((pc) => !now.includes(pc))), root: next.tonicPc, key: next },
     };
   }
   // Only the pattern-library groups drive scale lighting; the Chord Shapes
@@ -106,6 +122,7 @@ export function computeView(s: WorkbenchStore) {
   const patterns = buildPatterns(s, lit.activePat);
   // While the drone sounds, the instruments read in its key — spelled its way.
   const guide = s.met.guide;
+  const guideNext = s.met.guideNext;
   const inst = buildInstruments(s, lit, guide ?? { tonicPc: t, scale: s.scale });
 
   const sigPc = s.circleView === 'min' ? (t + 3) % 12 : t;
@@ -213,8 +230,8 @@ export function computeView(s: WorkbenchStore) {
     ...buildReading(s),
     // dock / instruments
     dockExpanded: s.dockOpen, dockChevron: s.dockOpen ? '▼ HIDE' : '▲ SHOW',
-    dockName: guide ? keyNameStr(guide.tonicPc, guide.scale) + ' · drone' : s.patternsOpen && patterns.patLibTab ? spell(t, t, s.scale) + ' ' + lit.activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '—',
-    dockNotes: guide ? scaleNotesStr(guide.tonicPc, guide.scale) : s.patternsOpen && patterns.patLibTab ? patterns.patNotes + '   ·   over ' + patterns.view.patChordName : ac ? gPcs(ac).map((p) => spell(p, t, s.scale)).join('  ·  ') : 'pick a chord to see it on the fretboards',
+    dockName: guideNext ? keyNameStr(guide!.tonicPc, guide!.scale) + ' → ' + keyNameStr(guideNext.tonicPc, guideNext.scale) : guide ? keyNameStr(guide.tonicPc, guide.scale) + ' · drone' : s.patternsOpen && patterns.patLibTab ? spell(t, t, s.scale) + ' ' + lit.activePat.name : ac ? ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale) : '—',
+    dockNotes: guideNext ? 'next bar  ·  ' + scaleNotesStr(guideNext.tonicPc, guideNext.scale) : guide ? scaleNotesStr(guide.tonicPc, guide.scale) : s.patternsOpen && patterns.patLibTab ? patterns.patNotes + '   ·   over ' + patterns.view.patChordName : ac ? gPcs(ac).map((p) => spell(p, t, s.scale)).join('  ·  ') : 'pick a chord to see it on the fretboards',
     ...inst,
     // The six tabs, in the order the studio is meant to be used: explore the
     // key, lay a beat, write the changes, put a line under them, practise,

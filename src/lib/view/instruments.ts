@@ -8,10 +8,13 @@ import type { WorkbenchStore } from '../store.svelte';
 import type { DroneKey } from '../metronome/store.svelte';
 import type { FretCell, FretRow, PianoKey, LitInfo } from './types';
 
+// two rings: a parchment gap, then the accent — reads on any cell colour
+const INCOMING_RING = '0 0 0 2px #fbeede, 0 0 0 3.5px #c2562e';
+
 /** `key` spells the note names — the studio key, or a sounding drone's. */
 export function buildInstruments(
   s: WorkbenchStore,
-  { root, litSet, chordSet, dropSet }: LitInfo,
+  { root, litSet, chordSet, dropSet, incoming }: LitInfo,
   key: DroneKey = { tonicPc: s.tonicPc, scale: s.scale },
 ) {
   const ac = s.activeChord;
@@ -26,6 +29,11 @@ export function buildInstruments(
     if (pc === root) { bg = '#c2562e'; glow = '0 0 0 2px rgba(194,86,46,.3)'; }
     else if (isDrop) { bg = '#b3a68f'; }
     else if (!chordSet.has(pc)) { bg = '#97a59c'; }
+    // A note arriving with the next key: ringed in the accent, spelled its way.
+    if (incoming?.set.has(pc)) {
+      return { pc, showLit: true, litOpacity: '1', note: spell(pc, incoming.key.tonicPc, incoming.key.scale), bg: '#d9895c', glow: INCOMING_RING };
+    }
+    if (incoming && pc === incoming.root) glow = INCOMING_RING;
     return { pc, showLit: isLit || isDrop, litOpacity: isDrop ? '0.4' : '1', note: spell(pc, key.tonicPc, key.scale), bg, glow };
   };
   const buildFret = (opens: number[], labels: string[]): FretRow[] =>
@@ -44,6 +52,12 @@ export function buildInstruments(
   const pianoWhite: PianoKey[] = [], pianoBlack: PianoKey[] = [];
   keys.forEach((k) => {
     const isLit = litSet.has(k.pc), isRoot = k.pc === root;
+    if (incoming?.set.has(k.pc)) {
+      const key = { left: '', width: '', pc: k.pc, note: spell(k.pc, incoming.key.tonicPc, incoming.key.scale), bg: '#f0c3a3', fg: '#9a3f1f' };
+      if (k.white) { pianoWhite.push({ ...key, left: (wIdx * wp).toFixed(3), width: wp.toFixed(3) }); wIdx++; }
+      else pianoBlack.push({ ...key, left: (wIdx * wp - wp * 0.31).toFixed(3), width: (wp * 0.62).toFixed(3), bg: '#c2562e', fg: '#fff' });
+      return;
+    }
     // Dropped chord tone: labelled but greyed, so it reads as "belongs, not played".
     const isDrop = !isLit && dropSet.has(k.pc);
     if (k.white) {

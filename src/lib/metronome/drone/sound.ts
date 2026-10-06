@@ -32,8 +32,39 @@ export interface DroneLfo {
 	depth: number;
 }
 
+/**
+ * A rhythm the sound moves to, locked to the metronome's beat: each step that
+ * fires kicks the filter open and/or the level up, then lets it fall back.
+ */
+export interface DroneGroove {
+	/** steps per beat: 2 = eighths, 4 = sixteenths */
+	div: 2 | 4;
+	/** accent 0..1 per step, read from the start of each bar and wrapped */
+	steps: number[];
+	/** 0..0.5 — how far every off-step is pushed late, as a share of a step */
+	swing: number;
+	/** octaves the filter jumps open on a full accent */
+	cutoff: number;
+	/** 0..1 how far the level ducks between hits */
+	gate: number;
+	/** seconds for each kick to fall back */
+	decay: number;
+}
+
+/** Plucked strings, one per beat, cycling — a tanpura rather than a held tone. */
+export interface DronePluck {
+	/** semitones from the drone root for each string, in plucking order */
+	strings: number[];
+	wave: DroneWave;
+	/** seconds a string rings */
+	decay: number;
+	gain: number;
+}
+
 export interface DroneSound {
 	layers: DroneLayer[];
+	groove?: DroneGroove;
+	pluck?: DronePluck;
 	filter: { type: 'lowpass' | 'bandpass'; cutoff: number; q: number };
 	lfos: DroneLfo[];
 	/** 0..1 saturation */
@@ -49,7 +80,7 @@ export interface DroneSound {
 	glide: number;
 }
 
-export type DronePresetId = 'warm' | 'sine' | 'organ' | 'bowed' | 'nebula';
+export type DronePresetId = 'warm' | 'sine' | 'organ' | 'bowed' | 'nebula' | 'funky' | 'tanpura';
 
 export interface DronePreset {
 	id: DronePresetId;
@@ -156,6 +187,49 @@ export const DRONE_PRESETS: DronePreset[] = [
 			glide: 0.8,
 		},
 	},
+	{
+		id: 'funky',
+		name: 'Funky',
+		blurb: 'A clavinet-ish wah that grooves on the click’s 16ths.',
+		sound: {
+			layers: [
+				{ wave: 'square', octave: 0, gain: 1, detune: 7, unison: 2 },
+				{ wave: 'sawtooth', octave: -1, gain: 0.55, detune: 0 },
+			],
+			groove: {
+				div: 4,
+				// one bar of 4/4: a syncopated sixteenth-note scratch
+				steps: [1, 0, 0.45, 0.7, 0, 0.6, 1, 0, 0.5, 0, 0.85, 0.45, 0, 0.6, 0.9, 0.35],
+				swing: 0.14,
+				cutoff: 2.6,
+				gate: 0.75,
+				decay: 0.16,
+			},
+			filter: { type: 'lowpass', cutoff: 420, q: 9 },
+			lfos: [],
+			drive: 0.35,
+			reverb: { mix: 0.12, size: 1.2 },
+			attack: 0.02,
+			release: 0.3,
+			glide: 0.01,
+		},
+	},
+	{
+		id: 'tanpura',
+		name: 'Tanpura',
+		blurb: 'Four plucked strings — Pa, Sa, Sa, low Sa — one per beat.',
+		sound: {
+			layers: [],
+			pluck: { strings: [-5, 0, 0, -12], wave: 'sawtooth', decay: 3.8, gain: 1 },
+			filter: { type: 'lowpass', cutoff: 3200, q: 0.8 },
+			lfos: [],
+			drive: 0.2,
+			reverb: { mix: 0.35, size: 3.2 },
+			attack: 0.02,
+			release: 2.5,
+			glide: 0.01,
+		},
+	},
 ];
 
 export function presetById(id: string): DronePreset {
@@ -164,13 +238,15 @@ export function presetById(id: string): DronePreset {
 
 // ---- macros ----
 
-/** Five 0..1 sliders. 0.5 everywhere is the preset exactly as designed. */
+/** 0..1 sliders. 0.5 everywhere is the preset exactly as designed. */
 export interface DroneMacros {
 	brightness: number;
 	width: number;
 	motion: number;
 	space: number;
 	drive: number;
+	/** how hard a groove or pluck pattern hits */
+	groove: number;
 }
 
 export const NEUTRAL_MACROS: DroneMacros = {
@@ -179,7 +255,13 @@ export const NEUTRAL_MACROS: DroneMacros = {
 	motion: 0.5,
 	space: 0.5,
 	drive: 0.5,
+	groove: 0.5,
 };
+
+/** Whether a sound moves with the beat — and so needs a clock to drive it. */
+export function isRhythmic(s: DroneSound): boolean {
+	return !!(s.groove || s.pluck);
+}
 
 const c01 = (x: number) => Math.min(1, Math.max(0, Number.isFinite(x) ? x : 0.5));
 
@@ -190,6 +272,7 @@ export function resolveSound(base: DroneSound, m: DroneMacros): DroneSound {
 	const motion = c01(m.motion) * 2; // ×0 … ×2
 	const space = c01(m.space) * 2; // ×0 … ×2
 	const drive = c01(m.drive) * 2; // ×0 … ×2
+	const groove = c01(m.groove) * 2; // ×0 … ×2
 
 	return {
 		...base,
@@ -205,7 +288,45 @@ export function resolveSound(base: DroneSound, m: DroneMacros): DroneSound {
 		drive: Math.min(1, base.drive * drive + Math.max(0, c01(m.drive) - 0.5) * 0.6),
 		reverb: { ...base.reverb, mix: Math.min(1, base.reverb.mix * space + Math.max(0, c01(m.space) - 0.5) * 0.3) },
 		delay: base.delay && { ...base.delay, mix: Math.min(1, base.delay.mix * space) },
+		groove: base.groove && {
+			...base.groove,
+			cutoff: base.groove.cutoff * groove,
+			gate: Math.min(1, base.groove.gate * groove),
+		},
+		// harder plucking rings longer
+		pluck: base.pluck && { ...base.pluck, decay: base.pluck.decay * (0.5 + c01(m.groove)) },
 	};
+}
+
+// ---- rhythm ----
+
+/**
+ * The groove's hits inside one beat: absolute times and accents. Steps are
+ * counted from the bar's downbeat, so the pattern lines up with the click.
+ */
+export function grooveHits(
+	g: DroneGroove,
+	beatTime: number,
+	secondsPerBeat: number,
+	beatInBar: number,
+): { time: number; accent: number }[] {
+	const div = g.div;
+	const step = secondsPerBeat / div;
+	const out: { time: number; accent: number }[] = [];
+	if (!g.steps.length) return out;
+	for (let s = 0; s < div; s++) {
+		const accent = g.steps[(beatInBar * div + s) % g.steps.length] ?? 0;
+		if (accent <= 0) continue;
+		const swing = s % 2 === 1 ? Math.min(0.5, Math.max(0, g.swing)) * step : 0;
+		out.push({ time: beatTime + s * step + swing, accent: Math.min(1, accent) });
+	}
+	return out;
+}
+
+/** Semitones from the root of the string plucked on the n-th beat. */
+export function pluckString(p: DronePluck, n: number): number {
+	const k = p.strings.length;
+	return k ? p.strings[((n % k) + k) % k] : 0;
 }
 
 // ---- pitch ----
