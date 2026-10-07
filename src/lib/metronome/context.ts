@@ -1,20 +1,10 @@
-// A single shared AudioContext for the metronome. The click scheduler and the
-// microphone tempo detector both run on this one high-resolution clock. It is
-// deliberately separate from the theory studio's AudioEngine context so the
-// click's timing never competes with chord/drum scheduling on the same graph.
+// The metronome's handle on the app's single shared AudioContext (see
+// ../audioContext). The click scheduler, the drone and the microphone tempo
+// detector all run on it, on the same clock as the studio's chords and drums.
 
-let ctx: AudioContext | null = null;
+import { sharedAudioContext } from '../audioContext';
 
-export function getAudioContext(): AudioContext {
-	if (!ctx) {
-		const Ctor =
-			window.AudioContext ??
-			(window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-		if (!Ctor) throw new Error('Web Audio API is not supported in this browser.');
-		ctx = new Ctor();
-	}
-	return ctx;
-}
+export const getAudioContext = sharedAudioContext;
 
 /**
  * Mobile browsers start the AudioContext in a "suspended" state and only allow

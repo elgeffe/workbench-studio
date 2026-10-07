@@ -33,34 +33,37 @@ test.describe('drone: following the Chords progression', () => {
   });
 
   test('the drone changes chord at the moment the studio’s chord sounds', async ({ page }) => {
-    // Map every scheduled event to wall-clock time, so events on the studio's
-    // and the metronome's separate audio clocks can be compared.
+    // Map every scheduled event to wall-clock time. The studio and the
+    // metronome share one audio clock, so their events compare directly; the
+    // wall time just makes the gap readable.
     await page.addInitScript(() => {
-      const ev: Array<{ kind: 'start' | 'glide'; v: number; wall: number; ctx: BaseAudioContext }> = [];
+      const ev: Array<{ kind: 'start' | 'glide'; v: number; wall: number }> = [];
+      let armed = false;
+      (window as unknown as { __arm: () => void }).__arm = () => { armed = true; };
       (window as unknown as { __ev: typeof ev }).__ev = ev;
       const wall = (c: BaseAudioContext, t: number) => performance.now() / 1000 + (t - c.currentTime);
       const freqs = new WeakSet<AudioParam>();
       const start = OscillatorNode.prototype.start;
       OscillatorNode.prototype.start = function (this: OscillatorNode, when?: number) {
         freqs.add(this.frequency);
-        ev.push({ kind: 'start', v: this.frequency.value, wall: wall(this.context, when ?? this.context.currentTime), ctx: this.context });
+        // only the voices started once the progression plays: the drone's own
+        // oscillators started earlier and glide rather than restart
+        if (armed) ev.push({ kind: 'start', v: this.frequency.value, wall: wall(this.context, when ?? this.context.currentTime) });
         return start.call(this, when as number);
       };
       const setTarget = AudioParam.prototype.setTargetAtTime;
       AudioParam.prototype.setTargetAtTime = function (this: AudioParam, v: number, t: number, c: number) {
         if (freqs.has(this)) {
-          // the param's context isn't exposed; the drone lives on the metronome's
-          ev.push({ kind: 'glide', v, wall: performance.now() / 1000 + (t - (window as unknown as { __metCtx?: BaseAudioContext }).__metCtx!.currentTime), ctx: null as unknown as BaseAudioContext });
+          // the param's context isn't exposed; there is only the one
+          ev.push({ kind: 'glide', v, wall: performance.now() / 1000 + (t - (window as unknown as { __ctx: BaseAudioContext }).__ctx.currentTime) });
         }
         return setTarget.call(this, v, t, c);
       };
       const Ctor = window.AudioContext;
-      let n = 0;
-      // the metronome's context is the second one created (the studio's is first)
       window.AudioContext = class extends Ctor {
         constructor(...a: ConstructorParameters<typeof AudioContext>) {
           super(...a);
-          if (++n === 2) (window as unknown as { __metCtx?: BaseAudioContext }).__metCtx = this;
+          (window as unknown as { __ctx?: BaseAudioContext }).__ctx = this;
         }
       } as typeof AudioContext;
     });
@@ -73,18 +76,19 @@ test.describe('drone: following the Chords progression', () => {
     await openMetronome(page);
     await page.getByTestId('metronome-drone').getByRole('tab', { name: 'Chords' }).click();
     await page.getByTestId('metronome-drone-toggle').click();
+    await page.evaluate(() => (window as unknown as { __arm: () => void }).__arm());
     await page.getByTestId('studio-play').click();
     await expect(page.getByText('G7 · G mixolydian · drone')).toBeVisible({ timeout: 6000 });
     await page.waitForTimeout(400);
     await page.getByTestId('studio-play').click();
 
     const r = await page.evaluate(() => {
-      const w = window as unknown as { __ev: Array<{ kind: string; v: number; wall: number; ctx: BaseAudioContext }>; __metCtx: BaseAudioContext };
+      const w = window as unknown as { __ev: Array<{ kind: string; v: number; wall: number }> };
       const g3 = 196;
       const drone = w.__ev.filter((e) => e.kind === 'glide' && Math.abs(e.v - g3) < 0.05).map((e) => e.wall);
-      // the studio's G7: its oscillators start at G (any octave) on the studio clock
+      // the studio's G7: its oscillators start at G (any octave)
       const chord = w.__ev
-        .filter((e) => e.kind === 'start' && e.ctx !== w.__metCtx && [49, 98, 196, 392].some((f) => Math.abs(e.v - f) < 0.6))
+        .filter((e) => e.kind === 'start' && [49, 98, 196, 392].some((f) => Math.abs(e.v - f) < 0.6))
         .map((e) => e.wall);
       return { drone, chord };
     });
