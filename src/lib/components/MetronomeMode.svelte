@@ -198,23 +198,34 @@
       <button type="button" class="btn tap" onclick={() => met.tap()}>Tap</button>
     </div>
 
-    <!-- Bridge to the studio's shared Workshop/Drums transport tempo. The two
-         clocks stay independent (a ramp drill shouldn't drag the groovebox
-         along), but one tap copies the BPM either way. -->
+    <!-- Bridge to the studio's shared Workshop/Drums transport tempo. By
+         default the two clocks stay independent (a ramp drill shouldn't drag
+         the groovebox along) and one tap copies the BPM either way. The link
+         toggle makes them follow each other; drills pause it while they run. -->
     <div class="sync">
       <span class="eyebrow">Studio tempo {store.tempo}</span>
       <button
         type="button"
         class="chip"
-        data-testid="metronome-sync-from"
-        onclick={() => met.setBpm(store.tempo)}
-      >↓ use in click</button>
-      <button
-        type="button"
-        class="chip"
-        data-testid="metronome-sync-to"
-        onclick={() => store.setTempo(met.bpm)}
-      >↑ set from click</button>
+        class:on={met.linkTempo}
+        aria-pressed={met.linkTempo}
+        data-testid="metronome-link"
+        onclick={() => (met.linkTempo = !met.linkTempo)}
+      >⛓ link{met.linkTempo && !met.linkActive ? ' (paused)' : ''}</button>
+      {#if !met.linkActive}
+        <button
+          type="button"
+          class="chip"
+          data-testid="metronome-sync-from"
+          onclick={() => met.setBpm(store.tempo)}
+        >↓ use in click</button>
+        <button
+          type="button"
+          class="chip"
+          data-testid="metronome-sync-to"
+          onclick={() => store.setTempo(met.bpm)}
+        >↑ set from click</button>
+      {/if}
     </div>
 
     <button
@@ -1094,6 +1105,7 @@
   }
 
   /* ---- history ---- */
+  .sync .chip.on { background: var(--accent-dark); border-color: var(--accent-dark); color: #fff; }
   .chip.danger { color: var(--accent-dark); border-color: rgba(154, 63, 31, 0.4); }
   .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
   .totals > div {

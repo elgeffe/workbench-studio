@@ -100,6 +100,18 @@ export class MetronomeStore {
 
   // ---- automation ----
   automationMode = $state<AutomationMode>('off');
+
+  // ---- studio tempo link (opt-in) ----
+  /** the user's wish: keep the click's base tempo equal to the studio tempo */
+  linkTempo = $state(false);
+  /**
+   * Whether the link is actually in force. Ramp / step / plan drills and the
+   * mic follower own the tempo while they run, so the link pauses for them and
+   * resumes (re-syncing from the studio) once they are off.
+   */
+  get linkActive(): boolean {
+    return this.linkTempo && this.automationMode === 'off' && !(this.micActive && this.micFollow);
+  }
   stepStartBpm = $state(80);
   stepAmount = $state(5);
   stepEveryBars = $state(4);
