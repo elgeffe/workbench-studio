@@ -9,10 +9,32 @@
   import BassMode from './lib/components/BassMode.svelte';
   import MetronomeMode from './lib/components/MetronomeMode.svelte';
   import LearnMode from './lib/components/LearnMode.svelte';
+  import CommandPalette from './lib/components/CommandPalette.svelte';
+  import Timeline from './lib/components/Timeline.svelte';
   import MidiPanel from './lib/components/MidiPanel.svelte';
 
   const store = provideStore();
+
+  // The instrument panel can be folded away so the editor takes the full width.
+  // The choice is a per-viewer convenience, so storage failures are ignored.
+  const SIDE_KEY = 'wb.sideOpen';
+  function readSide(): boolean {
+    try { return localStorage.getItem(SIDE_KEY) !== '0'; } catch { return true; }
+  }
+  let overlay = $state<'palette' | 'help' | null>(null);
+  let sideOpen = $state(readSide());
+  function toggleSide() {
+    sideOpen = !sideOpen;
+    try { localStorage.setItem(SIDE_KEY, sideOpen ? '1' : '0'); } catch { /* private mode */ }
+  }
   const v = $derived(store.view);
+  // Tabs whose part is sounding right now, so you can tell from any tab what is running.
+  const playingTab = $derived<Record<string, boolean>>({
+    drums: store.drPlaying,
+    chords: store.jzPlaying,
+    bass: store.jzPlaying && store.bassLine.some((c) => c),
+    metronome: store.met.isPlaying,
+  });
 
   // Resolve the layout before first paint so only one instrument panel mounts.
   if (typeof window !== 'undefined') {
@@ -24,9 +46,20 @@
   const CHORD_KEYS: Record<string, number> = { a: 0, s: 1, d: 2, f: 3, g: 4, h: 5, j: 6, k: 7 };
   function isTyping(t: EventTarget | null): boolean {
     const el = t as HTMLElement | null;
-    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
   }
   function onKeyDown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && store.isDesktop) {
+      e.preventDefault();
+      overlay = overlay === 'palette' ? null : 'palette';
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !isTyping(e.target)) {
+      const k = e.key.toLowerCase();
+      if (k === 'z') { e.preventDefault(); if (e.shiftKey) store.redo(); else store.undo(); return; }
+      if (k === 'y') { e.preventDefault(); store.redo(); return; }
+    }
+    if (overlay) return; // the overlay owns the keyboard while it is open
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
     // Space drives the transport — the practice click while its own tab is
     // open, the studio's one clock everywhere else.
@@ -35,6 +68,11 @@
       if (store.mode === 'metronome') store.met.toggle();
       else store.togglePlay();
       return;
+    }
+    if (store.isDesktop) {
+      if (e.key === '?') { overlay = 'help'; return; }
+      const tab = /^[1-6]$/.test(e.key) ? v.tabs[+e.key - 1] : undefined;
+      if (tab) { store.setMode(tab.id); return; }
     }
     if (store.mode !== 'chords') return;
     const deg = CHORD_KEYS[e.key.toLowerCase()];
@@ -67,7 +105,7 @@
 
     <!-- desktop mode tabs -->
     {#if store.isDesktop}
-      <div data-testid="desktop-tabs" style="display:flex;gap:0;background:#e7d9bf;border-bottom:1px solid #d3c1a1;padding:0 14px;overflow-x:auto">
+      <div data-testid="desktop-tabs" class="wb-tabs" style="display:flex;align-items:center;gap:0;background:#e7d9bf;border-bottom:1px solid #d3c1a1;padding:0 14px;overflow-x:auto">
         {#each v.tabs as tb (tb.id)}
           <div
             class="mono click"
@@ -75,9 +113,17 @@
             role="tab" tabindex="0" aria-label={tb.id} aria-selected={store.mode === tb.id}
             onclick={() => store.setMode(tb.id)}
             onkeydown={(e) => e.key === 'Enter' && store.setMode(tb.id)}
-          >{tb.label}</div>
+          >{tb.label}{#if playingTab[tb.id]}<span class="wb-tab-live" title="playing" aria-label="playing"></span>{/if}</div>
         {/each}
+        <span style="flex:1 1 auto"></span>
+        <button class="mono wb-undo" data-testid="undo" aria-label="undo" title="Undo (Ctrl/⌘ Z)" disabled={!store.canUndo} onclick={() => store.undo()}>↶</button>
+        <button class="mono wb-undo" data-testid="redo" aria-label="redo" title="Redo (Shift+Ctrl/⌘ Z)" disabled={!store.canRedo} onclick={() => store.redo()}>↷</button>
+        <button class="mono wb-undo" aria-label="keyboard shortcuts and command palette" title="Shortcuts (?) · Command palette (Ctrl/⌘ K)" onclick={() => (overlay = 'help')}>?</button>
       </div>
+    {/if}
+
+    {#if store.isDesktop && (store.mode === 'drums' || store.mode === 'bass' || store.mode === 'circle')}
+      <Timeline />
     {/if}
 
     <div class="wb-body">
@@ -98,14 +144,25 @@
       </div>
 
       <!-- desktop instrument panel -->
-      {#if store.isDesktop}
+      {#if store.isDesktop && sideOpen}
         <div class="wb-side">
-          <Instruments variant="side" />
+          <div class="wb-side-inner">
+            <button class="mono wb-side-fold" data-testid="side-fold" aria-label="hide instruments" title="Hide instruments" onclick={toggleSide}>HIDE ›</button>
+            <!-- Fretboards only teach where chords are in play; on Drums and
+                 Metronome they sit dark, so the panel shrinks to the keyboard. -->
+            <Instruments variant="side" lite={store.mode === 'drums' || store.mode === 'metronome'} />
+          </div>
         </div>
+      {:else if store.isDesktop}
+        <button class="mono wb-side-open" data-testid="side-open" aria-label="show instruments" title="Show instruments" onclick={toggleSide}>‹ INSTRUMENTS</button>
       {/if}
     </div>
   </div>
 </div>
+
+{#if overlay}
+  <CommandPalette mode={overlay} onClose={() => (overlay = null)} onToggleSide={toggleSide} />
+{/if}
 
 <!-- MIDI out settings, desktop only — see MidiPanel.svelte -->
 {#if store.isDesktop}

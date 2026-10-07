@@ -65,24 +65,63 @@ body {
 .serif { font-family: var(--serif); }
 .ital { font-style: italic; }
 .click { cursor: pointer; user-select: none; }
-.eyebrow { font-family: var(--mono); font-size: 9px; letter-spacing: .18em; color: #8a7350; text-transform: uppercase; }
+.eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; color: #7a6540; text-transform: uppercase; }
 .caption { font-family: var(--serif); font-style: italic; color: #7a6b50; line-height: 1.4; }
 
 /* range input */
 input[type='range'] { accent-color: var(--accent); }
 
 /* ---------- shell / layout ---------- */
-.wb-app { padding: 22px 22px 30px; }
+.wb-app { padding: 22px clamp(22px, calc(2vw - 4px), 40px) 30px; }
+/* Grows with the window: a 1320px cap left ~600px of dead margin on a 1080p
+   screen. The ceiling keeps line lengths sane on ultrawides. */
 .wb-shell {
-  max-width: 1320px; margin: 0 auto;
+  max-width: min(2200px, 100%); margin: 0 auto;
+  min-height: calc(100dvh - 52px);
+  display: flex; flex-direction: column;
   background: linear-gradient(#f6efe0, #f1e7d3);
   border: 1px solid var(--line2); border-radius: 8px;
   box-shadow: 0 26px 60px -28px rgba(60,40,16,.45), inset 0 1px 0 rgba(255,255,255,.5);
-  overflow: hidden;
+  overflow: clip;
 }
-.wb-body { display: flex; align-items: stretch; }
-.wb-content { flex: 1 1 0; min-width: 0; padding: 22px 24px; border-right: 1px solid var(--line); }
-.wb-side { flex: none; width: 470px; padding: 20px 22px; background: linear-gradient(#efe3ca, #e9dcc0); }
+.wb-body { display: flex; align-items: stretch; flex: 1 1 auto; }
+.wb-content { flex: 1 1 0; min-width: 0; padding: 22px clamp(24px, 1.6vw, 44px); border-right: 1px solid var(--line); }
+.wb-side { flex: none; width: clamp(470px, 30vw, 640px); padding: 20px 22px; background: linear-gradient(#efe3ca, #e9dcc0); }
+/* Pinned under the studio bar so the fretboards stay in view while the
+   editor scrolls. */
+.wb-side > .wb-side-inner { position: sticky; top: 134px; }
+.wb-tabs { position: sticky; top: 71px; z-index: 49; }
+.wb-tab-live {
+  display: inline-block; width: 6px; height: 6px; margin-left: 7px; border-radius: 50%;
+  background: var(--accent); vertical-align: 2px; animation: blink 1.2s ease-in-out infinite;
+}
+.wb-undo {
+  flex: none; margin-left: 6px; width: 30px; height: 28px; font-size: 14px; line-height: 1;
+  color: #5c4a30; background: transparent; border: 1px solid #cbb792; border-radius: 6px; cursor: pointer;
+}
+.wb-undo:hover:not(:disabled) { background: #f3ead4; }
+.wb-undo:disabled { opacity: .35; cursor: default; }
+.wb-side-fold, .wb-side-open {
+  font-size: 9px; letter-spacing: .1em; color: #7a6b50; cursor: pointer;
+  background: transparent; border: 1px solid #cbb792; border-radius: 6px; padding: 5px 9px;
+}
+.wb-side-fold { float: right; margin: -4px 0 6px 8px; }
+.wb-side-fold:hover, .wb-side-open:hover { background: #f3ead4; }
+/* Folded: a tab on the right edge of the shell, out of the editor's way. */
+.wb-side-open {
+  flex: none; align-self: flex-start; position: sticky; top: 100px;
+  writing-mode: vertical-rl; padding: 12px 6px; margin: 12px 8px 0 0;
+}
+
+/* Desktop has the room for readable small print: the inline 8-10px labels are
+   lifted a notch wherever they sit in the editors (not the phone dock). */
+@media (min-width: 981px) {
+  .wb-content .mono[style*="font-size:8px"] { font-size: 10px !important; }
+  .wb-content .mono[style*="font-size:8.5px"] { font-size: 10px !important; }
+  .wb-content .mono[style*="font-size:9px"] { font-size: 10.5px !important; }
+  .wb-content .mono[style*="font-size:9.5px"] { font-size: 10.5px !important; }
+  .caption { color: #6e5f45; }
+}
 
 /* mobile-only chrome hidden on desktop and vice-versa */
 .only-mobile { display: none; }
@@ -125,9 +164,13 @@ input[type='range'] { accent-color: var(--accent); }
   border-radius: 8px; padding: 5px 9px;
 }
 .wb-tempo input[type='range'] { width: 96px; }
-.wb-tempo-label { font-size: 8px; letter-spacing: .12em; color: #cba47a; }
+.wb-tempo-label { font-size: 9px; letter-spacing: .12em; color: #cba47a; }
 .wb-tempo-num { font-size: 14px; font-weight: 700; color: var(--parch2); width: 26px; text-align: right; }
-.wb-tempo-unit { font-size: 8px; letter-spacing: .1em; color: #9c8460; }
+.wb-tempo-edit {
+  width: 46px; font-size: 14px; font-weight: 700; color: var(--parch2); text-align: right;
+  background: rgba(0,0,0,.3); border: 1px solid var(--gold); border-radius: 4px; padding: 1px 3px;
+}
+.wb-tempo-unit { font-size: 9px; letter-spacing: .1em; color: #9c8460; }
 
 /* ---------- "load the whole style" ----------
    Sits at the top of a genre shelf. Dashed rather than solid: it is an offer,
@@ -150,11 +193,11 @@ input[type='range'] { accent-color: var(--accent); }
 }
 .wb-mixname {
   display: flex; align-items: center;
-  font-size: 9px; letter-spacing: .1em; padding: 8px 9px; white-space: nowrap;
+  font-size: 10px; letter-spacing: .1em; padding: 8px 9px; white-space: nowrap;
 }
 .wb-mixsolo {
   display: flex; align-items: center; justify-content: center;
-  font-size: 8px; letter-spacing: .04em; width: 20px;
+  font-size: 9px; letter-spacing: .04em; width: 22px;
   border-left: 1px solid;
 }
 /* In the phone's dock panel there is a full row to work with, so the strips

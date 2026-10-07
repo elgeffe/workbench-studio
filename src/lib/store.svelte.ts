@@ -3,6 +3,8 @@
 // a single `$derived` view-model (`view = computeView(this)`) that components
 // read as `store.view.*` — no handler closures leak out of the store.
 
+import { untrack } from 'svelte';
+import { loadSession, saveSession, parseSession, HISTORY_LIMIT, type Song, type Session } from './session';
 import { INT, SUF, MAJOR, CIRCLE, SCALES, type Chord, type ScaleId } from './engine/constants';
 import { mod12, spell, cname, gI, gMidis, chordMidis, diatonicList, jChVoiced, isRest, restChord } from './engine/theory';
 import { patternDefs, progsIn, type ChordDef } from './engine/data';
@@ -288,7 +290,85 @@ export class WorkbenchStore {
   private drHead = new Playhead<PlayheadBar>();
   private bsHead = new Playhead<BassBar>();
 
+  // ---- session: autosave, undo/redo, export ----
+  // The song (grid, bassline, progression and what colours them) is snapshotted
+  // after each pause in editing, so a burst of toggles is one undo step. A
+  // snapshot equal to the current one is never pushed, which is also what
+  // keeps an undo from recording itself.
+  canUndo = $state(false);
+  canRedo = $state(false);
+  private hist: string[] = [];
+  private histAt = 0;
+  private pendingSong: string | null = null;
+  private commitTimer: ReturnType<typeof setTimeout> | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private songSnapshot(): Song {
+    return $state.snapshot({
+      drTplId: this.drTplId, drLayerN: this.drLayerN, drGrid: this.drGrid, drRowIds: this.drRowIds,
+      drMuted: this.drMuted, drSwing: this.drSwing, bassLine: this.bassLine, bassSeedId: this.bassSeedId,
+      bassEdited: this.bassEdited, jzChanges: this.jzChanges, jzVoicing: this.jzVoicing, chordSlot: this.chordSlot,
+    }) as Song;
+  }
+  private sessionSnapshot(): Session {
+    return $state.snapshot({
+      v: 1 as const, ...this.songSnapshot(),
+      tempo: this.tempo, tonicPc: this.tonicPc, scale: this.scale, partOn: this.partOn,
+    }) as Session;
+  }
+  private applySong(s: Song): void {
+    this.drTplId = s.drTplId; this.drLayerN = s.drLayerN; this.drGrid = s.drGrid; this.drRowIds = s.drRowIds;
+    this.drMuted = s.drMuted; this.drSwing = s.drSwing; this.bassLine = s.bassLine; this.bassSeedId = s.bassSeedId;
+    this.bassEdited = s.bassEdited; this.jzChanges = s.jzChanges; this.jzVoicing = s.jzVoicing; this.chordSlot = s.chordSlot;
+    this.jzSel = Math.min(this.jzSel, s.jzChanges.length - 1);
+    this.jzStep = -1;
+  }
+  private restoreSession(s: Session): void {
+    this.applySong(s);
+    this.tempo = s.tempo; this.tonicPc = s.tonicPc; this.scale = s.scale; this.partOn = s.partOn;
+  }
+  private flushCommit(): void {
+    if (this.commitTimer) { clearTimeout(this.commitTimer); this.commitTimer = null; }
+    const j = this.pendingSong;
+    this.pendingSong = null;
+    if (j === null || j === this.hist[this.histAt]) return;
+    this.hist = this.hist.slice(0, this.histAt + 1);
+    this.hist.push(j);
+    if (this.hist.length > HISTORY_LIMIT) this.hist.shift();
+    this.histAt = this.hist.length - 1;
+    this.syncUndoFlags();
+  }
+  private syncUndoFlags(): void {
+    this.canUndo = this.histAt > 0;
+    this.canRedo = this.histAt < this.hist.length - 1;
+  }
+  private stepHistory(d: -1 | 1): void {
+    this.flushCommit();
+    const at = this.histAt + d;
+    if (at < 0 || at >= this.hist.length) return;
+    this.histAt = at;
+    this.applySong(JSON.parse(this.hist[at]) as Song);
+    this.syncUndoFlags();
+  }
+  undo(): void { this.stepHistory(-1); }
+  redo(): void { this.stepHistory(1); }
+  /** The whole session as a file's worth of JSON. */
+  exportSession(): string { return JSON.stringify(this.sessionSnapshot(), null, 2); }
+  /** Load a session file; false (and nothing changed) if it is not a valid one. */
+  importSession(text: string): boolean {
+    const s = parseSession(text);
+    if (!s) return false;
+    this.restoreSession(s);
+    this.flushCommit();
+    return true;
+  }
+
   constructor() {
+    // Pick up where the last visit left off, then start the undo history from
+    // exactly that state.
+    const saved = loadSession();
+    if (saved) this.restoreSession(saved);
+    this.hist = [JSON.stringify(this.songSnapshot())];
     // Opt-in two-way link between the studio tempo and the click's base tempo.
     // Declared as two effects so every writer of `tempo` (slider, templates,
     // loads) is covered without touching each one. Enabling the link adopts
@@ -301,6 +381,24 @@ export class WorkbenchStore {
       $effect(() => {
         if (this.met.linkActive) this.tempo = Math.min(180, Math.max(50, this.met.bpm));
       });
+      // Undo history and autosave both follow the state rather than each
+      // action, for the same reason as the link: nothing that writes the song
+      // has to remember to record it.
+      $effect(() => {
+        const j = JSON.stringify(this.songSnapshot());
+        untrack(() => {
+          this.pendingSong = j;
+          if (this.commitTimer) clearTimeout(this.commitTimer);
+          this.commitTimer = setTimeout(() => this.flushCommit(), 400);
+        });
+      });
+      $effect(() => {
+        const j = JSON.stringify(this.sessionSnapshot());
+        untrack(() => {
+          if (this.saveTimer) clearTimeout(this.saveTimer);
+          this.saveTimer = setTimeout(() => saveSession(j), 500);
+        });
+      });
     });
     // Prepare an ear-training target so the tab isn't empty, but stay silent:
     // playing here would queue notes on the not-yet-resumed AudioContext and
@@ -310,6 +408,8 @@ export class WorkbenchStore {
   }
 
   destroy(): void {
+    if (this.commitTimer) clearTimeout(this.commitTimer);
+    if (this.saveTimer) clearTimeout(this.saveTimer);
     this.met.destroy();
     this.midi.destroy();
     if (this.trLoop) clearInterval(this.trLoop);
@@ -407,6 +507,16 @@ export class WorkbenchStore {
    * one tap. Anything a genre happens not to carry is left alone rather than
    * cleared, so a partial style tops up what you have instead of emptying it.
    */
+  /** The first progression of the genre already chosen: a one-tap way out of an empty strip. */
+  loadStarterProgression(): void {
+    const prog = progsIn(this.wsGenre)[0];
+    if (prog) this.setProgression(prog.chords, prog.name);
+  }
+  /** The first groove of the genre already chosen, for an empty bassline. */
+  loadStarterBass(): void {
+    const groove = bassPatternsIn(this.bassGenre)[0];
+    if (groove) this.loadBassGroove(groove.id);
+  }
   setStyle(genreId: string): void {
     const tpl = drumTemplates().find((t) => t.genre === genreId);
     if (tpl) this.setDrumTpl(tpl.id);
@@ -697,6 +807,11 @@ export class WorkbenchStore {
     this.jzChanges = arr;
     this.jzSel = selRef ? arr.indexOf(selRef) : -1;
     this.jzStep = -1;
+  }
+  /** Timeline click: while the loop runs, jump it to slot i; otherwise just select it. */
+  seekChord(i: number): void {
+    if (this.jzPlaying) this.jIdx = i;
+    else this.jzSelect(i);
   }
   jzSelect(i: number): void {
     const ch = this.jzChanges[i];

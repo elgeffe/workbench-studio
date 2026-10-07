@@ -15,6 +15,18 @@
   import Mixer from './Mixer.svelte';
   const store = useStore();
   const v = $derived(store.view);
+
+  // The BPM readout is also a number field: click it, type a tempo, Enter.
+  let editing = $state(false);
+  let draft = $state('');
+  function startEdit() { draft = String(v.tempo); editing = true; }
+  function commit() {
+    if (!editing) return;
+    editing = false;
+    const n = Math.round(Number(draft));
+    if (Number.isFinite(n) && n > 0) store.setTempo(Math.min(180, Math.max(50, n)));
+  }
+  function focusSelect(el: HTMLInputElement) { el.focus(); el.select(); }
 </script>
 
 <div class="wb-header">
@@ -30,11 +42,15 @@
     {#if store.isDesktop}
       <!-- transport: one clock for drums, chords and bass -->
       <div class="wb-transport">
-        <div class="mono click wb-play" data-testid="studio-play" role="button" tabindex="0" aria-label="play" style="background:{v.jzPlayBg};box-shadow:0 3px 0 {v.jzPlayShadow}" onclick={() => store.togglePlay()} onkeydown={(e) => e.key === 'Enter' && store.togglePlay()}>{v.jzPlayLabel}</div>
+        <div class="mono click wb-play" data-testid="studio-play" role="button" tabindex="0" aria-label="play" title="Play / stop the whole band (Space)" style="background:{v.jzPlayBg};box-shadow:0 3px 0 {v.jzPlayShadow}" onclick={() => store.togglePlay()} onkeydown={(e) => e.key === 'Enter' && store.togglePlay()}>{v.jzPlayLabel}</div>
         <div class="wb-tempo">
           <span class="mono wb-tempo-label">TEMPO</span>
-          <input type="range" min="50" max="180" value={v.tempo} aria-label="studio tempo" oninput={(e) => store.setTempo(+e.currentTarget.value)} />
-          <span class="mono wb-tempo-num" data-testid="studio-bpm">{v.tempo}</span>
+          <input type="range" min="50" max="180" value={v.tempo} aria-label="studio tempo" title="Studio tempo, shared by drums, chords and bass · double-click to reset to 104" ondblclick={() => store.setTempo(104)} oninput={(e) => store.setTempo(+e.currentTarget.value)} />
+          {#if editing}
+            <input class="mono wb-tempo-edit" data-testid="studio-bpm-input" type="number" min="50" max="180" aria-label="type a tempo" bind:value={draft} use:focusSelect onblur={commit} onkeydown={(e) => { if (e.key === 'Enter') commit(); else if (e.key === 'Escape') editing = false; }} />
+          {:else}
+            <span class="mono click wb-tempo-num" data-testid="studio-bpm" role="button" tabindex="0" title="Click to type a tempo" onclick={startEdit} onkeydown={(e) => e.key === 'Enter' && startEdit()}>{v.tempo}</span>
+          {/if}
           <span class="mono wb-tempo-unit">BPM</span>
         </div>
         <Mixer />
@@ -47,7 +63,7 @@
     <div style="position:relative;flex:none">
       <div
         class="click wb-keybtn" data-testid="key-button" role="button" tabindex="0"
-        aria-expanded={v.keyPickerOpen} aria-label="key and scale — {v.keyName}"
+        aria-expanded={v.keyPickerOpen} title="Key and scale" aria-label="key and scale — {v.keyName}"
         onclick={() => store.togglePicker('key')}
         onkeydown={(e) => e.key === 'Enter' && store.togglePicker('key')}
       >
