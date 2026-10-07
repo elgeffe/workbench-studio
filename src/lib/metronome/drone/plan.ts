@@ -11,10 +11,14 @@ import { lerp, clamp01 } from '../automation';
 export interface PlanKey {
 	tonicPc: number;
 	scale: ScaleId;
+	/** a chord quality (a key of `INT`) the drone holds over the key; absent = the key's own triad */
+	chord?: string | null;
 }
 
 export interface PlanSection extends PlanKey {
 	id: string;
+	/** chord quality over the key (null/absent: just the key) */
+	chord?: string | null;
 	bars: number;
 	/** tempo for the section; null holds the metronome's own tempo */
 	bpm: number | null;
@@ -75,7 +79,11 @@ export function planAt(bar: number, plan: DronePlan): PlanPosition | null {
 				section,
 				barInSection: rest,
 				loop,
-				key: { tonicPc: mod12(section.tonicPc + shift), scale: section.scale },
+				key: {
+					tonicPc: mod12(section.tonicPc + shift),
+					scale: section.scale,
+					...(section.chord ? { chord: section.chord } : {}),
+				},
 				done,
 			};
 		}
@@ -85,7 +93,7 @@ export function planAt(bar: number, plan: DronePlan): PlanPosition | null {
 }
 
 export function sameKey(a: PlanKey | null | undefined, b: PlanKey | null | undefined): boolean {
-	return !!a && !!b && a.tonicPc === b.tonicPc && a.scale === b.scale;
+	return !!a && !!b && a.tonicPc === b.tonicPc && a.scale === b.scale && (a.chord ?? null) === (b.chord ?? null);
 }
 
 /**

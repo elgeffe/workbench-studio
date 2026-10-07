@@ -39,7 +39,15 @@ import {
   type DronePlan,
 } from './drone/plan';
 import { guideForKey, type DroneGuide, type DroneKey } from './drone/guide';
-import { generateSections, type GeneratorId, type GeneratorOptions } from './drone/generators';
+import {
+  generateSections,
+  sectionsFromChords,
+  transformChords,
+  type ChordLike,
+  type ChordTransform,
+  type GeneratorId,
+  type GeneratorOptions,
+} from './drone/generators';
 import {
   clonePlan,
   loadDroneSettings,
@@ -71,6 +79,8 @@ export class MetronomeStore {
   constructor(
     private studioKey: () => DroneKey = () => ({ tonicPc: 0, scale: 'ionian' }),
     private studioChord: () => DroneGuide | null = () => null,
+    /** the Chords progression's chords, rests left out — what the plan can import */
+    private studioProgression: () => ChordLike[] = () => [],
   ) {}
 
   // ---- transport / config ----
@@ -651,6 +661,18 @@ export class MetronomeStore {
   /** Replace the plan's sections with a generated run; tempo options stay. */
   generatePlan(id: GeneratorId, opts: GeneratorOptions): void {
     this.plan.sections = generateSections(id, opts);
+  }
+
+  /** Replace the plan's sections with the Chords progression, one bar per chord; edit freely after. */
+  importChordsToPlan(bars = 1): boolean {
+    const secs = sectionsFromChords(this.studioProgression(), bars);
+    if (!secs.length) return false;
+    this.plan.sections = secs;
+    return true;
+  }
+
+  transformPlanChords(how: ChordTransform): void {
+    transformChords(this.plan.sections, how);
   }
 
   // ----- plan editing -----
