@@ -80,7 +80,13 @@ export interface DroneSound {
 	glide: number;
 }
 
-export type DronePresetId = 'warm' | 'sine' | 'organ' | 'bowed' | 'nebula' | 'funky' | 'tanpura';
+export type DronePresetId = 'warm' | 'sine' | 'organ' | 'bowed' | 'nebula' | 'funky'
+	| 'aurora'
+	| 'abyss'
+	| 'glass'
+	| 'choir'
+	| 'tide'
+	| 'pulse';
 
 export interface DronePreset {
 	id: DronePresetId;
@@ -215,19 +221,148 @@ export const DRONE_PRESETS: DronePreset[] = [
 		},
 	},
 	{
-		id: 'tanpura',
-		name: 'Tanpura',
-		blurb: 'Four plucked strings — Pa, Sa, Sa, low Sa — one per beat.',
+		id: 'aurora',
+		name: 'Aurora',
+		blurb: 'Slow curtains of light: airy octaves that drift across the stereo field.',
 		sound: {
-			layers: [],
-			pluck: { strings: [-5, 0, 0, -12], wave: 'sawtooth', decay: 3.8, gain: 1 },
-			filter: { type: 'lowpass', cutoff: 3200, q: 0.8 },
-			lfos: [],
-			drive: 0.2,
-			reverb: { mix: 0.35, size: 3.2 },
-			attack: 0.02,
-			release: 2.5,
-			glide: 0.01,
+			layers: [
+				{ wave: 'triangle', octave: 0, gain: 1, detune: 16, unison: 3 },
+				{ wave: 'sine', octave: 1, interval: 7, gain: 0.4, detune: 8, unison: 2 },
+				{ wave: 'sine', octave: 2, gain: 0.18, detune: 0 },
+				{ wave: 'sine', octave: -1, gain: 0.45, detune: 0 },
+			],
+			filter: { type: 'lowpass', cutoff: 2600, q: 1.1 },
+			lfos: [
+				{ target: 'cutoff', rate: 0.07, depth: 1.4 },
+				{ target: 'pan', rate: 0.17, depth: 0.8 },
+				{ target: 'pitch', rate: 0.23, depth: 7 },
+			],
+			drive: 0,
+			reverb: { mix: 0.65, size: 7 },
+			delay: { beats: 1.5, feedback: 0.5, mix: 0.3 },
+			attack: 3.5,
+			release: 4.5,
+			glide: 1,
+		},
+	},
+	{
+		id: 'abyss',
+		name: 'Abyss',
+		blurb: 'Deep-sea sub rumble: dark, heavy and slowly breathing.',
+		sound: {
+			layers: [
+				{ wave: 'sine', octave: -2, gain: 1, detune: 0 },
+				{ wave: 'sawtooth', octave: -1, gain: 0.7, detune: 14, unison: 3 },
+				{ wave: 'triangle', octave: 0, gain: 0.25, detune: 6 },
+			],
+			filter: { type: 'lowpass', cutoff: 380, q: 3 },
+			lfos: [
+				{ target: 'cutoff', rate: 0.04, depth: 1.6 },
+				{ target: 'gain', rate: 0.09, depth: 0.15 },
+			],
+			drive: 0.3,
+			reverb: { mix: 0.5, size: 8 },
+			attack: 4,
+			release: 5,
+			glide: 1.2,
+		},
+	},
+	{
+		id: 'glass',
+		name: 'Glass',
+		blurb: 'Crystal harmonics: bright bell-like partials with a shimmering echo.',
+		sound: {
+			layers: [
+				{ wave: 'sine', octave: 0, gain: 1, detune: 3, unison: 2 },
+				{ wave: 'sine', octave: 1, interval: 7, gain: 0.55, detune: 0 },
+				{ wave: 'sine', octave: 2, gain: 0.4, detune: 5 },
+				{ wave: 'sine', octave: 2, interval: 4, gain: 0.2, detune: 0 },
+			],
+			filter: { type: 'lowpass', cutoff: 9000, q: 0.6 },
+			lfos: [
+				{ target: 'gain', rate: 0.35, depth: 0.1 },
+				{ target: 'pan', rate: 0.13, depth: 0.5 },
+			],
+			drive: 0,
+			reverb: { mix: 0.55, size: 5 },
+			delay: { beats: 0.75, feedback: 0.55, mix: 0.4 },
+			attack: 1.5,
+			release: 3,
+			glide: 0.5,
+		},
+	},
+	{
+		id: 'choir',
+		name: 'Choir',
+		blurb: 'Vowel-ish voices: a band-passed stack that breathes in and out.',
+		sound: {
+			layers: [
+				{ wave: 'sawtooth', octave: 0, gain: 1, detune: 12, unison: 3 },
+				{ wave: 'square', octave: -1, gain: 0.35, detune: 6 },
+				{ wave: 'triangle', octave: 1, gain: 0.3, detune: 9, unison: 2 },
+			],
+			filter: { type: 'bandpass', cutoff: 900, q: 1.6 },
+			lfos: [
+				{ target: 'cutoff', rate: 0.12, depth: 0.7 },
+				{ target: 'gain', rate: 0.2, depth: 0.2 },
+				{ target: 'pitch', rate: 5.4, depth: 5 },
+			],
+			drive: 0.08,
+			reverb: { mix: 0.5, size: 4.5 },
+			attack: 2.2,
+			release: 2.8,
+			glide: 0.5,
+		},
+	},
+	{
+		id: 'tide',
+		name: 'Tide',
+		blurb: 'A swell that rolls in and out, with a dub-style echo trailing it.',
+		sound: {
+			layers: [
+				{ wave: 'sawtooth', octave: 0, gain: 1, detune: 10, unison: 2 },
+				{ wave: 'sine', octave: -1, gain: 0.7, detune: 0 },
+			],
+			filter: { type: 'lowpass', cutoff: 700, q: 2.5 },
+			lfos: [
+				{ target: 'cutoff', rate: 0.1, depth: 2 },
+				{ target: 'gain', rate: 0.1, depth: 0.35 },
+				{ target: 'pan', rate: 0.05, depth: 0.4 },
+			],
+			drive: 0.12,
+			reverb: { mix: 0.35, size: 4 },
+			delay: { beats: 0.5, feedback: 0.6, mix: 0.45 },
+			attack: 2.5,
+			release: 3,
+			glide: 0.6,
+		},
+	},
+	{
+		id: 'pulse',
+		name: 'Pulse',
+		blurb: 'A trance-style throb that gates on the click’s eighth notes.',
+		sound: {
+			layers: [
+				{ wave: 'sawtooth', octave: 0, gain: 1, detune: 14, unison: 3 },
+				{ wave: 'square', octave: -1, gain: 0.5, detune: 5 },
+			],
+			groove: {
+				div: 2,
+				// one bar of 4/4 in eighths: strong on the beat, softer on the off-beat
+				steps: [1, 0.55, 0.8, 0.55, 0.9, 0.55, 0.8, 0.6],
+				swing: 0,
+				cutoff: 1.6,
+				gate: 0.6,
+				decay: 0.22,
+			},
+			filter: { type: 'lowpass', cutoff: 650, q: 4 },
+			lfos: [{ target: 'pan', rate: 0.2, depth: 0.4 }],
+			drive: 0.15,
+			reverb: { mix: 0.3, size: 2.5 },
+			delay: { beats: 0.75, feedback: 0.35, mix: 0.25 },
+			attack: 0.3,
+			release: 0.8,
+			glide: 0.05,
 		},
 	},
 ];

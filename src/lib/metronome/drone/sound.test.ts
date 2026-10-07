@@ -117,7 +117,6 @@ describe('planOscillators', () => {
 	});
 
 	it('normalises loudness across presets and voicings', () => {
-		// Tanpura holds nothing — it only plucks — so it has no stack to level
 		for (const p of DRONE_PRESETS.filter((p) => p.sound.layers.length)) {
 			for (const midis of [[48], [48, 55], [48, 52, 55]]) {
 				expect(rss(planOscillators(p.sound, midis).map((o) => o.gain))).toBeCloseTo(1);
@@ -126,7 +125,8 @@ describe('planOscillators', () => {
 	});
 
 	it('plans nothing for a plucked-only sound', () => {
-		expect(planOscillators(presetById('tanpura').sound, [48, 55])).toEqual([]);
+		const plucked = { ...presetById('warm').sound, layers: [], pluck: PLUCK };
+		expect(planOscillators(plucked, [48, 55])).toEqual([]);
 	});
 
 	it('thins unison rather than dropping notes when over budget', () => {
@@ -169,16 +169,19 @@ describe('grooveHits', () => {
 	});
 });
 
+// The plucked-string engine outlives the Tanpura preset, so test it on its own recipe.
+const PLUCK = { strings: [-5, 0, 0, -12], wave: 'sawtooth' as const, decay: 3.8, gain: 1 };
+
 describe('pluckString', () => {
 	it('cycles the strings beat by beat', () => {
-		const p = presetById('tanpura').sound.pluck!;
+		const p = PLUCK;
 		expect([0, 1, 2, 3, 4].map((n) => pluckString(p, n))).toEqual([-5, 0, 0, -12, -5]);
 	});
 });
 
 describe('rhythmic presets', () => {
-	it('only Funky and Tanpura need a beat to drive them', () => {
-		expect(DRONE_PRESETS.filter((p) => isRhythmic(p.sound)).map((p) => p.id)).toEqual(['funky', 'tanpura']);
+	it('only Funky and Pulse need a beat to drive them', () => {
+		expect(DRONE_PRESETS.filter((p) => isRhythmic(p.sound)).map((p) => p.id)).toEqual(['funky', 'pulse']);
 	});
 
 	it('the groove slider scales how hard the groove hits', () => {
