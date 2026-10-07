@@ -8,7 +8,7 @@
 // read from the progression's key-centre analysis, and the landmarks are the
 // chord's tones.
 
-import { SCALES, type Chord, type ScaleId } from '../../engine/constants';
+import { INT, SCALES, SUF, type Chord, type ScaleId } from '../../engine/constants';
 import { gI, gPcs, keyNameStr, mod12, prefFlat, scaleNotesStr, spell, spellScale } from '../../engine/theory';
 import { chordScale } from '../../engine/chordscale';
 import type { AnalysedChord } from '../../engine/keycenters';
@@ -17,6 +17,8 @@ import type { AnalysedChord } from '../../engine/keycenters';
 export interface DroneKey {
 	tonicPc: number;
 	scale: ScaleId;
+	/** a chord quality (a key of `INT`) to hold over the key — a plan section's chord */
+	chord?: string | null;
 }
 
 export interface DroneGuide {
@@ -40,6 +42,20 @@ export interface DroneGuide {
 export function guideForKey(k: DroneKey): DroneGuide {
 	const int = SCALES[k.scale].int;
 	const root = mod12(k.tonicPc);
+	const chord = k.chord ? INT[k.chord] : undefined;
+	if (chord) {
+		// the key's scale stays lit; the drone and the landmarks follow the chord
+		const { third, fifth } = chordTriad(chord);
+		const ch: Chord = { rootPc: root, quality: k.chord ?? undefined };
+		return {
+			root, third, fifth,
+			pcs: int.map((i) => mod12(root + i)),
+			landmarks: [...new Set(gPcs(ch).map(mod12))],
+			spell: { tonicPc: root, scale: k.scale },
+			name: `${spell(root, root, k.scale)}${SUF[k.chord!] ?? ''} · ${keyNameStr(root, k.scale)}`,
+			notes: scaleNotesStr(root, k.scale),
+		};
+	}
 	return {
 		root,
 		third: int[2],

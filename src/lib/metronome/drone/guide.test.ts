@@ -54,3 +54,11 @@ describe('guideForChord', () => {
 		expect(g.notes).toBe('G · B · D · F');
 	});
 });
+
+describe('guideForKey with a chord', () => {
+	it('lights the key but aims the drone and landmarks at the chord', () => {
+		const g = guideForKey({ tonicPc: 7, scale: 'mixolydian', chord: 'dom7sus' });
+		expect(g.third).toBe(5);
+		expect(new Set(g.landmarks)).toEqual(new Set([7, 0, 2, 5]));
+	});
+});

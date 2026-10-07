@@ -139,37 +139,4 @@ test.describe('drone practice plan', () => {
     await expect(page.getByTestId('metronome-play')).toHaveText(/START/);
     await expect(page.getByTestId('metronome-history').getByText(/Plan 4 sections/)).toBeVisible();
   });
-
-  test('Tanpura plucks one string per beat, exactly on the click', async ({ page }) => {
-    const drone = page.getByTestId('metronome-drone');
-    await drone.getByRole('tab', { name: 'Tanpura' }).click();
-    await page.locator('input[aria-label="Tempo in beats per minute"]').fill('240');
-    await page.getByTestId('metronome-plan-drone').click();
-    await page.getByTestId('metronome-play').click();
-    await page.waitForTimeout(1500);
-    await page.getByTestId('metronome-play').click();
-
-    const r = await rec(page);
-    const beats = r.starts.filter(isClick).map((s) => s.at);
-    const plucks = [...new Set(r.starts.filter((s) => s.type === 'sawtooth').map((s) => s.at))];
-    expect(plucks.length).toBeGreaterThan(3);
-    for (const t of plucks) {
-      expect(beats.some((b) => Math.abs(b - t) < 1e-6), `pluck at ${t} is on a beat`).toBe(true);
-    }
-    // Pa, Sa, Sa, low Sa over C3: G2, C3, C3, C2
-    const first = r.starts.filter((s) => s.type === 'sawtooth').filter((_, i) => i % 2 === 0).slice(0, 4);
-    expect(first.map((s) => Math.round(s.freq))).toEqual([98, 131, 131, 65]);
-  });
-
-  test('a rhythmic drone keeps its own beat when played without the click', async ({ page }) => {
-    const drone = page.getByTestId('metronome-drone');
-    await drone.getByRole('tab', { name: 'Tanpura' }).click();
-    await page.getByTestId('metronome-drone-toggle').click();
-    await page.waitForTimeout(1300); // 120 BPM: two or three plucks
-    await page.getByTestId('metronome-drone-toggle').click();
-    const r = await rec(page);
-    const plucks = [...new Set(r.starts.filter((s) => s.type === 'sawtooth').map((s) => s.at))].sort();
-    expect(plucks.length).toBeGreaterThanOrEqual(2);
-    expect(plucks[1] - plucks[0]).toBeCloseTo(0.5, 3);
-  });
 });

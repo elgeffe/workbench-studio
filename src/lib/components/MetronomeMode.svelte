@@ -4,7 +4,7 @@
   import type { GoalType, PracticeSession } from '../metronome/types';
   import type { AutomationMode } from '../metronome/store.svelte';
   import { DRONE_PRESETS, VOICINGS, isRhythmic, presetById, type DroneMacros, type DroneRegister } from '../metronome/drone/sound';
-  import { SCALES, type ScaleId } from '../engine/constants';
+  import { SCALES, SUF, type ScaleId } from '../engine/constants';
   import { keyNameStr, spell } from '../engine/theory';
   import { GENERATORS, type GeneratorId } from '../metronome/drone/generators';
   import type { DroneSource } from '../metronome/drone/persist';
@@ -50,6 +50,14 @@
     { id: 'groove', label: 'Groove', hint: 'how hard the rhythm hits' },
   ];
   const scaleIds = Object.keys(SCALES) as ScaleId[];
+  const planChords: { id: string | null; label: string }[] = [
+    { id: null, label: 'key' },
+    ...(['maj', 'min', 'dom7', 'maj7', 'min7', 'sus4', 'dim', 'aug', 'm7b5', 'dom7sus', 'maj9', 'min9', 'dom9'] as const).map((id) => ({
+      id: id as string,
+      label: SUF[id] || 'maj',
+    })),
+  ];
+  let importBars = $state(1);
   const pcs = Array.from({ length: 12 }, (_, i) => i);
   const sources: { id: DroneSource; label: string }[] = [
     { id: 'studio', label: 'Studio key' },
@@ -474,6 +482,13 @@
                   <button type="button" class="del click" aria-label="Remove section {i + 1}" disabled={met.plan.sections.length <= 1} onclick={() => met.removePlanSection(sec.id)}>✕</button>
                 </div>
                 <div class="plan-nums mono">
+                  <label>chord
+                    <select aria-label="Section {i + 1} chord" bind:value={sec.chord}>
+                      {#each planChords as c (c.id ?? 'key')}
+                        <option value={c.id}>{c.label}</option>
+                      {/each}
+                    </select>
+                  </label>
                   <label>bars <input type="number" min="1" max="64" aria-label="Section {i + 1} bars" bind:value={sec.bars} /></label>
                   <label>bpm <input type="number" min="20" max="400" placeholder="main" aria-label="Section {i + 1} BPM" bind:value={sec.bpm} /></label>
                   <label>→ <input type="number" min="20" max="400" placeholder="hold" aria-label="Section {i + 1} ramp to BPM" bind:value={sec.bpmTo} disabled={sec.bpm == null} /></label>
@@ -484,6 +499,15 @@
           <div class="row" style="margin-top:10px;flex-wrap:wrap">
             <button type="button" class="chip" data-testid="metronome-plan-add" onclick={() => met.addPlanSection()}>+ Add section (a 5th up)</button>
             <button type="button" class="chip" onclick={() => met.resetPlan()}>Reset</button>
+          </div>
+          <div class="row" style="margin-top:8px;flex-wrap:wrap" data-testid="metronome-plan-chords">
+            <button type="button" class="chip" data-testid="metronome-plan-import" onclick={() => met.importChordsToPlan(importBars)}>Import from Chords</button>
+            <label class="mono" style="font-size:10px">bars each <input type="number" min="1" max="16" style="width:44px" aria-label="Bars per imported chord" bind:value={importBars} /></label>
+            <span class="mono" style="font-size:10px;opacity:.7">Reshape:</span>
+            <button type="button" class="chip" onclick={() => met.transformPlanChords('triads')}>Triads</button>
+            <button type="button" class="chip" onclick={() => met.transformPlanChords('sevenths')}>7ths</button>
+            <button type="button" class="chip" onclick={() => met.transformPlanChords('sus')}>Sus</button>
+            <button type="button" class="chip" onclick={() => met.transformPlanChords('clear')}>Key only</button>
           </div>
           <p class="caption" style="font-size:11px;margin:8px 0 0">Leave BPM empty to use the main tempo; fill “→” to ramp across the section.</p>
 
@@ -1073,7 +1097,7 @@
   .plan-acts { display: flex; gap: 2px; }
   .plan-acts .del { width: 24px; height: 26px; }
   .plan-acts .del:disabled { opacity: 0.3; }
-  .plan-nums { grid-column: 2 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .plan-nums { grid-column: 2 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .plan-nums label { display: flex; align-items: center; gap: 5px; font-size: 9px; letter-spacing: 0.08em; color: #8a7350; text-transform: uppercase; }
   .plan-nums input:disabled { opacity: 0.45; }
 

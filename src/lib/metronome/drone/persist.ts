@@ -4,7 +4,7 @@
 // is checked field by field — a stale or hand-edited entry falls back to a
 // default rather than breaking the page.
 
-import { SCALES, type ScaleId } from '../../engine/constants';
+import { INT, SCALES, type ScaleId } from '../../engine/constants';
 import { DRONE_PRESETS, NEUTRAL_MACROS, VOICINGS, type DroneMacros, type DronePresetId, type DroneRegister, type DroneVoicing } from './sound';
 import { sectionId, type DronePlan, type PlanSection } from './plan';
 
@@ -102,6 +102,7 @@ function sanitizeSection(x: unknown): PlanSection | null {
 		id: sectionId(),
 		tonicPc,
 		scale,
+		chord: typeof x.chord === 'string' && x.chord in INT ? x.chord : null,
 		bars: Math.round(num(x.bars, 1, 64) ?? 4),
 		bpm,
 		bpmTo: bpm == null ? null : num(x.bpmTo, 20, 400),

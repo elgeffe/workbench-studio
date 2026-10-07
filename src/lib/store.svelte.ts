@@ -214,6 +214,7 @@ export class WorkbenchStore {
   met = new MetronomeStore(
     () => ({ tonicPc: this.tonicPc, scale: this.scale }),
     () => this.chordGuide,
+    () => this.jzChanges.filter((c) => !isRest(c)),
   );
 
   /**
