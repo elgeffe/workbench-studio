@@ -5,6 +5,7 @@
   // cheat sheet of every shortcut.
   import { useStore } from '../context';
   import { GENRES } from '../engine/genres';
+  import { clearSession } from '../session';
   import type { Mode } from '../store.svelte';
 
   let { mode, onClose, onToggleSide }: {
@@ -16,11 +17,38 @@
   const store = useStore();
   const v = $derived(store.view);
 
+  function exportFile() {
+    const url = URL.createObjectURL(new Blob([store.exportSession()], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'workbench-session.json'; a.click();
+    URL.revokeObjectURL(url);
+  }
+  function importFile() {
+    const f = document.createElement('input');
+    f.type = 'file'; f.accept = 'application/json,.json';
+    f.onchange = async () => {
+      const file = f.files?.[0];
+      if (file && !store.importSession(await file.text())) alert('That file is not a Workbench session.');
+    };
+    f.click();
+  }
+
+  function newSession() {
+    if (!confirm('Start a new session? The current grid, bassline and progression will be cleared (export first to keep them).')) return;
+    clearSession();
+    location.reload();
+  }
+
   type Cmd = { label: string; group: string; hint?: string; run: () => void };
 
   const commands: Cmd[] = $derived([
     ...v.tabs.map((t, i) => ({ label: 'Go to ' + t.label.replace(/^\S+\s/, ''), group: 'Tab', hint: String(i + 1), run: () => store.setMode(t.id as Mode) })),
     { label: store.jzPlaying || store.drPlaying ? 'Stop the band' : 'Play the band', group: 'Action', hint: 'Space', run: () => store.togglePlay() },
+    { label: 'Undo', group: 'Edit', hint: 'Ctrl/⌘ Z', run: () => store.undo() },
+    { label: 'Redo', group: 'Edit', hint: 'Shift+Ctrl/⌘ Z', run: () => store.redo() },
+    { label: 'Export session to a file', group: 'Session', run: exportFile },
+    { label: 'Import session from a file', group: 'Session', run: importFile },
+    { label: 'New session (clear everything)', group: 'Session', run: newSession },
     { label: 'Toggle sound', group: 'Action', run: () => store.toggleSound() },
     { label: 'Show or hide the instrument panel', group: 'Action', run: onToggleSide },
     ...v.keyChips.map((k) => ({ label: 'Key: ' + k.label, group: 'Key', run: () => store.setTonicKey(k.pc) })),
@@ -69,6 +97,8 @@
     ['A S D F G H J K', 'Chords tab: play the diatonic chords, hold to sustain'],
     ['← ↑ ↓ →', 'Move between step-grid cells (Drums, Bass)'],
     ['Enter', 'Toggle the focused cell or button'],
+    ['Ctrl/⌘ Z', 'Undo an edit to the grid, bassline or progression'],
+    ['Shift+Ctrl/⌘ Z', 'Redo (Ctrl/⌘ Y also works)'],
     ['Esc', 'Close an overlay'],
   ];
 </script>

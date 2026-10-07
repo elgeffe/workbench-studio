@@ -47,6 +47,11 @@
       overlay = overlay === 'palette' ? null : 'palette';
       return;
     }
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !isTyping(e.target)) {
+      const k = e.key.toLowerCase();
+      if (k === 'z') { e.preventDefault(); if (e.shiftKey) store.redo(); else store.undo(); return; }
+      if (k === 'y') { e.preventDefault(); store.redo(); return; }
+    }
     if (overlay) return; // the overlay owns the keyboard while it is open
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
     // Space drives the transport — the practice click while its own tab is
@@ -93,7 +98,7 @@
 
     <!-- desktop mode tabs -->
     {#if store.isDesktop}
-      <div data-testid="desktop-tabs" style="display:flex;gap:0;background:#e7d9bf;border-bottom:1px solid #d3c1a1;padding:0 14px;overflow-x:auto">
+      <div data-testid="desktop-tabs" style="display:flex;align-items:center;gap:0;background:#e7d9bf;border-bottom:1px solid #d3c1a1;padding:0 14px;overflow-x:auto">
         {#each v.tabs as tb (tb.id)}
           <div
             class="mono click"
@@ -103,6 +108,10 @@
             onkeydown={(e) => e.key === 'Enter' && store.setMode(tb.id)}
           >{tb.label}</div>
         {/each}
+        <span style="flex:1 1 auto"></span>
+        <button class="mono wb-undo" data-testid="undo" aria-label="undo" title="Undo (Ctrl/⌘ Z)" disabled={!store.canUndo} onclick={() => store.undo()}>↶</button>
+        <button class="mono wb-undo" data-testid="redo" aria-label="redo" title="Redo (Shift+Ctrl/⌘ Z)" disabled={!store.canRedo} onclick={() => store.redo()}>↷</button>
+        <button class="mono wb-undo" aria-label="keyboard shortcuts and command palette" title="Shortcuts (?) · Command palette (Ctrl/⌘ K)" onclick={() => (overlay = 'help')}>?</button>
       </div>
     {/if}
 

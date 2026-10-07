@@ -53,3 +53,24 @@ test('the timeline shows the progression on Drums and jumps the loop on click', 
   await bars.nth(3).click();
   await expect(bars.nth(3)).toHaveClass(/on/, { timeout: 4000 });
 });
+
+test('undo and redo step through grid edits, and the song survives a reload', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('2');
+  const cell = page.locator('[aria-label="kick step 2"]');
+  const bg = () => cell.evaluate((el) => getComputedStyle(el).backgroundColor);
+  const before = await bg();
+  await cell.click();
+  const edited = await bg();
+  expect(edited).not.toBe(before);
+  await page.waitForTimeout(600); // let the edit settle into one undo step
+  await page.keyboard.press('Control+z');
+  await expect.poll(bg).toBe(before);
+  await page.keyboard.press('Control+Shift+z');
+  await expect.poll(bg).toBe(edited);
+  await page.waitForTimeout(700); // autosave is debounced
+  await page.reload();
+  await page.keyboard.press('2');
+  await expect.poll(() => page.locator('[aria-label="kick step 2"]').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(edited);
+  await expect(page.getByTestId('undo')).toBeDisabled();
+});
