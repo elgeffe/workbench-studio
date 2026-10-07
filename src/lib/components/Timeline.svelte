@@ -37,7 +37,7 @@
 <style>
   .wb-timeline {
     display: flex; align-items: stretch; gap: 14px;
-    padding: 9px clamp(24px, 2.4vw, 44px);
+    padding: 9px clamp(24px, 1.6vw, 44px);
     background: #efe3ca; border-bottom: 1px solid var(--line);
   }
   .wb-tl-meta {

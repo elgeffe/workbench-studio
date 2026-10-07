@@ -3,6 +3,24 @@
   import GenrePicker from './GenrePicker.svelte';
   const store = useStore();
   const v = $derived(store.view);
+
+  // Arrow keys walk the step grid: left/right along a row, up/down between
+  // rows (keeping the column). Enter on a cell toggles it, as before.
+  function gridNav(e: KeyboardEvent) {
+    const cell = (e.target as HTMLElement).closest('[data-gc]') as HTMLElement | null;
+    if (!cell || e.altKey || e.ctrlKey || e.metaKey) return;
+    const rows = v.drRows.map((r) => r.id);
+    let r = rows.indexOf(cell.dataset.gr as (typeof rows)[number]), c = +(cell.dataset.gc ?? 0);
+    if (e.key === 'ArrowRight') c++;
+    else if (e.key === 'ArrowLeft') c--;
+    else if (e.key === 'ArrowDown') r++;
+    else if (e.key === 'ArrowUp') r--;
+    else return;
+    e.preventDefault();
+    const next = e.currentTarget instanceof HTMLElement
+      ? (e.currentTarget.querySelector(`[data-gr="${rows[r]}"][data-gc="${c}"]`) as HTMLElement | null) : null;
+    next?.focus();
+  }
 </script>
 
 <div>
@@ -43,7 +61,8 @@
   </div>
 
   <!-- the step grid -->
-  <div data-testid="drum-grid" style="overflow-x:auto;padding-bottom:4px">
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div data-testid="drum-grid" role="group" style="overflow-x:auto;padding-bottom:4px" onkeydown={gridNav}>
     <div style="min-width:560px">
       <div style="display:flex;gap:3px;margin-bottom:4px;padding-left:123px">
         {#each v.drCount as c (c.s)}
@@ -60,6 +79,7 @@
           <div class="mono click" style="flex:none;width:16px;text-align:center;font-size:9px;padding:4px 0;border-radius:4px;border:1px solid #cbb792;color:#a08a64" role="button" tabindex="0" aria-label={'remove ' + row.name + ' row'} onclick={() => store.removeDrumRow(row.id)} onkeydown={(e) => e.key === 'Enter' && store.removeDrumRow(row.id)}>×</div>
           {#each row.cells as cell (cell.s)}
             <div
+              data-gr={row.id} data-gc={cell.s}
               class="click"
               style="flex:1;min-width:24px;height:26px;border-radius:5px;background:{cell.bg};opacity:{cell.op};border:1px solid {cell.ring ? '#c2562e' : 'rgba(60,40,16,.12)'};box-shadow:{cell.ring ? '0 0 0 1.5px #c2562e' : 'none'}"
               role="button" tabindex="0" aria-label={row.id + ' step ' + (cell.s + 1)}

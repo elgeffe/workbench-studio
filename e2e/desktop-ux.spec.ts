@@ -1,0 +1,55 @@
+import { test, expect } from '@playwright/test';
+
+test.use({ viewport: { width: 1600, height: 900 } });
+
+test('number keys switch tabs and ? opens the shortcut list', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('2');
+  await expect(page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' })).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('?');
+  await expect(page.getByTestId('shortcut-help')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('shortcut-help')).toBeHidden();
+});
+
+test('command palette filters and runs a command', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('Control+k');
+  await expect(page.getByTestId('command-palette')).toBeVisible();
+  await page.keyboard.type('go to bass');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('desktop-tabs').getByRole('tab', { name: 'bass' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('command-palette')).toBeHidden();
+});
+
+test('arrow keys walk the drum grid', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('2');
+  await page.locator('[aria-label="kick step 1"]').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowUp');
+  await expect(page.locator('[aria-label="snare step 2"]')).toBeFocused();
+});
+
+test('the instrument panel folds away and the choice survives a reload', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('side-fold').click();
+  await expect(page.getByTestId('side-open')).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId('side-open')).toBeVisible();
+  await page.getByTestId('side-open').click();
+  await expect(page.getByTestId('side-fold')).toBeVisible();
+});
+
+test('the timeline shows the progression on Drums and jumps the loop on click', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('3');
+  await page.getByLabel('Enter chord changes').fill('Dm7 G7 Cmaj7 A7');
+  await page.getByTestId('add-typed').click();
+  await page.keyboard.press('2');
+  const bars = page.getByTestId('timeline-bar');
+  await expect(bars).toHaveCount(4);
+  await page.getByTestId('studio-play').click();
+  await bars.nth(3).click();
+  await expect(bars.nth(3)).toHaveClass(/on/, { timeout: 4000 });
+});

@@ -20,6 +20,16 @@
   import GenrePicker from './GenrePicker.svelte';
   const store = useStore();
   const v = $derived(store.view);
+
+  // Left/right walk the line's sixteen steps; Enter cycles the note, as before.
+  function bassNav(e: KeyboardEvent) {
+    const cell = (e.target as HTMLElement).closest('[data-gc]') as HTMLElement | null;
+    if (!cell || e.altKey || e.ctrlKey || e.metaKey) return;
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!d) return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).querySelector<HTMLElement>(`[data-gc="${+(cell.dataset.gc ?? 0) + d}"]`)?.focus();
+  }
 </script>
 
 <div>
@@ -79,9 +89,10 @@
         <div class="mono" style="flex:1;text-align:center;font-size:9px;margin-left:{c.ml}px;font-weight:{c.strong ? '700' : '400'};color:{c.hot ? '#c2562e' : c.strong ? '#5c4a30' : '#a08a64'}">{c.c}</div>
       {/each}
     </div>
-    <div style="display:flex;gap:3px">
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div style="display:flex;gap:3px" role="group" onkeydown={bassNav}>
       {#each v.bassLineCells as c, s (s)}
-        <div class="mono click" style="flex:1;height:44px;border-radius:4px;background:{c.bg};color:{c.fg};font-size:12px;line-height:44px;text-align:center;overflow:hidden;margin-left:{s > 0 && s % 4 === 0 ? '5px' : '0'};box-shadow:{c.shadow}" role="button" tabindex="0" aria-current={c.hot ? 'step' : undefined} aria-label={'step ' + (s + 1)} onclick={() => store.cycleBassCell(s)} onkeydown={(e) => e.key === 'Enter' && store.cycleBassCell(s)}>{c.label}</div>
+        <div data-gc={s} class="mono click" style="flex:1;height:44px;border-radius:4px;background:{c.bg};color:{c.fg};font-size:12px;line-height:44px;text-align:center;overflow:hidden;margin-left:{s > 0 && s % 4 === 0 ? '5px' : '0'};box-shadow:{c.shadow}" role="button" tabindex="0" aria-current={c.hot ? 'step' : undefined} aria-label={'step ' + (s + 1)} onclick={() => store.cycleBassCell(s)} onkeydown={(e) => e.key === 'Enter' && store.cycleBassCell(s)}>{c.label}</div>
       {/each}
     </div>
 

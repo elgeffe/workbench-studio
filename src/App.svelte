@@ -9,6 +9,7 @@
   import BassMode from './lib/components/BassMode.svelte';
   import MetronomeMode from './lib/components/MetronomeMode.svelte';
   import LearnMode from './lib/components/LearnMode.svelte';
+  import CommandPalette from './lib/components/CommandPalette.svelte';
   import Timeline from './lib/components/Timeline.svelte';
   import MidiPanel from './lib/components/MidiPanel.svelte';
 
@@ -20,6 +21,7 @@
   function readSide(): boolean {
     try { return localStorage.getItem(SIDE_KEY) !== '0'; } catch { return true; }
   }
+  let overlay = $state<'palette' | 'help' | null>(null);
   let sideOpen = $state(readSide());
   function toggleSide() {
     sideOpen = !sideOpen;
@@ -37,9 +39,15 @@
   const CHORD_KEYS: Record<string, number> = { a: 0, s: 1, d: 2, f: 3, g: 4, h: 5, j: 6, k: 7 };
   function isTyping(t: EventTarget | null): boolean {
     const el = t as HTMLElement | null;
-    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
   }
   function onKeyDown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && store.isDesktop) {
+      e.preventDefault();
+      overlay = overlay === 'palette' ? null : 'palette';
+      return;
+    }
+    if (overlay) return; // the overlay owns the keyboard while it is open
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
     // Space drives the transport — the practice click while its own tab is
     // open, the studio's one clock everywhere else.
@@ -48,6 +56,11 @@
       if (store.mode === 'metronome') store.met.toggle();
       else store.togglePlay();
       return;
+    }
+    if (store.isDesktop) {
+      if (e.key === '?') { overlay = 'help'; return; }
+      const tab = /^[1-6]$/.test(e.key) ? v.tabs[+e.key - 1] : undefined;
+      if (tab) { store.setMode(tab.id); return; }
     }
     if (store.mode !== 'chords') return;
     const deg = CHORD_KEYS[e.key.toLowerCase()];
@@ -130,6 +143,10 @@
     </div>
   </div>
 </div>
+
+{#if overlay}
+  <CommandPalette mode={overlay} onClose={() => (overlay = null)} onToggleSide={toggleSide} />
+{/if}
 
 <!-- MIDI out settings, desktop only — see MidiPanel.svelte -->
 {#if store.isDesktop}
