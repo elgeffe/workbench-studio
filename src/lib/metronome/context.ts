@@ -3,10 +3,15 @@
 // deliberately separate from the theory studio's AudioEngine context so the
 // click's timing never competes with chord/drum scheduling on the same graph.
 
+import { ignoreMuteSwitch } from '../audioSession';
+
 let ctx: AudioContext | null = null;
 
 export function getAudioContext(): AudioContext {
 	if (!ctx) {
+		// Without this iOS mutes the click and drone whenever the phone's silent
+		// switch is on; only the in-app mute should do that.
+		ignoreMuteSwitch();
 		const Ctor =
 			window.AudioContext ??
 			(window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
