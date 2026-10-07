@@ -207,8 +207,8 @@ export class WorkbenchStore {
   picker = $state<PickerId | null>(null);
 
   // ---- practice metronome (its own engine + runes sub-store) ----
-  // The click runs on its own AudioContext and keeps ticking when you browse
-  // other tabs — practice against it anywhere in the studio.
+  // The click shares the studio's AudioContext (one clock) and keeps ticking
+  // when you browse other tabs — practice against it anywhere in the studio.
   // The drone follows the studio key unless told otherwise — or, set to, the
   // chord the Chords progression is on.
   met = new MetronomeStore(
@@ -778,11 +778,11 @@ export class WorkbenchStore {
       return;
     }
     // A drone following the changes moves when this chord sounds, not now:
-    // the slot is scheduled ahead, so hand over how far ahead (the two audio
-    // clocks differ, but a lead time means the same on both).
+    // the slot is scheduled ahead, so hand over the exact time on the audio
+    // clock the drone shares with the transport.
     if (this.met.followsChords) {
       const g = guideForChord(ch, this.progressionAnalysis.find((x) => x.i === i), { tonicPc: this.tonicPc, scale: this.scale });
-      this.met.droneChordAt(g, at - this.audio.now());
+      this.met.droneChordAt(g, at);
     }
     const voiced = jChVoiced(ch, this.jzVoicing);
     this.activeChord = voiced;

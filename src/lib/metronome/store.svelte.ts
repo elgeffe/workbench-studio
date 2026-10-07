@@ -482,13 +482,14 @@ export class MetronomeStore {
   }
 
   /**
-   * Move the drone to a chord `lead` seconds from now — when the studio's
+   * Move the drone to a chord at audio-clock time `at` — when the studio's
    * transport schedules the chord, so the two land together. The reactive
    * update that follows finds the change already queued and leaves it be.
    */
-  droneChordAt(g: DroneGuide, lead: number): void {
+  droneChordAt(g: DroneGuide, at: number): void {
     if (!this.followsChords || !this.drone) return;
-    const t = getAudioContext().currentTime + Math.max(0, Math.min(1, lead));
+    // A time already past (a late slot) lands now rather than in the past.
+    const t = Math.max(getAudioContext().currentTime, at);
     this.drone.setPitchAt(this.midisFor(g), t);
   }
 

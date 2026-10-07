@@ -2,7 +2,7 @@
 // a detuned triangle+sine pair through a shared low-pass filter and master
 // gain. Isolated from state so it can be reasoned about (and stubbed in tests).
 
-import { ignoreMuteSwitch } from './audioSession';
+import { sharedAudioContext } from './audioContext';
 import { drumVoice as drumVoiceDef } from './engine/drums';
 import type { DrumVoiceId, DrumFilter, DrumWave, DrumSynthLayer } from './engine/drums';
 
@@ -41,9 +41,8 @@ export class AudioEngine {
 
   private ensure(): void {
     if (!this.actx) {
-      ignoreMuteSwitch();
-      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      this.actx = new AC();
+      // Shared with the metronome, so both run on one clock.
+      this.actx = sharedAudioContext();
       this.master = this.actx.createGain();
       this.master.gain.value = this.volume;
       const lp = this.actx.createBiquadFilter();
