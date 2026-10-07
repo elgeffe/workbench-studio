@@ -90,6 +90,17 @@ input[type='range'] { accent-color: var(--accent); }
 /* Pinned under the studio bar so the fretboards stay in view while the
    editor scrolls. */
 .wb-side > .wb-side-inner { position: sticky; top: 92px; }
+.wb-side-fold, .wb-side-open {
+  font-size: 9px; letter-spacing: .1em; color: #7a6b50; cursor: pointer;
+  background: transparent; border: 1px solid #cbb792; border-radius: 6px; padding: 5px 9px;
+}
+.wb-side-fold { float: right; margin: -4px 0 6px 8px; }
+.wb-side-fold:hover, .wb-side-open:hover { background: #f3ead4; }
+/* Folded: a tab on the right edge of the shell, out of the editor's way. */
+.wb-side-open {
+  flex: none; align-self: flex-start; position: sticky; top: 100px;
+  writing-mode: vertical-rl; padding: 12px 6px; margin: 12px 8px 0 0;
+}
 
 /* mobile-only chrome hidden on desktop and vice-versa */
 .only-mobile { display: none; }

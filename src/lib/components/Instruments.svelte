@@ -3,7 +3,7 @@
   import Fretboard from './Fretboard.svelte';
   import Piano from './Piano.svelte';
 
-  let { variant = 'side' }: { variant?: 'side' | 'dock' } = $props();
+  let { variant = 'side', lite = false }: { variant?: 'side' | 'dock'; lite?: boolean } = $props();
   const store = useStore();
   const v = $derived(store.view);
 </script>
@@ -18,9 +18,11 @@
 {/if}
 
 {#if variant === 'side'}
-  <Fretboard rows={v.bass} frets13={v.frets13} label="BASS · EADG" cellH={22} noteSz={18} onPick={(pc) => store.selectNote(pc)} />
-  <Fretboard rows={v.guitar} frets13={v.frets13} label="GUITAR · EADGBE" cellH={20} noteSz={16} onPick={(pc) => store.selectNote(pc)} />
-  <Piano white={v.pianoWhite} black={v.pianoBlack} height={96} />
+  {#if !lite}
+    <Fretboard rows={v.bass} frets13={v.frets13} label="BASS · EADG" cellH={22} noteSz={18} onPick={(pc) => store.selectNote(pc)} />
+    <Fretboard rows={v.guitar} frets13={v.frets13} label="GUITAR · EADGBE" cellH={20} noteSz={16} onPick={(pc) => store.selectNote(pc)} />
+  {/if}
+  <Piano white={v.pianoWhite} black={v.pianoBlack} height={lite ? 150 : 96} />
 {:else}
   <Piano white={v.pianoWhite} black={v.pianoBlack} height={92} />
   <div style="height:14px"></div>

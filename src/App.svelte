@@ -12,6 +12,18 @@
   import MidiPanel from './lib/components/MidiPanel.svelte';
 
   const store = provideStore();
+
+  // The instrument panel can be folded away so the editor takes the full width.
+  // The choice is a per-viewer convenience, so storage failures are ignored.
+  const SIDE_KEY = 'wb.sideOpen';
+  function readSide(): boolean {
+    try { return localStorage.getItem(SIDE_KEY) !== '0'; } catch { return true; }
+  }
+  let sideOpen = $state(readSide());
+  function toggleSide() {
+    sideOpen = !sideOpen;
+    try { localStorage.setItem(SIDE_KEY, sideOpen ? '1' : '0'); } catch { /* private mode */ }
+  }
   const v = $derived(store.view);
 
   // Resolve the layout before first paint so only one instrument panel mounts.
@@ -98,10 +110,17 @@
       </div>
 
       <!-- desktop instrument panel -->
-      {#if store.isDesktop}
+      {#if store.isDesktop && sideOpen}
         <div class="wb-side">
-          <div class="wb-side-inner"><Instruments variant="side" /></div>
+          <div class="wb-side-inner">
+            <button class="mono wb-side-fold" data-testid="side-fold" aria-label="hide instruments" title="Hide instruments" onclick={toggleSide}>HIDE ›</button>
+            <!-- Fretboards only teach where chords are in play; on Drums and
+                 Metronome they sit dark, so the panel shrinks to the keyboard. -->
+            <Instruments variant="side" lite={store.mode === 'drums' || store.mode === 'metronome'} />
+          </div>
         </div>
+      {:else if store.isDesktop}
+        <button class="mono wb-side-open" data-testid="side-open" aria-label="show instruments" title="Show instruments" onclick={toggleSide}>‹ INSTRUMENTS</button>
       {/if}
     </div>
   </div>
