@@ -289,6 +289,19 @@ export class WorkbenchStore {
   private bsHead = new Playhead<BassBar>();
 
   constructor() {
+    // Opt-in two-way link between the studio tempo and the click's base tempo.
+    // Declared as two effects so every writer of `tempo` (slider, templates,
+    // loads) is covered without touching each one. Enabling the link adopts
+    // the studio tempo (effect 1 runs first); the click is clamped to the
+    // studio slider's range while linked.
+    $effect.root(() => {
+      $effect(() => {
+        if (this.met.linkActive) this.met.setBpm(Math.min(180, Math.max(50, this.tempo)));
+      });
+      $effect(() => {
+        if (this.met.linkActive) this.tempo = Math.min(180, Math.max(50, this.met.bpm));
+      });
+    });
     // Prepare an ear-training target so the tab isn't empty, but stay silent:
     // playing here would queue notes on the not-yet-resumed AudioContext and
     // fire them on the user's first gesture, doubling their first chord.

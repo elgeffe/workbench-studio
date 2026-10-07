@@ -60,6 +60,22 @@ test.describe('metronome tab', () => {
     await expect(page.getByTestId('studio-bpm')).toHaveText('132');
   });
 
+  test('link toggle keeps click and studio tempo together, and pauses for drills', async ({ page }) => {
+    await page.getByTestId('metronome-link').click();
+    await expect(page.getByTestId('metronome-bpm')).toHaveText('104');
+    // click -> studio
+    await page.locator('input[aria-label="Tempo in beats per minute"]').fill('132');
+    await expect(page.getByText('Studio tempo 132')).toBeVisible();
+    // studio -> click
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' }).click();
+    await page.locator('input[aria-label="studio tempo"]').fill('90');
+    await page.getByTestId('desktop-tabs').getByRole('tab', { name: 'metronome' }).click();
+    await expect(page.getByTestId('metronome-bpm')).toHaveText('90');
+    // a ramp drill pauses the link
+    await page.getByRole('tab', { name: 'Ramp / time' }).click();
+    await expect(page.getByTestId('metronome-link')).toContainText('paused');
+  });
+
   test('goal by bars shows a target and progress readout', async ({ page }) => {
     const goal = page.getByTestId('metronome-goal');
     await goal.getByRole('tab', { name: 'By bars' }).click();
