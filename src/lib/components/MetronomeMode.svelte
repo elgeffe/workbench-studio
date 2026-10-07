@@ -929,6 +929,12 @@
 
 <style>
   .mt-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 900px; margin: 0 auto; }
+  /* Wide windows: the transport stays pinned on the left while the practice
+     cards scroll beside it, so START is never a long scroll from the tempo. */
+  @media (min-width: 1500px) {
+    .mt-wrap { display: grid; grid-template-columns: minmax(380px, 0.7fr) 1.6fr; align-items: start; max-width: none; }
+    .mt-wrap > .hero { position: sticky; top: 92px; }
+  }
 
   .card {
     background: linear-gradient(#faf4e6, #f6efe0);

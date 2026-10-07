@@ -100,7 +100,7 @@
       <!-- desktop instrument panel -->
       {#if store.isDesktop}
         <div class="wb-side">
-          <Instruments variant="side" />
+          <div class="wb-side-inner"><Instruments variant="side" /></div>
         </div>
       {/if}
     </div>

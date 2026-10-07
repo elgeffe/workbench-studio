@@ -72,17 +72,24 @@ body {
 input[type='range'] { accent-color: var(--accent); }
 
 /* ---------- shell / layout ---------- */
-.wb-app { padding: 22px 22px 30px; }
+.wb-app { padding: 22px clamp(12px, 2vw, 40px) 30px; }
+/* Grows with the window: a 1320px cap left ~600px of dead margin on a 1080p
+   screen. The ceiling keeps line lengths sane on ultrawides. */
 .wb-shell {
-  max-width: 1320px; margin: 0 auto;
+  max-width: min(2200px, 100%); margin: 0 auto;
+  min-height: calc(100dvh - 52px);
+  display: flex; flex-direction: column;
   background: linear-gradient(#f6efe0, #f1e7d3);
   border: 1px solid var(--line2); border-radius: 8px;
   box-shadow: 0 26px 60px -28px rgba(60,40,16,.45), inset 0 1px 0 rgba(255,255,255,.5);
-  overflow: hidden;
+  overflow: clip;
 }
-.wb-body { display: flex; align-items: stretch; }
-.wb-content { flex: 1 1 0; min-width: 0; padding: 22px 24px; border-right: 1px solid var(--line); }
-.wb-side { flex: none; width: 470px; padding: 20px 22px; background: linear-gradient(#efe3ca, #e9dcc0); }
+.wb-body { display: flex; align-items: stretch; flex: 1 1 auto; }
+.wb-content { flex: 1 1 0; min-width: 0; padding: 22px clamp(24px, 2.4vw, 44px); border-right: 1px solid var(--line); }
+.wb-side { flex: none; width: clamp(470px, 30vw, 640px); padding: 20px 22px; background: linear-gradient(#efe3ca, #e9dcc0); }
+/* Pinned under the studio bar so the fretboards stay in view while the
+   editor scrolls. */
+.wb-side > .wb-side-inner { position: sticky; top: 92px; }
 
 /* mobile-only chrome hidden on desktop and vice-versa */
 .only-mobile { display: none; }
