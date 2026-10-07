@@ -698,6 +698,11 @@ export class WorkbenchStore {
     this.jzSel = selRef ? arr.indexOf(selRef) : -1;
     this.jzStep = -1;
   }
+  /** Timeline click: while the loop runs, jump it to slot i; otherwise just select it. */
+  seekChord(i: number): void {
+    if (this.jzPlaying) this.jIdx = i;
+    else this.jzSelect(i);
+  }
   jzSelect(i: number): void {
     const ch = this.jzChanges[i];
     if (!ch) return;
