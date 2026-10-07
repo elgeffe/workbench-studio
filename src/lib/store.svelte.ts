@@ -507,6 +507,16 @@ export class WorkbenchStore {
    * one tap. Anything a genre happens not to carry is left alone rather than
    * cleared, so a partial style tops up what you have instead of emptying it.
    */
+  /** The first progression of the genre already chosen: a one-tap way out of an empty strip. */
+  loadStarterProgression(): void {
+    const prog = progsIn(this.wsGenre)[0];
+    if (prog) this.setProgression(prog.chords, prog.name);
+  }
+  /** The first groove of the genre already chosen, for an empty bassline. */
+  loadStarterBass(): void {
+    const groove = bassPatternsIn(this.bassGenre)[0];
+    if (groove) this.loadBassGroove(groove.id);
+  }
   setStyle(genreId: string): void {
     const tpl = drumTemplates().find((t) => t.genre === genreId);
     if (tpl) this.setDrumTpl(tpl.id);

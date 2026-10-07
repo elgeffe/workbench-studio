@@ -124,6 +124,7 @@
   <div bind:this={stripEl} style="display:flex;gap:14px;overflow-x:auto;min-height:78px;padding:11px;background:#ece0c6;border:1px dashed #cbb792;border-radius:9px;margin-bottom:12px;align-items:stretch">
     {#if v.jzEmpty}
       <span class="caption" style="font-size:14px;color:#9a8763;max-width:440px;align-self:center">Empty — type the changes above, load a starting point below, or tap a chord to pre-hear it and its <b>+</b> to place it. Tap a placed chord to edit it, or <b>+ REST</b> for a bar that sounds nothing.</span>
+      <span class="mono click" data-testid="progression-starter" style="align-self:center;flex:none;font-size:10px;letter-spacing:.06em;color:#fff;background:#3f6b5f;padding:9px 13px;border-radius:6px;white-space:nowrap" role="button" tabindex="0" onclick={() => store.loadStarterProgression()} onkeydown={(e) => e.key === 'Enter' && store.loadStarterProgression()}>▸ START FROM A {v.wsGenreName.toUpperCase()} PROGRESSION</span>
     {/if}
     {#each v.keyGroups as g, gi (gi)}
     <div style="flex:none;display:flex;flex-direction:column;gap:5px">

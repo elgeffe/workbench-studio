@@ -136,6 +136,7 @@
     </div>
     {#if v.bassLineEmpty}
       <div class="caption" style="font-size:12.5px;color:#9a8763;margin-top:9px">Empty — load a groove above to start from, or tap steps to write one. Each cell holds a <b>degree</b>, so the line transposes itself through every change.</div>
+      <div class="mono click" data-testid="bass-starter" style="display:inline-block;margin-top:8px;font-size:10px;letter-spacing:.06em;color:#fff;background:#3f6b5f;padding:8px 13px;border-radius:6px" role="button" tabindex="0" onclick={() => store.loadStarterBass()} onkeydown={(e) => e.key === 'Enter' && store.loadStarterBass()}>▸ START FROM A {v.bassGenreName.toUpperCase()} GROOVE</div>
     {/if}
   </div>
 </div>

@@ -28,6 +28,13 @@
     try { localStorage.setItem(SIDE_KEY, sideOpen ? '1' : '0'); } catch { /* private mode */ }
   }
   const v = $derived(store.view);
+  // Tabs whose part is sounding right now, so you can tell from any tab what is running.
+  const playingTab = $derived<Record<string, boolean>>({
+    drums: store.drPlaying,
+    chords: store.jzPlaying,
+    bass: store.jzPlaying && store.bassLine.some((c) => c),
+    metronome: store.met.isPlaying,
+  });
 
   // Resolve the layout before first paint so only one instrument panel mounts.
   if (typeof window !== 'undefined') {
@@ -98,7 +105,7 @@
 
     <!-- desktop mode tabs -->
     {#if store.isDesktop}
-      <div data-testid="desktop-tabs" style="display:flex;align-items:center;gap:0;background:#e7d9bf;border-bottom:1px solid #d3c1a1;padding:0 14px;overflow-x:auto">
+      <div data-testid="desktop-tabs" class="wb-tabs" style="display:flex;align-items:center;gap:0;background:#e7d9bf;border-bottom:1px solid #d3c1a1;padding:0 14px;overflow-x:auto">
         {#each v.tabs as tb (tb.id)}
           <div
             class="mono click"
@@ -106,7 +113,7 @@
             role="tab" tabindex="0" aria-label={tb.id} aria-selected={store.mode === tb.id}
             onclick={() => store.setMode(tb.id)}
             onkeydown={(e) => e.key === 'Enter' && store.setMode(tb.id)}
-          >{tb.label}</div>
+          >{tb.label}{#if playingTab[tb.id]}<span class="wb-tab-live" title="playing" aria-label="playing"></span>{/if}</div>
         {/each}
         <span style="flex:1 1 auto"></span>
         <button class="mono wb-undo" data-testid="undo" aria-label="undo" title="Undo (Ctrl/⌘ Z)" disabled={!store.canUndo} onclick={() => store.undo()}>↶</button>

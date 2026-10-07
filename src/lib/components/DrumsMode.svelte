@@ -64,24 +64,24 @@
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div data-testid="drum-grid" role="group" style="overflow-x:auto;padding-bottom:4px" onkeydown={gridNav}>
     <div style="min-width:560px">
-      <div style="display:flex;gap:3px;margin-bottom:4px;padding-left:123px">
+      <div style="display:flex;gap:3px;margin-bottom:4px;padding-left:163px">
         {#each v.drCount as c (c.s)}
           <div class="mono" style="flex:1;min-width:24px;text-align:center;font-size:9px;font-weight:{c.strong ? '700' : '400'};color:{c.hot ? '#c2562e' : c.strong ? '#5c4a30' : '#a08a64'}">{c.c}</div>
         {/each}
       </div>
       {#each v.drRows as row (row.id)}
         <div style="display:flex;align-items:center;gap:3px;margin-bottom:3px;opacity:{row.muted ? 0.55 : 1}">
-          <div class="click" style="flex:none;width:82px;display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:5px" role="button" tabindex="0" aria-label={'preview ' + row.name} onclick={() => store.previewDrumVoice(row.id)} onkeydown={(e) => e.key === 'Enter' && store.previewDrumVoice(row.id)}>
+          <div class="click" style="flex:none;width:110px;display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:5px" role="button" tabindex="0" aria-label={'preview ' + row.name} onclick={() => store.previewDrumVoice(row.id)} onkeydown={(e) => e.key === 'Enter' && store.previewDrumVoice(row.id)}>
             <span style="width:9px;height:9px;border-radius:50%;background:{row.color};flex:none"></span>
             <span class="mono" style="font-size:9px;letter-spacing:.04em;color:#5c4a30;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{row.name}</span>
           </div>
-          <div class="mono click" style="flex:none;width:16px;text-align:center;font-size:8px;padding:4px 0;border-radius:4px;border:1px solid {row.muted ? '#c2562e' : '#cbb792'};color:{row.muted ? '#c2562e' : '#8a7350'};background:{row.muted ? '#f8e3da' : 'transparent'}" role="button" tabindex="0" aria-label={'mute ' + row.name} onclick={() => store.toggleDrMute(row.id)} onkeydown={(e) => e.key === 'Enter' && store.toggleDrMute(row.id)}>M</div>
-          <div class="mono click" style="flex:none;width:16px;text-align:center;font-size:9px;padding:4px 0;border-radius:4px;border:1px solid #cbb792;color:#a08a64" role="button" tabindex="0" aria-label={'remove ' + row.name + ' row'} onclick={() => store.removeDrumRow(row.id)} onkeydown={(e) => e.key === 'Enter' && store.removeDrumRow(row.id)}>×</div>
+          <div class="mono click" style="flex:none;width:22px;text-align:center;font-size:9px;padding:6px 0;border-radius:4px;border:1px solid {row.muted ? '#c2562e' : '#cbb792'};color:{row.muted ? '#c2562e' : '#8a7350'};background:{row.muted ? '#f8e3da' : 'transparent'}" role="button" tabindex="0" aria-label={'mute ' + row.name} onclick={() => store.toggleDrMute(row.id)} onkeydown={(e) => e.key === 'Enter' && store.toggleDrMute(row.id)}>M</div>
+          <div class="mono click" style="flex:none;width:22px;text-align:center;font-size:11px;padding:6px 0;border-radius:4px;border:1px solid #cbb792;color:#a08a64" role="button" tabindex="0" aria-label={'remove ' + row.name + ' row'} onclick={() => store.removeDrumRow(row.id)} onkeydown={(e) => e.key === 'Enter' && store.removeDrumRow(row.id)}>×</div>
           {#each row.cells as cell (cell.s)}
             <div
               data-gr={row.id} data-gc={cell.s}
               class="click"
-              style="flex:1;min-width:24px;height:26px;border-radius:5px;background:{cell.bg};opacity:{cell.op};border:1px solid {cell.ring ? '#c2562e' : 'rgba(60,40,16,.12)'};box-shadow:{cell.ring ? '0 0 0 1.5px #c2562e' : 'none'}"
+              style="flex:1;min-width:24px;height:30px;border-radius:5px;background:{cell.bg};opacity:{cell.op};border:1px solid {cell.ring ? '#c2562e' : 'rgba(60,40,16,.12)'};box-shadow:{cell.ring ? '0 0 0 1.5px #c2562e' : 'none'}"
               role="button" tabindex="0" aria-label={row.id + ' step ' + (cell.s + 1)}
               onclick={() => store.toggleDrumCell(row.id, cell.s)}
               onkeydown={(e) => e.key === 'Enter' && store.toggleDrumCell(row.id, cell.s)}

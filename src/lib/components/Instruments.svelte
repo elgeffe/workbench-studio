@@ -13,8 +13,14 @@
     <div class="eyebrow">Sounding now</div>
     <div class="mono" style="font-size:9px;color:#a08a64">bass · guitar · piano</div>
   </div>
-  <div style="font-size:26px;font-weight:700;line-height:1;margin-bottom:2px;min-height:28px">{v.dockName}</div>
-  <div class="mono" style="font-size:11px;color:#7a6b50;margin-bottom:16px;min-height:14px">{v.dockNotes}</div>
+  {#if v.dockName === '—'}
+    <!-- Nothing sounding: show the key the instruments are set to instead of a blank dash. -->
+    <div style="font-size:26px;font-weight:700;line-height:1;margin-bottom:2px;min-height:28px;color:#7a6b50">{v.keyName}</div>
+    <div class="mono" style="font-size:11px;color:#7a6b50;margin-bottom:16px;min-height:14px">{v.scaleNotes} · tap a chord to light it up here</div>
+  {:else}
+    <div style="font-size:26px;font-weight:700;line-height:1;margin-bottom:2px;min-height:28px">{v.dockName}</div>
+    <div class="mono" style="font-size:11px;color:#7a6b50;margin-bottom:16px;min-height:14px">{v.dockNotes}</div>
+  {/if}
 {/if}
 
 {#if variant === 'side'}

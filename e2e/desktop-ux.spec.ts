@@ -74,3 +74,31 @@ test('undo and redo step through grid edits, and the song survives a reload', as
   await expect.poll(() => page.locator('[aria-label="kick step 2"]').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(edited);
   await expect(page.getByTestId('undo')).toBeDisabled();
 });
+
+test('the BPM readout is typeable and the slider resets on double-click', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('studio-bpm').click();
+  await page.getByTestId('studio-bpm-input').fill('133');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('studio-bpm')).toHaveText('133');
+  await page.getByLabel('studio tempo').dblclick();
+  await expect(page.getByTestId('studio-bpm')).toHaveText('104');
+});
+
+test('empty progression and bassline each offer a one-tap starter', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('3');
+  await page.getByTestId('progression-starter').click();
+  await expect(page.locator('[data-chip]').first()).toBeVisible();
+  await page.keyboard.press('4');
+  await page.getByTestId('bass-starter').click();
+  await expect(page.getByTestId('bass-starter')).toBeHidden();
+});
+
+test('a tab shows a live dot while its part plays', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('2');
+  await page.locator('[aria-label="kick step 1"]').click();
+  await page.getByTestId('studio-play').click();
+  await expect(page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' }).locator('.wb-tab-live')).toBeVisible();
+});
