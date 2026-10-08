@@ -148,9 +148,10 @@
         <div class="wb-side">
           <div class="wb-side-inner">
             <button class="mono wb-side-fold" data-testid="side-fold" aria-label="hide instruments" title="Hide instruments" onclick={toggleSide}>HIDE ›</button>
-            <!-- Fretboards only teach where chords are in play; on Drums and
-                 Metronome they sit dark, so the panel shrinks to the keyboard. -->
-            <Instruments variant="side" lite={store.mode === 'drums' || store.mode === 'metronome'} />
+            <!-- Fretboards only teach where something is lit; on Drums and
+                 Metronome they sit dark, so the panel shrinks to the keyboard
+                 until a chord or the drone gives them a scale to show. -->
+            <Instruments variant="side" lite={(store.mode === 'drums' || store.mode === 'metronome') && v.dockName === '—'} />
           </div>
         </div>
       {:else if store.isDesktop}

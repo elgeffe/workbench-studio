@@ -102,3 +102,12 @@ test('a tab shows a live dot while its part plays', async ({ page }) => {
   await page.getByTestId('studio-play').click();
   await expect(page.getByTestId('desktop-tabs').getByRole('tab', { name: 'drums' }).locator('.wb-tab-live')).toBeVisible();
 });
+
+test('the Metronome tab brings the fretboards back while the drone sounds', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('5');
+  await expect(page.getByText('BASS · EADG')).toBeHidden();
+  await page.getByRole('button', { name: /Play drone/ }).click();
+  await expect(page.getByText('BASS · EADG')).toBeVisible();
+  await expect(page.getByText('GUITAR · EADGBE')).toBeVisible();
+});
