@@ -16,9 +16,9 @@ export interface Wedge {
   nameL: string; nameT: string; numL: string; numT: string;
   pc: number; ring: 'maj' | 'min';
 }
-export interface FretCell { pc: number; showLit: boolean; litOpacity: string; note: string; bg: string; glow: string }
+export interface FretCell { pc: number; midi: number; showLit: boolean; litOpacity: string; note: string; bg: string; glow: string }
 export interface FretRow { label: string; cells: FretCell[] }
-export interface PianoKey { left: string; width: string; note: string; bg: string; fg: string; pc: number }
+export interface PianoKey { left: string; width: string; note: string; bg: string; fg: string; pc: number; midi: number }
 
 /**
  * Notes arriving with the next key — a drone plan's one-bar warning before it

@@ -10,9 +10,9 @@
     frets13: { m: string }[];
     label: string;
     cellH?: number; noteSz?: number;
-    // Tap-to-sound: called with the cell's pitch class. Also the play-it
+    // Tap-to-sound: called with the cell's pitch class and MIDI note. Also the play-it
     // answer input in Reading mode, so the fretboards work like the piano keys.
-    onPick?: (pc: number) => void;
+    onPick?: (pc: number, midi: number) => void;
   } = $props();
 </script>
 
@@ -24,7 +24,7 @@
       <div class="fret-lane">
         {#each s.cells as c, i (i)}
           {@const onNut = i === 0 ? 'position:absolute;left:0;top:50%;transform:translate(-50%,-50%);z-index:4;' : ''}
-          <div class="fret-cell" class:click={!!onPick} style="height:{cellH}px" role={onPick ? 'button' : undefined} tabindex="-1" onclick={() => onPick?.(c.pc)}>
+          <div class="fret-cell" class:click={!!onPick} style="height:{cellH}px" role={onPick ? 'button' : undefined} tabindex="-1" onclick={() => onPick?.(c.pc, c.midi)}>
             {#if c.showLit}
               <div class="fret-note" style="{onNut}width:{noteSz}px;height:{noteSz}px;font-size:8px;background:{c.bg};box-shadow:{c.glow};opacity:{c.litOpacity}">{c.note}</div>
             {/if}

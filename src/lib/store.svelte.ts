@@ -665,8 +665,9 @@ export class WorkbenchStore {
   setJazzCh(i: number): void { this.jazzCh = i; }
   // Instrument taps (piano keys, fret cells) always sound the note; in Reading
   // mode with play-it answering they double as the answer input.
-  selectNote(pc: number): void {
-    this.playMidis([60 + mod12(pc)], 0.9);
+  // `midi` is the exact key/fret pitch; without it the note falls in octave 4.
+  selectNote(pc: number, midi: number = 60 + mod12(pc)): void {
+    this.playMidis([midi], 0.9);
     this.readingTapPc(pc);
   }
 
