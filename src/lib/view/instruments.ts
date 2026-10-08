@@ -20,7 +20,8 @@ export function buildInstruments(
   const ac = s.activeChord;
   const frets = 13;
   const cell = (open: number, f: number): FretCell => {
-    const pc = (open + f) % 12;
+    const midi = open + f;
+    const pc = midi % 12;
     const isLit = litSet.has(pc);
     // A chord tone omitted by best-practice voicing: still shown, but greyed
     // and faded so it reads as "belongs to the chord, but not played".
@@ -31,10 +32,10 @@ export function buildInstruments(
     else if (!chordSet.has(pc)) { bg = '#97a59c'; }
     // A note arriving with the next key: ringed in the accent, spelled its way.
     if (incoming?.set.has(pc)) {
-      return { pc, showLit: true, litOpacity: '1', note: spell(pc, incoming.key.tonicPc, incoming.key.scale), bg: '#d9895c', glow: INCOMING_RING };
+      return { pc, midi, showLit: true, litOpacity: '1', note: spell(pc, incoming.key.tonicPc, incoming.key.scale), bg: '#d9895c', glow: INCOMING_RING };
     }
     if (incoming && pc === incoming.root) glow = INCOMING_RING;
-    return { pc, showLit: isLit || isDrop, litOpacity: isDrop ? '0.4' : '1', note: spell(pc, key.tonicPc, key.scale), bg, glow };
+    return { pc, midi, showLit: isLit || isDrop, litOpacity: isDrop ? '0.4' : '1', note: spell(pc, key.tonicPc, key.scale), bg, glow };
   };
   const buildFret = (opens: number[], labels: string[]): FretRow[] =>
     opens.map((o, si) => ({ label: labels[si], cells: Array.from({ length: frets }, (_, f) => cell(o, f)) }));
@@ -53,7 +54,7 @@ export function buildInstruments(
   keys.forEach((k) => {
     const isLit = litSet.has(k.pc), isRoot = k.pc === root;
     if (incoming?.set.has(k.pc)) {
-      const key = { left: '', width: '', pc: k.pc, note: spell(k.pc, incoming.key.tonicPc, incoming.key.scale), bg: '#f0c3a3', fg: '#9a3f1f' };
+      const key = { left: '', width: '', pc: k.pc, midi: k.m, note: spell(k.pc, incoming.key.tonicPc, incoming.key.scale), bg: '#f0c3a3', fg: '#9a3f1f' };
       if (k.white) { pianoWhite.push({ ...key, left: (wIdx * wp).toFixed(3), width: wp.toFixed(3) }); wIdx++; }
       else pianoBlack.push({ ...key, left: (wIdx * wp - wp * 0.31).toFixed(3), width: (wp * 0.62).toFixed(3), bg: '#c2562e', fg: '#fff' });
       return;
@@ -62,7 +63,7 @@ export function buildInstruments(
     const isDrop = !isLit && dropSet.has(k.pc);
     if (k.white) {
       pianoWhite.push({
-        left: (wIdx * wp).toFixed(3), width: wp.toFixed(3), pc: k.pc,
+        left: (wIdx * wp).toFixed(3), width: wp.toFixed(3), pc: k.pc, midi: k.m,
         note: isLit || isDrop ? spell(k.pc, key.tonicPc, key.scale) : '',
         bg: isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#e0d4bc' : '#f4ecdb',
         fg: isLit ? '#fff' : isDrop ? '#a2957a' : '#b9a988',
@@ -70,7 +71,7 @@ export function buildInstruments(
       wIdx++;
     } else {
       pianoBlack.push({
-        left: (wIdx * wp - wp * 0.31).toFixed(3), width: (wp * 0.62).toFixed(3), pc: k.pc,
+        left: (wIdx * wp - wp * 0.31).toFixed(3), width: (wp * 0.62).toFixed(3), pc: k.pc, midi: k.m,
         note: isLit || isDrop ? spell(k.pc, key.tonicPc, key.scale) : '',
         bg: isRoot ? '#c2562e' : isLit ? (chordSet.has(k.pc) ? '#3f6b5f' : '#97a59c') : isDrop ? '#5a4c39' : '#241a10',
         fg: isLit ? '#fff' : isDrop ? '#9a8a6d' : '#7a6a4e',

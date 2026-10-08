@@ -13,16 +13,16 @@
       <div
         class="pkey-white" role="button" tabindex="-1"
         style="left:{k.left}%;width:{k.width}%;background:{k.bg};color:{k.fg}"
-        onclick={() => store.selectNote(k.pc)}
-        onkeydown={(e) => e.key === 'Enter' && store.selectNote(k.pc)}
+        onclick={() => store.selectNote(k.pc, k.midi)}
+        onkeydown={(e) => e.key === 'Enter' && store.selectNote(k.pc, k.midi)}
       >{k.note}</div>
     {/each}
     {#each black as k, i (i)}
       <div
         class="pkey-black" role="button" tabindex="-1"
         style="left:{k.left}%;width:{k.width}%;background:{k.bg};color:{k.fg}"
-        onclick={() => store.selectNote(k.pc)}
-        onkeydown={(e) => e.key === 'Enter' && store.selectNote(k.pc)}
+        onclick={() => store.selectNote(k.pc, k.midi)}
+        onkeydown={(e) => e.key === 'Enter' && store.selectNote(k.pc, k.midi)}
       >{k.note}</div>
     {/each}
   </div>

@@ -25,13 +25,13 @@
 
 {#if variant === 'side'}
   {#if !lite}
-    <Fretboard rows={v.bass} frets13={v.frets13} label="BASS · EADG" cellH={22} noteSz={18} onPick={(pc) => store.selectNote(pc)} />
-    <Fretboard rows={v.guitar} frets13={v.frets13} label="GUITAR · EADGBE" cellH={20} noteSz={16} onPick={(pc) => store.selectNote(pc)} />
+    <Fretboard rows={v.bass} frets13={v.frets13} label="BASS · EADG" cellH={22} noteSz={18} onPick={(pc, midi) => store.selectNote(pc, midi)} />
+    <Fretboard rows={v.guitar} frets13={v.frets13} label="GUITAR · EADGBE" cellH={20} noteSz={16} onPick={(pc, midi) => store.selectNote(pc, midi)} />
   {/if}
   <Piano white={v.pianoWhite} black={v.pianoBlack} height={lite ? 150 : 96} />
 {:else}
   <Piano white={v.pianoWhite} black={v.pianoBlack} height={92} />
   <div style="height:14px"></div>
-  <Fretboard rows={v.guitar} frets13={v.frets13} label="GUITAR · EADGBE" cellH={20} noteSz={16} onPick={(pc) => store.selectNote(pc)} />
-  <Fretboard rows={v.bass} frets13={v.frets13} label="BASS · EADG" cellH={22} noteSz={18} onPick={(pc) => store.selectNote(pc)} />
+  <Fretboard rows={v.guitar} frets13={v.frets13} label="GUITAR · EADGBE" cellH={20} noteSz={16} onPick={(pc, midi) => store.selectNote(pc, midi)} />
+  <Fretboard rows={v.bass} frets13={v.frets13} label="BASS · EADG" cellH={22} noteSz={18} onPick={(pc, midi) => store.selectNote(pc, midi)} />
 {/if}
