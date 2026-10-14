@@ -972,7 +972,26 @@ export class WorkbenchStore {
   private gridHasHits(): boolean { return DRUM_VOICES.some((v) => this.drGrid[v.id].some((c) => c !== 0)); }
   /** Both play buttons drive this: one clock, everything starts and stops together. */
   togglePlay(): void {
-    if (this.jzPlaying || this.drPlaying) this.stopTransport(); else this.startTransport();
+    if (this.anyPlaying) this.stopAll(); else this.startAll();
+  }
+  /** Anything sounding: the band, the practice click or the drone. */
+  get anyPlaying(): boolean {
+    return this.jzPlaying || this.drPlaying || this.met.isPlaying || this.met.droneSounding;
+  }
+  /** What the global stop silenced, so the next global play brings it back. */
+  private resume = { click: false, drone: false };
+  /** The global PLAY: the band, plus the click and drone if they were running at the last stop. */
+  private startAll(): void {
+    this.startTransport();
+    if (this.resume.click) void this.met.start();
+    else if (this.resume.drone) void this.met.startDrone();
+  }
+  /** The global STOP: the band, the click and the drone all go quiet at once. */
+  private stopAll(): void {
+    this.resume = { click: this.met.isPlaying, drone: this.met.droneSounding };
+    this.stopTransport();
+    this.met.stop();
+    this.met.stopDrone();
   }
   startTransport(): void {
     this.audio.resume();

@@ -43,7 +43,7 @@
 
   const commands: Cmd[] = $derived([
     ...v.tabs.map((t, i) => ({ label: 'Go to ' + t.label.replace(/^\S+\s/, ''), group: 'Tab', hint: String(i + 1), run: () => store.setMode(t.id as Mode) })),
-    { label: store.jzPlaying || store.drPlaying ? 'Stop the band' : 'Play the band', group: 'Action', hint: 'Space', run: () => store.togglePlay() },
+    { label: store.anyPlaying ? 'Stop the band' : 'Play the band', group: 'Action', hint: 'Space', run: () => store.togglePlay() },
     { label: 'Undo', group: 'Edit', hint: 'Ctrl/⌘ Z', run: () => store.undo() },
     { label: 'Redo', group: 'Edit', hint: 'Shift+Ctrl/⌘ Z', run: () => store.redo() },
     { label: 'Export session to a file', group: 'Session', run: exportFile },
