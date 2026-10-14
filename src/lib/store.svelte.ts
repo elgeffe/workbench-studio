@@ -982,17 +982,12 @@ export class WorkbenchStore {
   get anyPlaying(): boolean {
     return this.jzPlaying || this.drPlaying || this.met.isPlaying;
   }
-  /** What the global stop silenced, so the next global play brings it back. */
-  private resume = { click: false, drone: false };
-  /** The global PLAY: the band, plus the click and drone if they were running at the last stop. */
+  /** The global PLAY starts the band only; the click and drone have their own start buttons. */
   private startAll(): void {
     this.startTransport();
-    if (this.resume.click) void this.met.start();
-    else if (this.resume.drone && !this.met.droneSounding) void this.met.startDrone();
   }
   /** The global STOP: the band, the click and the drone all go quiet at once. */
   private stopAll(): void {
-    this.resume = { click: this.met.isPlaying, drone: this.met.droneSounding };
     this.stopTransport();
     this.met.stop();
     this.met.stopDrone();
