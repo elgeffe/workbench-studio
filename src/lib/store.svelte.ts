@@ -974,9 +974,13 @@ export class WorkbenchStore {
   togglePlay(): void {
     if (this.anyPlaying) this.stopAll(); else this.startAll();
   }
-  /** Anything sounding: the band, the practice click or the drone. */
+  /**
+   * The transport is running: the band or the practice click. A drone sounding
+   * on its own doesn't count, so PLAY still starts the band over a held drone
+   * (and the next STOP then silences everything, drone included).
+   */
   get anyPlaying(): boolean {
-    return this.jzPlaying || this.drPlaying || this.met.isPlaying || this.met.droneSounding;
+    return this.jzPlaying || this.drPlaying || this.met.isPlaying;
   }
   /** What the global stop silenced, so the next global play brings it back. */
   private resume = { click: false, drone: false };
@@ -984,7 +988,7 @@ export class WorkbenchStore {
   private startAll(): void {
     this.startTransport();
     if (this.resume.click) void this.met.start();
-    else if (this.resume.drone) void this.met.startDrone();
+    else if (this.resume.drone && !this.met.droneSounding) void this.met.startDrone();
   }
   /** The global STOP: the band, the click and the drone all go quiet at once. */
   private stopAll(): void {
