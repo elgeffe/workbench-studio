@@ -393,7 +393,7 @@ export function jChVoiced(ch: Chord, voicing: string): Chord {
 
 export function jzNotes(ch: Chord, voicing: string, tonicPc: number, scale: ScaleId = 'ionian'): string {
   const v = jChVoiced(ch, voicing);
-  return spellChordTones(v.rootPc, gI(v), prefFlat(tonicPc, scale)).join(' ');
+  return spellChordTones(v.rootPc, gI(v), prefFlat(tonicPc, scale), chordRootName(v)).join(' ');
 }
 
 // classical inversion voicing of the selected chord
@@ -487,12 +487,23 @@ const THIRD_RUNG: Record<number, number> = {
   13: 4, 14: 4, 15: 4, 17: 5, 18: 5, 20: 6, 21: 6,
 };
 
-export function spellChordTones(rootPc: number, intervals: number[], flat = false): string[] {
+// The root's own spelling when the chord carries a name: C♯°7 in D harmonic
+// minor is built on C, not D♭, whatever the key's flat/sharp preference says.
+// A name that disagrees with the pitch (or has none) is ignored.
+export function chordRootName(ch: Pick<Chord, 'rootPc' | 'name'>): string | undefined {
+  const m = /^([A-G])(#{1,2}|b{1,2}|♯{1,2}|♭{1,2})?/.exec(ch.name || '');
+  if (!m) return undefined;
+  const name = m[1] + (m[2] || '').replace(/♯/g, '#').replace(/♭/g, 'b');
+  const acc = name.slice(1);
+  const off = (acc.match(/#/g) || []).length - (acc.match(/b/g) || []).length;
+  return mod12(LETTER_PC[LETTERS.indexOf(m[1])] + off) === mod12(ch.rootPc) ? name : undefined;
+}
+
+export function spellChordTones(rootPc: number, intervals: number[], flat = false, rootName?: string): string[] {
   const has = (x: number) => intervals.includes(x);
   const upper = (has(10) || has(11)) && has(7); // a seventh chord with its fifth intact
   const dimTriad = has(3) && has(6);            // …so 9 semitones is a °7, not a 6th
-  const rootName = (flat ? CF : CS)[mod12(rootPc)];
-  const li = LETTERS.indexOf(rootName[0]);
+  const li = LETTERS.indexOf((rootName || (flat ? CF : CS)[mod12(rootPc)])[0]);
   return intervals.map((iv) => {
     let rung = THIRD_RUNG[iv];
     if (rung === undefined) {

@@ -8,7 +8,7 @@ import {
 import {
   spell, spellOther, cname, gI, gPcs, playedPcs, droppedPcs, keyNameStr, scaleNotesStr,
   diatonicList, subsFor, keyLabel, keySigStr, isEnharmonicTie, fmtKey, chordAlias,
-  spellChordTones, prefFlat, isRest,
+  spellChordTones, chordRootName, prefFlat, isRest,
 } from '../engine/theory';
 import { patternDefs, PAT_GROUPS } from '../engine/data';
 import { scalePcs } from '../metronome/drone/sound';
@@ -109,12 +109,12 @@ export function computeView(s: WorkbenchStore) {
   if (ac && !acRest) {
     const labels = ac.degLabels || ['R', '3', '5', '7', '9', '11', '13'];
     // Spelled by thirds, so an altered chord shows the letters the page uses.
-    const names = spellChordTones(ac.rootPc, gI(ac), prefFlat(t, s.scale));
+    const names = spellChordTones(ac.rootPc, gI(ac), prefFlat(t, s.scale), chordRootName(ac));
     acNotes = names.map((name, i) => ({ name, deg: labels[i] || '', bd: i === 0 ? '#c2562e' : '#3f6b5f' }));
   }
   const subs = ac && !acRest ? subsFor(ac, t, s.scale).map((sub) => {
     const ch = { rootPc: sub.rootPc, intervals: sub.intervals, name: sub.name, roman: sub.roman, fn: sub.fn } as Chord;
-    return { name: sub.name, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], notes: spellChordTones(ch.rootPc, gI(ch), prefFlat(t, s.scale)), ch };
+    return { name: sub.name, tag: sub.tag, why: sub.why, fnColor: FNCOLOR[sub.fn || 'T'], notes: spellChordTones(ch.rootPc, gI(ch), prefFlat(t, s.scale), chordRootName(ch)), ch };
   }) : [];
 
   const acName = !ac ? '' : acRest ? ac.name || '' : ac.name || cname(ac.rootPc, ac.quality || 'maj', t, s.scale);

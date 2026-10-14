@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   spell, cname, diatonicList, subsFor, invChord, mod12, gPcs,
   playedIntervals, playedPcs, droppedPcs, keyLabel, keySigStr, isEnharmonicTie,
-  parentMajorPc, keyNameStr, scaleNotesStr, spellScale, spellChordTones,
+  parentMajorPc, keyNameStr, scaleNotesStr, spellScale, spellChordTones, chordRootName, prefFlat,
   restChord, isRest, gMidis, REST_NAME,
 } from './theory';
 import { INT, SCALES, type ScaleId } from './constants';
@@ -271,3 +271,34 @@ describe('a rest', () => {
   });
 });
 
+
+describe('chord tones follow the chord root\'s letter', () => {
+  const flatKey = (pc: number, sc: any) => prefFlat(pc, sc);
+  it('spells D harmonic minor\'s vii° on C♯, not D♭', () => {
+    const vii = diatonicList(2, 'harmonic', '7')[6];
+    expect(vii.name).toBe('C#°7');
+    expect(chordRootName(vii)).toBe('C#');
+    expect(spellChordTones(vii.rootPc, vii.intervals, true, chordRootName(vii))).toEqual(['C#', 'E', 'G', 'Bb']);
+    const tri = diatonicList(2, 'harmonic', 'triad')[6];
+    expect(spellChordTones(tri.rootPc, tri.intervals, true, chordRootName(tri))).toEqual(['C#', 'E', 'G']);
+  });
+  it('stacks letters in thirds for every diatonic chord of every scale, key and extension', () => {
+    const L = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+    for (const sc of Object.keys(SCALES) as any[]) {
+      for (let t = 0; t < 12; t++) {
+        for (const ext of ['triad', '7', '9', '11', '13']) {
+          for (const ch of diatonicList(t, sc, ext)) {
+            const rn = chordRootName(ch);
+            expect(rn, ch.name).toBeDefined();
+            const tones = spellChordTones(ch.rootPc, ch.intervals, flatKey(t, sc), rn);
+            const li = L.indexOf(rn![0]);
+            tones.forEach((n, i) => {
+              if (n.length > 3) return; // documented fallback
+              expect(n[0], `${ch.name} in ${sc} ${t}`).toBe(L[(li + 2 * i) % 7]);
+            });
+          }
+        }
+      }
+    }
+  });
+});
