@@ -87,7 +87,7 @@ export function computeView(s: WorkbenchStore) {
   const acRest = isRest(ac);
   // The play buttons in Drums and Workshop show the state of the ONE shared
   // transport — pressing either starts/stops the whole band.
-  const transportOn = s.jzPlaying || s.drPlaying;
+  const transportOn = s.anyPlaying;
 
   const { wedges, circleLabel, circleHint } = buildCircle(t, s.circleView, s.circleDir, s.scale);
 

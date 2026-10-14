@@ -43,6 +43,8 @@ const OUT_TRIM = 1.6;
 const PRE_GAIN = 0.3;
 /** Crossfade used when the preset or voicing changes mid-drone. */
 const SWAP_S = 0.4;
+/** Fade used when the drone is stopped — short enough to read as instant. */
+const STOP_FADE_S = 0.015;
 const MAX_DELAY_S = 3;
 /** Peak of one plucked string into the drive stage, before PRE_GAIN. */
 const PLUCK_LEVEL = 0.9;
@@ -142,7 +144,7 @@ export class DroneVoice {
 	stop(): void {
 		this.stopClock();
 		if (!this.graph) return;
-		this.release(this.graph, this.graph.sound.release);
+		this.silence(this.graph);
 		this.graph = null;
 	}
 
@@ -443,6 +445,23 @@ export class DroneVoice {
 		set(g.delay.delayTime, this.delaySeconds(s));
 
 		set(g.out.gain, Math.max(0, Math.min(1, p.volume)) * OUT_TRIM);
+	}
+
+	/**
+	 * Stop means stop: no release tail, no ringing reverb or echo. A few ms of
+	 * fade on the output (reverb, echo and plucks all pass through it) avoids a
+	 * click while still sounding instant.
+	 */
+	private silence(g: Graph): void {
+		const t = this.ctx.currentTime;
+		const gain = g.out.gain;
+		gain.cancelScheduledValues(t);
+		gain.setValueAtTime(gain.value, t);
+		gain.linearRampToValueAtTime(0, t + STOP_FADE_S);
+		const stopAt = t + STOP_FADE_S + 0.02;
+		for (const o of g.oscs) o.stop(stopAt);
+		for (const l of g.lfos) l.osc.stop(stopAt);
+		setTimeout(() => g.out.disconnect(), (STOP_FADE_S + 0.1) * 1000);
 	}
 
 	private release(g: Graph, seconds: number): void {
