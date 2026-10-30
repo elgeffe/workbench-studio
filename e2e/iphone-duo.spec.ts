@@ -12,31 +12,28 @@ async function box(page: import('@playwright/test').Page, sel: string) {
 test.describe('unfolded, turned to landscape (890x626)', () => {
   test.use({ viewport: { width: 890, height: 626 }, hasTouch: true });
 
-  test('moves the dock and tabs to a rail on the trailing edge', async ({ page }) => {
+  test('keeps the dock and tabs docked at the bottom', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByText('Workbench Studio')).toBeVisible();
-    const rail = await box(page, '.wb-dockbar');
-    expect(rail.right).toBe(890);
-    expect(rail.left).toBeGreaterThan(890 - 140);
-    expect(rail.top).toBe(0);
-    // every tab sits inside the rail and on screen
+    const dock = await box(page, '.wb-dockbar');
+    expect(dock.bottom).toBe(626);
+    expect(dock.left).toBe(0);
+    expect(dock.right).toBe(890);
     for (const t of await page.locator('.wb-mtab').all()) {
       const b = (await t.boundingBox())!;
-      expect(b.x).toBeGreaterThanOrEqual(rail.left);
+      expect(b.y).toBeGreaterThanOrEqual(dock.top);
       expect(b.y + b.height).toBeLessThanOrEqual(626);
     }
-    // content and header stop short of the rail
-    expect((await box(page, '.wb-header')).right).toBeLessThanOrEqual(rail.left + 1);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 
-  test('the dock panel opens beside the rail, not over it', async ({ page }) => {
+  test('the dock panel opens above the bar', async ({ page }) => {
     await page.goto('/');
-    await page.getByTestId('dock-bar').click({ position: { x: 20, y: 120 } });
+    await page.getByTestId('dock-bar').click();
     await expect(page.getByTestId('dock-panel')).toBeVisible();
-    const rail = await box(page, '.wb-dockbar');
+    const bar = await box(page, '[data-testid=dock-bar]');
     const panel = await box(page, '[data-testid=dock-panel]');
-    expect(panel.right).toBeLessThanOrEqual(rail.left + 1);
+    expect(panel.bottom).toBeLessThanOrEqual(bar.top + 1);
   });
 });
 
